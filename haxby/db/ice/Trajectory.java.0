@@ -1,0 +1,198 @@
+package haxby.db.ice;
+
+import java.net.*;
+import java.io.*;
+import java.util.*;
+import java.awt.geom.*;
+import java.awt.*;
+import javax.swing.*;
+
+public class Trajectory 
+		implements Overlay {
+	PolarMap map;
+	GregorianCalendar start;
+	float[] temp = null;
+	float minT, maxT;
+	String id;
+	String notes;
+	transient Vector points;
+	GeneralPath path=null;
+	GeneralPath pathTmp=null;
+	public Trajectory( UVField field,
+				PolarMap map,
+				double lon,
+				double lat,
+				int year,
+				int month,
+				int day,
+				String id) {
+		this.map = map;
+		start = new GregorianCalendar(year, month-1, day);
+		Point2D p = new Point2D.Double(lon, lat);
+		field.setLonLat(p);
+		field.setTime(year, month, (double)(day-1));
+		field.setDayStep(-1d);
+		points = new Vector();
+		points.add(p);
+		while(field.step()) {
+			p = field.getLonLat();
+			if( points.size()>30 && !IceMask.isIce( (int)field.getTime(), p)) break;
+			points.add( p );
+		}
+//	System.out.println(points.size() +" points");
+	}
+	String[] headings=null;
+	String[][] values=null;
+	public void copy() {
+		if(values==null)getTable();
+		StringBuffer sb = new StringBuffer();
+		sb.append( headings[0] 
+			+"\t"+ headings[1]
+			+"\t"+ headings[2]
+			+"\t"+ headings[3]
+			+"\t"+ headings[4]
+			+"\t"+ headings[5] +"\n");
+	
+		for(int k=0 ; k<values.length ; k++) {
+			sb.append( values[k][0] 
+				+"\t"+ values[k][1]
+				+"\t"+ values[k][2]
+				+"\t"+ values[k][3]
+				+"\t"+ values[k][4]
+				+"\t"+ values[k][5] +"\n");
+		}
+		String s = new String(sb);
+		JTextArea area = new JTextArea(s);
+		area.selectAll();
+		area.cut();
+	}
+	public JTable getTable() {
+		headings = new String[] {"year", "month", "day", "Long", "Lat", "T"};
+		values = new String[points.size()][headings.length];
+		GregorianCalendar cal = (GregorianCalendar) start.clone();
+		for( int i=0 ; i<points.size() ; i++) {
+			values[i][0] = Integer.toString( cal.get(cal.YEAR) );
+			values[i][1] = Integer.toString( (cal.get(cal.MONTH)+1) );
+			values[i][2] = Integer.toString( cal.get(cal.DAY_OF_MONTH) );
+			Point2D p = (Point2D) points.get(i);
+			values[i][3] = Float.toString((float)p.getX());
+			values[i][4] = Float.toString((float)p.getY());
+			if(temp != null ) values[i][5] = Float.toString(temp[i]);
+			cal.add(cal.DATE, -1);
+		}
+		return new JTable(values, headings);
+	}
+	public void loadTemperature() {
+		if(temp != null ) return;
+		GregorianCalendar cal = (GregorianCalendar) start.clone();
+		temp = new float[points.size()];
+		minT = 1000f;
+		maxT = -minT;
+		URL url=null;
+		URLConnection urlC=null;
+		try {
+			url = new URL("http://ocean-ridge.ldeo.columbia.edu/cgi-bin/ArcticTemp.sh");
+			urlC = url.openConnection();
+		} catch (Exception ex) {
+			temp = null;
+			ex.printStackTrace();
+			return;
+		}
+		DataOutputStream out=null;
+		BufferedReader in=null;
+		try {
+			urlC.setDoOutput(true);
+			urlC.setDoInput(true);
+			out = new DataOutputStream(urlC.getOutputStream());
+			out.writeInt(temp.length);
+			for(int i=0 ; i<temp.length ; i++ ) {
+				Point2D p = (Point2D) points.get(i);
+				out.writeShort( (short)(cal.get(cal.YEAR)-1900) );
+				out.writeShort((short)cal.get(cal.DAY_OF_YEAR) );
+				out.writeFloat( (float)p.getX() );
+				out.writeFloat( (float)p.getY() );
+				cal.add(cal.DATE, 1);
+			}
+			in = new BufferedReader(
+				new InputStreamReader(urlC.getInputStream()));
+			String s;
+			for(int i=0 ; i<temp.length ; i++ ) {
+				s = in.readLine();
+//	System.out.println(s);
+				if(s.equals("NaN")) temp[i] = Float.NaN;
+				else temp[i] = Float.parseFloat(s);
+//	System.out.println(i +"\t"+ temp[i]);
+				if(!Float.isNaN(temp[i])) {
+					if(temp[i]>maxT)maxT=temp[i];
+					if(temp[i]<minT)minT=temp[i];
+				}
+			}
+			out.close();
+			in.close();
+		} catch (Exception ex) {
+			temp=null;
+			ex.printStackTrace();
+			if( out!=null ) {
+				try {
+					out.close();
+				} catch (Exception ex1) {
+				}
+				try {
+					in.close();
+				} catch (Exception ex1) {
+				}
+			}
+		}
+	}
+	public void draw( Graphics2D g) {
+		if( points==null )return;
+		if(path == null ) {
+			path = new GeneralPath();
+			Point2D p = map.getProjection().getMapXY((Point2D)points.get(0));
+			path.moveTo((float)p.getX(), (float)p.getY());
+			for(int i=0 ; i<points.size() ; i++) {
+				p = map.getProjection().getMapXY((Point2D)points.get(i));
+				path.lineTo((float)p.getX(), (float)p.getY());
+			}
+		}
+		g.setColor(Color.black);
+		float lineW = 2f/(float)map.getZoom();
+		g.setStroke(new BasicStroke(lineW));
+		g.draw(path);
+		if(pathTmp != null) {
+			g.setColor(Color.white);
+			g.draw(pathTmp);
+		}
+	}
+	public void setInterval(int i1, int i2) {
+		if(pathTmp != null) {
+			synchronized (map.getTreeLock()) {
+				Graphics2D g = map.getGraphics2D();
+				g.setColor(Color.black);
+				float lineW = 2f/(float)map.getZoom();
+				g.setStroke(new BasicStroke(lineW));
+				g.draw(pathTmp);
+			}
+		}
+		if(i1<0) {
+			pathTmp = null;
+			return;
+		}
+		pathTmp = new GeneralPath();
+		i1 = Math.max( i1-2, 0);
+		i2 = Math.min( i2+2, points.size()-1);
+		Point2D p = map.getProjection().getMapXY((Point2D)points.get(i1));
+		pathTmp.moveTo((float)p.getX(), (float)p.getY());
+		for(int i=i1+1 ; i<=i2 ; i++) {
+			p = map.getProjection().getMapXY((Point2D)points.get(i));
+			pathTmp.lineTo((float)p.getX(), (float)p.getY());
+		}
+		synchronized (map.getTreeLock()) {
+			Graphics2D g = map.getGraphics2D();
+			float lineW = 2f/(float)map.getZoom();
+			g.setStroke(new BasicStroke(lineW));
+			g.setColor(Color.white);
+			g.draw(pathTmp);
+		}
+	}
+}

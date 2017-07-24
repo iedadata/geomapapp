@@ -1,0 +1,40 @@
+	public void nearestPoint(double x, double y, Nearest nearest) {
+		if( nearest.rtest==0 ) return;
+		double dx, dy, dx0, dy0, r, r0, test, xx;
+		double x1, y1, x2, y2;
+		for( int seg=0 ; seg<cpts.length ; seg++ ) {
+			x1 = cpts[seg][0].getX();
+			y1 = cpts[seg][0].getY();
+			for( int i=0 ; i<cpts[seg].length-1 ; i++ ) {
+				x2 = (double)cpts[seg][i+1].getX();
+				y2 = (double)cpts[seg][i+1].getY();
+				dx0 = x2-x1;
+				dy0 = y2-y1;
+				dx = x-x1;
+				dy = y-y1;
+				r0 = dx0*dx0 + dy0*dy0;
+				test = dx*dx0 + dy*dy0;
+				x1 = x2;
+				y1 = y2;
+				if(test<0) {
+					r = dx*dx + dy*dy;
+					if( r>nearest.rtest ) continue;
+					xx = (double)i;
+				} else if( test>r0 ) {
+					dx -= dx0;
+					dy -= dy0;
+					r = dx*dx + dy*dy;
+					if( r>nearest.rtest ) continue;
+					xx = (double)(i+1);
+				} else {
+					r = -dx*dy0 + dy*dx0;
+					r *= r/r0;
+					if( r>nearest.rtest ) continue;
+					xx = test/r0;
+				}
+				nearest.rtest = r;
+				nearest.x = xx;
+				nearest.seg = seg;
+				nearest.track = this;
+			}
+		}

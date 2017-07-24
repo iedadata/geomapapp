@@ -1,0 +1,102 @@
+package haxby.map;
+
+import haxby.proj.*;
+import haxby.db.mb.*;
+
+import java.io.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.*;
+import java.awt.geom.*;
+import javax.swing.*;
+
+public class SPApp2 implements KeyListener, ActionListener {
+	XMap map = null;
+	Zoomer zoomer;
+	MapTools tools;
+	JFrame frame;
+	MapOverlay focus;
+	MapOverlay baseMap;
+	JToggleButton plotB;
+	JToggleButton[] pallette;
+	MBGrids_SP grids;
+	File mbControl=null;
+	MBTracks db=null;
+	public SPApp2() {
+		JWindow startup = new JWindow();
+		StartUp start = new StartUp();
+		startup.getContentPane().add(start, "Center");
+		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+		startup.pack();
+		Dimension win = startup.getSize();
+		startup.setLocation( (screen.width-win.width)/2, (screen.height-win.height)/2 );
+		startup.show();
+		dir = "/scratch/ridgembs/bill/antarctic";
+		PolarStereo proj = new PolarStereo( new Point(320, 320),
+				180., 25600., -71., PolarStereo.SOUTH, PolarStereo.WGS84);
+		int width = 640;
+		int height = 640;
+		map = new XMap( this, proj, width, height);
+		PolarMapBorder border = new PolarMapBorder(map);
+		map.setMapBorder(border);
+		start.setText("Composing Basemap Image");
+		baseMap = new MapOverlay( map );
+		if( !SPMapServerA.getImage( new Rectangle(0,0,640,640), baseMap, 512) ) {
+			System.out.println("unable to create base map");
+			System.exit(0);
+		}
+		map.addOverlay(baseMap);
+		start.setText("Initiallizing GUI");
+		focus = new MapOverlay( map );
+		map.addOverlay(focus);
+		zoomer = new Zoomer(map);
+		map.addMouseListener(zoomer);
+		map.addMouseMotionListener(zoomer);
+		map.addMouseMotionListener(zoomer);
+		map.addKeyListener(zoomer);
+		map.addKeyListener(this);
+		tools = new MapTools( this, map, focus);
+		JScrollPane sp = new JScrollPane(map);
+
+		frame = new JFrame("MapApp");
+		frame.setDefaultCloseOperation( frame.EXIT_ON_CLOSE );
+		frame.getContentPane().add( tools.getTools(), "North");
+		frame.getContentPane().add( sp, "Center");
+		mbControl= new File(dir+"/mb_control");
+		db = new MBTracks(map, 4000, mbControl);
+		if( db.loadDB()) {
+			db.setEnabled(true);
+			panel.add( db.getSelectionDialog(), "South");
+			frame.getContentPane().add( panel, "West");
+			frame.getContentPane().add( db.getDataDisplay(), "South");
+			map.addOverlay( db );
+		}
+		startup.dispose();
+		frame.pack();
+		frame.show();
+	}
+	public void keyPressed( KeyEvent evt ) {
+	}
+	public void keyTyped( KeyEvent evt ) {
+	}
+	public void keyReleased( KeyEvent evt ) {
+		if( evt.getKeyCode() == KeyEvent.VK_F ) mapFocus();
+	}
+	public void actionPerformed(ActionEvent evt) {
+	//	Object src = evt.getSource();
+	//	if( src==pallette[0] ) {
+	//		grids.setPallette(0);
+	//	} else if( src==pallette[1] ) {
+	//		grids.setPallette(1);
+	//	} else {
+	//		grids.setPlot( plotB.isSelected() );
+	//	}
+	//	map.repaint();
+	}
+	public void mapFocus() {
+		if( SPMapServerA.getImage( map.getClipRect2D(), focus, 512) ) map.repaint();
+	}
+	public static void main( String[] args) {
+		new SPApp2( dir, base, scale );
+	}
+}

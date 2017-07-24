@@ -1,0 +1,867 @@
+// Decompiled by DJ v3.4.4.74 Copyright 2003 Atanas Neshkov  Date: 5/6/2003 4:25:57 PM
+// Home Page : http://members.fortunecity.com/neshkov/dj.html  - Check often for new version!
+// Decompiler options: packimports(3) 
+// Source File Name:   RImage.java
+
+package haxby.db.radar;
+
+import com.sun.image.codec.jpeg.JPEGCodec;
+import com.sun.image.codec.jpeg.JPEGImageEncoder;
+import haxby.image.*;
+import haxby.map.*;
+import haxby.util.Scroller;
+import haxby.util.SimpleBorder;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.net.URL;
+import java.util.Vector;
+import java.util.zip.GZIPInputStream;
+import javax.swing.*;
+
+// Referenced classes of package haxby.db.radar:
+//            RBorder, RCrossing, RLine, RCruise
+
+public class RImage extends JComponent
+    implements ActionListener, MouseListener, MouseMotionListener, Zoomable
+{
+
+    public RImage()
+    {
+        panel = null;
+        rev = false;
+        flip = false;
+        lastTime = (0.0D / 0.0D);
+        toolBar = null;
+        border = null;
+        image = null;
+        cdpInterval = null;
+        tRange = null;
+        scroller = null;
+        width = 100;
+        height = 50;
+        xRep = yRep = xAvg = yAvg = 1;
+        panel = new JPanel(new BorderLayout());
+        panel.add(getToolBar(), "West");
+        JScrollPane jscrollpane = new JScrollPane(this);
+        scroller = new Scroller(jscrollpane, 1);
+        panel.add(jscrollpane, "Center");
+        zoomer = new Zoomer(this);
+        addMouseListener(zoomer);
+        addMouseListener(this);
+        addMouseMotionListener(zoomer);
+        addMouseMotionListener(this);
+        addKeyListener(zoomer);
+        line = null;
+        otherImage = null;
+    }
+
+    public void setOtherImage(RImage rimage)
+    {
+        otherImage = rimage;
+    }
+
+    public void loadImage(RLine rline)
+        throws IOException
+    {
+        if(rline.getZRange() == null)
+            throw new IOException(" no data for " + rline.getID());
+        line = rline;
+        border = new RBorder(this);
+        xRep = yRep = 1;
+        xAvg = yAvg = 8;
+        image = null;
+        System.gc();
+        width = 100;
+        height = 50;
+        invalidate();
+        DataInputStream datainputstream = null;
+        border.setTitle();
+        cdpInterval = rline.getCDPRange();
+        tRange = rline.getZRange();
+       // URL url = new URL("file:/scratch/ridgembs/bill/radar/" + 
+	//			rline.getCruiseID().trim() + "/" + rline.getID().trim() + ".r2.gz");
+	URL url = new URL( MapApp.getBaseURL() + "antarctic/radar/" +
+					rline.getCruiseID().trim() + "/" +
+					rline.getID().trim() + ".r2.gz");
+        java.io.InputStream inputstream = url.openStream();
+        datainputstream = new DataInputStream(new GZIPInputStream(new BufferedInputStream(inputstream)));
+        if(datainputstream.readInt() != 0x59a66a95)
+            throw new IOException("unknown format");
+        width = datainputstream.readInt();
+        height = datainputstream.readInt();
+        if(datainputstream.readInt() != 2)
+            throw new IOException("unknown format");
+        int i = datainputstream.readInt();
+        for(int j = 0; j < 3; j++)
+            datainputstream.readInt();
+
+        byte abyte0[] = new byte[i];
+        boolean flag = false;
+        boolean flag1 = false;
+        try
+        {
+            datainputstream.readFully(abyte0);
+        }
+        catch(IOException ioexception) { }
+        image = new R2(abyte0, width, height);
+        image.setRevVid(rev);
+        image.setFlip(flip);
+        try
+        {
+            if(datainputstream != null)
+                datainputstream.close();
+        }
+        catch(Exception exception) { }
+        if(scroller != null)
+        {
+            invalidate();
+            synchronized(getTreeLock())
+            {
+                scroller.validate();
+            }
+            scroller.scrollTo(new Point(0, 0));
+            panel.repaint();
+        }
+        otherImage.repaint();
+    }
+
+    public String getCruiseID()
+    {
+        return line.getCruise().getID();
+    }
+
+    public String getID()
+    {
+        return line.getID();
+    }
+
+    public String toString()
+    {
+        return line.getID();
+    }
+
+    public RLine getLine()
+    {
+        return line;
+    }
+
+    public double getXScale()
+    {
+        double d = (line.getCDPSpacing() * (cdpInterval[1] - cdpInterval[0])) / (double)((width * xRep) / xAvg);
+        return d;
+    }
+
+    public double getYScale()
+    {
+        return (tRange[1] - tRange[0]) / (double)((height * yRep) / yAvg);
+    }
+
+    public void setImageScales(double d, double d1, double d2, double d3)
+    {
+        cdpInterval = (new double[] {
+            d, d1
+        });
+        tRange = (new double[] {
+            d2, d3
+        });
+        border = new RBorder(this);
+    }
+
+    public Dimension getPreferredSize()
+    {
+        if(image == null)
+            return new Dimension(1000, 200);
+        Dimension dimension = new Dimension((width * xRep) / xAvg, (height * yRep) / yAvg);
+        if(border != null)
+        {
+            Insets insets = border.getBorderInsets(this);
+            dimension.width += insets.left + insets.right;
+            dimension.height += insets.top + insets.bottom;
+        }
+        return dimension;
+    }
+
+    public Insets getBorderInsets()
+    {
+        if(border == null)
+            return new Insets(0, 0, 0, 0);
+        else
+            return border.getBorderInsets(this);
+    }
+
+    public Dimension getMinimumSize()
+    {
+        return new Dimension(500, 100);
+    }
+
+    public int[] getVisibleSeg()
+    {
+        if(!isVisible() || line == null || image == null)
+            return (new int[] {
+                0, 0
+            });
+        Rectangle rectangle = getVisibleRect();
+        Insets insets = border.getBorderInsets(this);
+        rectangle.width -= insets.left + insets.right;
+        rectangle.x += insets.left;
+        int ai[] = new int[2];
+        if(flip)
+        {
+            ai[0] = cdpAt(rectangle.x + rectangle.width);
+            ai[1] = cdpAt(rectangle.x);
+        } else
+        {
+            ai[0] = cdpAt(rectangle.x);
+            ai[1] = cdpAt(rectangle.x + rectangle.width);
+        }
+        return ai;
+    }
+
+    public void drawVisibleSeg()
+    {
+        if(!isVisible() || line == null || image == null)
+        {
+            return;
+        } else
+        {
+            Rectangle rectangle = getVisibleRect();
+            int ai[] = getVisibleSeg();
+            line.drawSeg(ai[0], ai[1]);
+            return;
+        }
+    }
+
+    public void paint(Graphics g)
+    {
+        if(image == null)
+        {
+            g.drawString("no image loaded", 10, 50);
+            return;
+        }
+        line.drawCDP(-1);
+        Graphics2D graphics2d = (Graphics2D)g;
+        graphics2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        drawVisibleSeg();
+        Rectangle rectangle = getVisibleRect();
+        Dimension dimension = getPreferredSize();
+        if(rectangle.width > dimension.width)
+            rectangle.width = dimension.width;
+        if(rectangle.height > dimension.height)
+            rectangle.height = dimension.height;
+        if(image == null)
+            return;
+        Insets insets = border != null ? border.getBorderInsets(this) : new Insets(0, 0, 0, 0);
+        int ai[] = getVisibleSeg();
+        double d = (double)rectangle.width / (double)(ai[1] - ai[0]);
+        java.awt.geom.AffineTransform affinetransform = null;
+        if(border != null)
+        {
+            Dimension dimension1 = getPreferredSize();
+            Rectangle rectangle1 = new Rectangle(0, 0, dimension1.width, dimension1.height);
+            if(rectangle.contains(rectangle1))
+            {
+                rectangle = rectangle1;
+                g.clipRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+            }
+            border.paintBorder(this, g, rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+            g.setFont(new Font("SansSerif", 1, 10));
+            FontMetrics fontmetrics = g.getFontMetrics();
+            if(ai[1] > ai[0])
+            {
+                java.awt.geom.AffineTransform affinetransform2 = graphics2d.getTransform();
+                double d1 = (double)(rectangle.width - insets.left - insets.right) / (double)(ai[1] - ai[0]);
+                if(isRevVid())
+                    graphics2d.setColor(Color.yellow);
+                else
+                    graphics2d.setColor(Color.blue);
+                for(int j = 0; j < line.crossings.size(); j++)
+                {
+                    RCrossing rcrossing = (RCrossing)line.crossings.get(j);
+                    if(rcrossing.cdp1 >= (double)ai[0] && rcrossing.cdp1 <= (double)ai[1])
+                    {
+                        int i1 = isFlip() ? rectangle.x + insets.left + (int)Math.rint((-rcrossing.cdp1 + (double)ai[1]) * d1) : rectangle.x + insets.left + (int)Math.rint((rcrossing.cdp1 - (double)ai[0]) * d1);
+                        graphics2d.translate(i1, rectangle.y + insets.top);
+                        if(rcrossing.cross == otherImage.getLine())
+                        {
+                            affinetransform = graphics2d.getTransform();
+                            graphics2d.drawLine(0, rectangle.height, 0, -12);
+                        } else
+                        {
+                            graphics2d.drawLine(0, 0, 0, -12);
+                        }
+                        graphics2d.drawString(rcrossing.cross.toString(), -fontmetrics.stringWidth(rcrossing.cross.toString()) / 2, -14);
+                        graphics2d.setTransform(affinetransform2);
+                    }
+                }
+
+            }
+            g.setColor(Color.lightGray);
+            g.drawLine(rectangle.x + 2, rectangle.y + 2, (rectangle.x + insets.left) - 2, (rectangle.y + insets.top) - 2);
+            if(isRevVid())
+                graphics2d.setColor(Color.white);
+            else
+                graphics2d.setColor(Color.black);
+            g.setFont(new Font("SansSerif", 0, 10));
+            fontmetrics = graphics2d.getFontMetrics();
+            int i = fontmetrics.stringWidth(xRep + "");
+            int k = rectangle.x + 14;
+            int l = rectangle.y + 10;
+            g.drawString(xRep + "", k, l);
+            g.drawLine((i + k) - 3, l + 4, i + k + 5, l - 4);
+            g.drawString(xAvg + "", k + 2 + i, l + 9);
+            i = fontmetrics.stringWidth(yRep + "");
+            k = rectangle.x + 1;
+            l = (rectangle.y + insets.top) - 16;
+            g.drawString(yRep + "", k, l);
+            g.drawLine((i + k) - 3, l + 4, i + k + 5, l - 4);
+            g.drawString(yAvg + "", k + 2 + i, l + 9);
+            g.translate(insets.left, insets.top);
+            g.clipRect(rectangle.x, rectangle.y, rectangle.width - insets.left - insets.right, rectangle.height - insets.top - insets.bottom);
+        }
+        if(!image.isFlip() && getZoomX() == 1.0D && getZoomY() == 1.0D)
+        {
+            graphics2d.drawImage(image.getImage(), 0, 0, this);
+        } else
+        {
+            rectangle = image.getImageableRect(graphics2d.getClipBounds(), xAvg, yAvg, xRep, yRep);
+            if(rectangle.width > 0 && rectangle.height > 0)
+            {
+                BufferedImage bufferedimage = image.getScaledImage(rectangle, xAvg, yAvg, xRep, yRep);
+                graphics2d.drawImage(bufferedimage, rectangle.x, rectangle.y, this);
+            }
+        }
+        rectangle = getVisibleRect();
+        if(affinetransform != null)
+        {
+            java.awt.geom.AffineTransform affinetransform1 = graphics2d.getTransform();
+            graphics2d.setTransform(affinetransform);
+            if(isRevVid())
+                graphics2d.setColor(Color.yellow);
+            else
+                graphics2d.setColor(Color.blue);
+            graphics2d.drawLine(0, rectangle.height, 0, 0);
+            graphics2d.setTransform(affinetransform1);
+        }
+        lastTime = (0.0D / 0.0D);
+        otherImage.drawTime(lastTime);
+    }
+
+    public void saveJPEG(OutputStream outputstream)
+        throws IOException
+    {
+        if(image == null)
+            throw new IOException("no image loaded");
+        Rectangle rectangle = getVisibleRect();
+        Dimension dimension = getPreferredSize();
+        if(rectangle.x + rectangle.width > dimension.width)
+            rectangle.width = dimension.width - rectangle.x;
+        if(rectangle.y + rectangle.height > dimension.height)
+            rectangle.height = dimension.height - rectangle.y;
+        BufferedImage bufferedimage = new BufferedImage(rectangle.width, rectangle.height, 1);
+        Graphics2D graphics2d = bufferedimage.createGraphics();
+        graphics2d.translate(-rectangle.x, -rectangle.y);
+        if(border != null)
+        {
+            Dimension dimension1 = getPreferredSize();
+            Rectangle rectangle2 = new Rectangle(0, 0, dimension1.width, dimension1.height);
+            if(rectangle.contains(rectangle2))
+            {
+                rectangle = rectangle2;
+                graphics2d.clipRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+            }
+            Insets insets = border.getBorderInsets(this);
+            border.paintBorder(this, graphics2d, rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+            int ai[] = getVisibleSeg();
+            graphics2d.translate(insets.left, insets.top);
+            graphics2d.clipRect(rectangle.x, rectangle.y, rectangle.width - insets.left - insets.right, rectangle.height - insets.top - insets.bottom);
+        }
+        if(!image.isFlip() && getZoomX() == 1.0D && getZoomY() == 1.0D)
+        {
+            graphics2d.drawImage(image.getImage(), 0, 0, this);
+        } else
+        {
+            Rectangle rectangle1 = image.getImageableRect(graphics2d.getClipBounds(), xAvg, yAvg, xRep, yRep);
+            if(rectangle1.width > 0 || rectangle1.height > 0)
+            {
+                BufferedImage bufferedimage1 = image.getScaledImage(rectangle1, xAvg, yAvg, xRep, yRep);
+                graphics2d.drawImage(bufferedimage1, rectangle1.x, rectangle1.y, this);
+            }
+        }
+        graphics2d.translate(rectangle.x, rectangle.y);
+        JPEGImageEncoder jpegimageencoder = JPEGCodec.createJPEGEncoder(outputstream);
+        jpegimageencoder.encode(bufferedimage);
+        outputstream.flush();
+        outputstream.close();
+    }
+
+    public double getZoomX()
+    {
+        return (double)xRep / (double)xAvg;
+    }
+
+    public double getZoomY()
+    {
+        return (double)yRep / (double)yAvg;
+    }
+
+    public void setXY(Point point)
+    {
+    }
+
+    public void setRect(Rectangle rectangle)
+    {
+    }
+
+    public void newRectangle(Rectangle rectangle)
+    {
+    }
+
+    public void zoomTo(Rectangle rectangle)
+    {
+    }
+
+    public double timeAt(int i)
+    {
+        if(tRange == null)
+            return (0.0D / 0.0D);
+        Insets insets = border.getBorderInsets(this);
+        double d = getZoomY();
+        d /= (tRange[1] - tRange[0]) / (double)height;
+        double d1 = (double)(i - insets.top) / d;
+        double d2 = Math.min(tRange[0], tRange[1]);
+        double d3 = Math.max(tRange[0], tRange[1]);
+        if(d1 < d2)
+            d1 = d2;
+        if(d1 > d3)
+            d1 = d3;
+        return d1;
+    }
+
+    public int cdpAt(int i)
+    {
+        if(cdpInterval == null)
+            return -1;
+        Insets insets = border.getBorderInsets(this);
+        double d = getZoomX();
+        d /= ((cdpInterval[1] - cdpInterval[0]) + 1.0D) / (double)width;
+        double d1 = (double)(i - insets.left) / d;
+        if(flip)
+            d1 = cdpInterval[1] - d1;
+        else
+            d1 = cdpInterval[0] + d1;
+        if(d1 < cdpInterval[0])
+            d1 = cdpInterval[0];
+        if(d1 > cdpInterval[1])
+            d1 = cdpInterval[1];
+        return (int)Math.rint(d1);
+    }
+
+    public void zoomIn(Point point)
+    {
+        if(image == null)
+            return;
+        Insets insets = border.getBorderInsets(this);
+        Rectangle rectangle = getVisibleRect();
+        double d = getZoomX();
+        double d1 = getZoomY();
+        double d2 = (double)(point.x - insets.left) / d;
+        double d3 = (double)(point.y - insets.top) / d1;
+        double d4 = (double)rectangle.width - (double)insets.left - (double)insets.right;
+        double d5 = (double)rectangle.height - (double)insets.top - (double)insets.bottom;
+        if(xAvg == 1)
+            xRep *= 2;
+        else
+            xAvg /= 2;
+        if(yAvg == 1)
+            yRep *= 2;
+        else
+            yAvg /= 2;
+        d = getZoomX();
+        d1 = getZoomY();
+        invalidate();
+        int i = (int)(d2 * d - rectangle.getWidth() * 0.5D);
+        int j = (int)(d3 * d1 - rectangle.getHeight() * 0.5D);
+        synchronized(this)
+        {
+            scroller.validate();
+        }
+        scroller.scrollTo(new Point(i, j));
+        repaint();
+    }
+
+    public void zoomOut(Point point)
+    {
+        if(image == null)
+            return;
+        double d = getZoomX();
+        double d1 = getZoomY();
+        Insets insets = border.getBorderInsets(this);
+        Rectangle rectangle = getVisibleRect();
+        Rectangle rectangle1 = getBounds();
+        double d2 = (double)(point.x - insets.left) / d;
+        double d3 = (double)(point.y - insets.top) / d1;
+        double d4 = (double)rectangle.width - (double)insets.left - (double)insets.right;
+        double d5 = (double)rectangle.height - (double)insets.top - (double)insets.bottom;
+        if(xRep == 1)
+            xAvg *= 2;
+        else
+            xRep /= 2;
+        if(yRep == 1)
+            yAvg *= 2;
+        else
+            yRep /= 2;
+        d = getZoomX();
+        d1 = getZoomY();
+        invalidate();
+        int i = (int)(d2 * d - d4 * 0.5D);
+        int j = (int)(d3 * d1 - d5 * 0.5D);
+        synchronized(this)
+        {
+            scroller.validate();
+        }
+        scroller.scrollTo(new Point(i, j));
+        repaint();
+    }
+
+    public void setScroller(Scroller scroller1)
+    {
+        scroller = scroller1;
+    }
+
+    void popup(Point point)
+    {
+    }
+
+    public void mouseClicked(MouseEvent mouseevent)
+    {
+        if(mouseevent.isPopupTrigger())
+            popup(mouseevent.getPoint());
+    }
+
+    public void mousePressed(MouseEvent mouseevent)
+    {
+        if(mouseevent.isPopupTrigger())
+            popup(mouseevent.getPoint());
+    }
+
+    public void mouseReleased(MouseEvent mouseevent)
+    {
+    }
+
+    public void mouseEntered(MouseEvent mouseevent)
+    {
+    }
+
+    public void mouseExited(MouseEvent mouseevent)
+    {
+        if(line == null)
+        {
+            return;
+        } else
+        {
+            line.drawCDP(-1);
+            drawTime((0.0D / 0.0D));
+            otherImage.drawTime((0.0D / 0.0D));
+            return;
+        }
+    }
+
+    public void mouseMoved(MouseEvent mouseevent)
+    {
+        if(image == null || line == null)
+        {
+            return;
+        } else
+        {
+            line.drawCDP(cdpAt(mouseevent.getX()));
+            double d = timeAt(mouseevent.getY());
+            drawTime(d);
+            otherImage.drawTime(d);
+            return;
+        }
+    }
+
+    void drawTime(double d)
+    {
+        if(tRange == null)
+            return;
+        synchronized(getTreeLock())
+        {
+            Graphics2D graphics2d = (Graphics2D)getGraphics();
+            Insets insets = border != null ? border.getBorderInsets(this) : new Insets(0, 0, 0, 0);
+            Rectangle rectangle = getVisibleRect();
+            Dimension dimension = getPreferredSize();
+            graphics2d.setXORMode(Color.white);
+            if(!Double.isNaN(lastTime))
+            {
+                int i = insets.top + (int)Math.rint(((double)(dimension.height - insets.top - insets.bottom) * (lastTime - tRange[0])) / (tRange[1] - tRange[0]));
+                graphics2d.drawLine(rectangle.x + insets.left, i, (rectangle.x + rectangle.width) - insets.right, i);
+            }
+            lastTime = d;
+            if(!Double.isNaN(lastTime))
+            {
+                int j = insets.top + (int)Math.rint(((double)(dimension.height - insets.top - insets.bottom) * (lastTime - tRange[0])) / (tRange[1] - tRange[0]));
+                graphics2d.drawLine(rectangle.x + insets.left, j, (rectangle.x + rectangle.width) - insets.right, j);
+            }
+        }
+    }
+
+    public void mouseDragged(MouseEvent mouseevent)
+    {
+    }
+
+    public void actionPerformed(ActionEvent actionevent)
+    {
+        String s = actionevent.getActionCommand();
+        if(image == null)
+        {
+            if(s.equals("RevVid"))
+                rev = !rev;
+            else
+            if(s.equals("flip"))
+                flip = !flip;
+            return;
+        }
+        if(s.equals("RevVid"))
+            revVid();
+        else
+        if(s.equals("wider"))
+            wider();
+        else
+        if(s.equals("narrower"))
+            narrower();
+        else
+        if(s.equals("flip"))
+        {
+            image.setFlip(!image.isFlip());
+            flip = image.isFlip();
+            double d = getZoomX();
+            double d1 = getZoomY();
+            Insets insets = border.getBorderInsets(this);
+            Rectangle rectangle = getVisibleRect();
+            Rectangle rectangle1 = getBounds();
+            if(rectangle.contains(rectangle1))
+                rectangle = rectangle1;
+            Point point = new Point();
+            point.x = (rectangle.width - insets.left - insets.right) / 2 + rectangle.x;
+            point.y = (rectangle.height - insets.top - insets.bottom) / 2 + rectangle.y;
+            double d2 = (double)width - point.getX() / d;
+            double d3 = point.getY() / d1;
+            double d4 = (double)rectangle.width - (double)insets.left - (double)insets.right;
+            double d5 = (double)rectangle.height - (double)insets.top - (double)insets.bottom;
+            invalidate();
+            int i = (int)(d2 * d - d4 * 0.5D);
+            int j = (int)(d3 * d1 - d5 * 0.5D);
+            synchronized(this)
+            {
+                scroller.validate();
+            }
+            scroller.scrollTo(new Point(i, j));
+            repaint();
+        } else
+        if(s.equals("save"))
+            try
+            {
+                save();
+            }
+            catch(IOException ioexception) { }
+        else
+        if(s.equals("show crossing lines"))
+            repaint();
+    }
+
+    void save()	throws IOException
+    {
+        if(line == null)
+        {
+            JOptionPane.showMessageDialog(getTopLevelAncestor(), "Image not loaded.");
+            return;
+        }
+        JPanel jpanel = new JPanel(new GridLayout(0, 1));
+        JLabel jlabel = new JLabel("Save current image as a .jpg?");
+        
+        jpanel.add(jlabel);
+        jlabel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Color.black), BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+        int i = JOptionPane.showConfirmDialog(getTopLevelAncestor(), jpanel, "Save Image?", 2);
+        
+        if(i == 2)
+            return;
+        File file = new File(getID() + ".jpg");
+        
+        for(int j = 1; j == 1;)
+        {
+            JFileChooser jfilechooser = MapApp.getFileChooser();
+            jfilechooser.setSelectedFile(file);
+            int k = jfilechooser.showSaveDialog(getTopLevelAncestor());
+            JFileChooser _tmp = jfilechooser;
+            if(k == 1)
+                return;
+            file = jfilechooser.getSelectedFile();
+            if(!file.exists())
+                break;
+            j = JOptionPane.showConfirmDialog(getTopLevelAncestor(), "File exists, Overwrite?");
+            if(j == 2)
+                return;
+        }
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        
+        BufferedOutputStream bufferedoutputstream = new BufferedOutputStream(new FileOutputStream(file));        
+        try
+        {
+            saveJPEG(bufferedoutputstream);
+        }
+        catch(IOException ioexception) { }
+        setCursor(Cursor.getDefaultCursor());
+    }
+
+    public void narrower()
+    {
+        double d = getZoomX();
+        double d1 = getZoomY();
+        Insets insets = border.getBorderInsets(this);
+        Rectangle rectangle = getVisibleRect();
+        Rectangle rectangle1 = getBounds();
+        if(rectangle.contains(rectangle1))
+            rectangle = rectangle1;
+        Point point = new Point();
+        point.x = (rectangle.width - insets.left - insets.right) / 2 + rectangle.x;
+        point.y = (rectangle.height - insets.top - insets.bottom) / 2 + rectangle.y;
+        double d2 = point.getX() / d;
+        double d3 = point.getY() / d1;
+        double d4 = (double)rectangle.width - (double)insets.left - (double)insets.right;
+        double d5 = (double)rectangle.height - (double)insets.top - (double)insets.bottom;
+        if(xRep == 1)
+            xAvg *= 2;
+        else
+            xRep /= 2;
+        d = getZoomX();
+        d1 = getZoomY();
+        invalidate();
+        int i = (int)(d2 * d - d4 * 0.5D);
+        int j = (int)(d3 * d1 - d5 * 0.5D);
+        invalidate();
+        scroller.validate();
+        scroller.scrollTo(new Point(i, j));
+        repaint();
+    }
+
+    public void wider()
+    {
+        double d = getZoomX();
+        double d1 = getZoomY();
+        Insets insets = border.getBorderInsets(this);
+        Rectangle rectangle = getVisibleRect();
+        Rectangle rectangle1 = getBounds();
+        if(rectangle.contains(rectangle1))
+            rectangle = rectangle1;
+        Point point = new Point();
+        point.x = (rectangle.width - insets.left - insets.right) / 2 + rectangle.x;
+        point.y = (rectangle.height - insets.top - insets.bottom) / 2 + rectangle.y;
+        double d2 = point.getX() / d;
+        double d3 = point.getY() / d1;
+        double d4 = (double)rectangle.width - (double)insets.left - (double)insets.right;
+        double d5 = (double)rectangle.height - (double)insets.top - (double)insets.bottom;
+        if(xAvg == 1)
+            xRep *= 2;
+        else
+            xAvg /= 2;
+        d = getZoomX();
+        d1 = getZoomY();
+        invalidate();
+        int i = (int)(d2 * d - d4 * 0.5D);
+        int j = (int)(d3 * d1 - d5 * 0.5D);
+        invalidate();
+        scroller.validate();
+        rectangle1 = getBounds();
+        scroller.scrollTo(new Point(i, j));
+        repaint();
+    }
+
+    public void revVid()
+    {
+        rev = !rev;
+        image.setRevVid(rev);
+        repaint();
+    }
+
+    private void initToolBar()
+    {
+        SimpleBorder simpleborder = new SimpleBorder();
+        toolBar = new JToolBar(1);
+        toolBar.setFloatable(false);
+        JButton jbutton = new JButton(Icons.getIcon(Icons.WIDER, false));
+        jbutton.setPressedIcon(Icons.getIcon(Icons.WIDER, true));
+        jbutton.setBorder(null);
+        jbutton.addActionListener(this);
+        toolBar.add(jbutton);
+        jbutton.setActionCommand("wider");
+        jbutton = new JButton(Icons.getIcon(Icons.NARROWER, false));
+        jbutton.setPressedIcon(Icons.getIcon(Icons.NARROWER, true));
+        jbutton.setBorder(null);
+        jbutton.addActionListener(this);
+        toolBar.add(jbutton);
+        jbutton.setActionCommand("narrower");
+        JToggleButton jtogglebutton = new JToggleButton(Icons.getIcon(Icons.POSITIVE, false));
+        jtogglebutton.setSelectedIcon(Icons.getIcon(Icons.NEGATIVE, true));
+        jtogglebutton.setBorder(null);
+        jtogglebutton.addActionListener(this);
+        toolBar.add(jtogglebutton);
+        jtogglebutton.setActionCommand("RevVid");
+        jtogglebutton = new JToggleButton(Icons.getIcon(Icons.FORWARD, false));
+        jtogglebutton.setSelectedIcon(Icons.getIcon(Icons.REVERSE, true));
+        jtogglebutton.setBorder(null);
+        jtogglebutton.addActionListener(this);
+        toolBar.add(jtogglebutton);
+        jtogglebutton.setActionCommand("flip");
+        jbutton = new JButton(Icons.getIcon(Icons.SAVE, false));
+        jbutton.setPressedIcon(Icons.getIcon(Icons.SAVE, true));
+        jbutton.setBorder(null);
+        jbutton.addActionListener(this);
+        toolBar.add(jbutton);
+        jbutton.setToolTipText("Save");
+        jbutton.setActionCommand("save");
+    }
+
+    public boolean isFlip()
+    {
+        if(image == null)
+            return false;
+        else
+            return image.isFlip();
+    }
+
+    public JToolBar getToolBar()
+    {
+        if(toolBar == null)
+            initToolBar();
+        return toolBar;
+    }
+
+    public boolean isRevVid()
+    {
+        return rev;
+    }
+
+    RLine line;
+    RImage otherImage;
+    RBorder border;
+    Scroller scroller;
+    ScalableImage image;
+    int width;
+    int height;
+    JPanel panel;
+    double cdpInterval[];
+    double tRange[];
+    int xRep;
+    int yRep;
+    int xAvg;
+    int yAvg;
+    boolean rev;
+    boolean flip;
+    Zoomer zoomer;
+    double lastTime;
+    JToolBar toolBar;
+}

@@ -1,0 +1,92 @@
+package org.geomapapp.grid;
+
+import org.geomapapp.geom.*;
+
+import java.io.*;
+import java.net.URL;
+import java.awt.Rectangle;
+import java.util.zip.*;
+import java.util.StringTokenizer;
+
+public static class GridIO {
+	public static Grid2D.Float readE00(File file, 
+			boolean changeSign) 
+			throws IOException {
+		return readE00( new FileInputStream(file), changeSign);
+	}
+	public static Grid2D.Float readE00(URL url, 
+			boolean changeSign) 
+			throws IOException {
+		return readE00( url.openStream(), changeSign);
+	}
+	public static Grid2D.Float readE00(InputStream input,
+			boolean changeSign) 
+			throws IOException {
+		BufferedReader in = new BufferedReader(
+			new InputStreamReader(input));
+		String s = in.readLine();
+		s = in.readLine();
+		if( !s.startsWith("GRD") ) {
+			throw new IOException( "unrecognized format ");
+		}
+		s = in.readLine();
+		StringTokenizer st = new StringTokenizer(s);
+		int width = Integer.parseInt( st.nextToken() );
+		int height = Integer.parseInt( st.nextToken() );
+		
+		s = in.readLine();
+		double dx = Double.parseDouble( s.substring(0,21).trim() );
+		double dy = Double.parseDouble( s.substring(21).trim() );
+		s = in.readLine();
+		double xmin = Double.parseDouble( s.substring(0,21).trim() );
+		double ymin = Double.parseDouble( s.substring(21).trim() );
+		s = in.readLine();
+		double xmax = Double.parseDouble( s.substring(0,21).trim() );
+		double ymax = Double.parseDouble( s.substring(21).trim() );
+		System.out.println( file.getName() +"\t"+ width +"\t"+ height);
+		System.out.println( dx +"\t"+ ((xmax-xmin)/width) );
+		System.out.println( dy +"\t"+ ((ymax-ymin)/height) );
+		float[] grid = new float[width*height];
+		int k=0;
+		for( k=0 ; k<width*height ; k++ ) grid[k]=Float.NaN;
+		k=0;
+		while( !(s=in.readLine()).trim().equals("EOG") ) {
+			int kk=0;
+			while( k<width*height && kk<70 ) {
+				String ss = s.substring(kk, kk+14 );
+				if( !ss.equals( "-0.3402823E+39" ) ) grid[k]=Float.parseFloat(ss);
+				k++;
+				if( k%width==0 ) break;
+				kk += 14;
+			}
+		}
+		while( !(s=in.readLine()).startsWith("PRJ") );
+		st = new StringTokenizer( in.readLine() );
+		if( !st.nextToken().equals("Projection") ) {
+			throw new IOException( "unrecognized projection");
+		}
+		s = st.nextToken();
+		if( !s.equals("UTM") && !s.equals("POLAR") ) {
+			throw new IOException( "unrecognized projection");
+		}
+		if( s.equals("UTM") ) {
+			s=in.readLine();
+			st = new StringTokenizer( in.readLine() );
+			if( !st.nextToken().equals("Zone") ) {
+				throw new IOException( "unrecognized projection");
+			}
+			int zone = Integer.parseInt( st.nextToken() );
+			UTMProjection utm = new UTMProjection( xmin+dx/2., ymin+dy/2., dx, dy,
+							zone, 2, 1);
+			XGrid grd = new XGrid( 0, 0, width, height, 1, utm, grid);
+			return grd;
+		} else {
+			PolarStereo proj = new PolarStereo( new Point2D.Double(-xmin/dx, ymax/dx),
+					4., dx, 79.,
+					Projection.NORTH,
+					Projection.WGS84 );
+			XGrid grd = new XGrid( 0, 0, width, height, 1, proj, grid);
+			return grd;
+		}
+	}
+}

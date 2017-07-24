@@ -1,0 +1,154 @@
+package org.geomapapp.db.util;
+
+import java.io.*;
+import java.util.*;
+import java.net.URL;
+
+public class ParseLink {
+	public static Vector parse(URL url) throws IOException {
+		return parse(new BufferedReader(new InputStreamReader(url.openStream())), null);
+	}
+	static Vector parse(BufferedReader in, Vector properties) throws IOException {
+		boolean top = properties==null;
+		if( top )properties = new Vector();
+		int i=-1;
+		while( true ) {
+			try {
+				i=nextChar(in);
+			} catch(EOFException e) {
+				if(!top) throw e;
+				return properties;
+			}
+			if((char)i=='<') addProperty(in, properties, -1);
+		}
+		return properties;
+	}
+	static void addProperty( BufferedReader in, Vector properties) throws IOException {
+		Vector props = new Vector();
+		char c;
+		int i = nextChar(in);
+		c = (char)i;
+		if( c=='!' ) {
+			while( (char)nextChar(in)!='>' );
+			return;
+		}
+		String name = null;
+		StringBuffer sb = new StringBuffer();
+		sb.append(c);
+
+	// parse name
+
+		while() {
+			i=nextChar(in);
+			if( i==-1 )throw new EOFException();
+			c=(char)i;
+			if( c=='/' ) {
+				c = (char)nextChar(in);
+				name = sb.toString();
+				if( c!='>' ) throw new IOException("error parsing "+name);
+				properties.add( new Object[] {name, props});
+				return;
+			} else if(c=='>') {
+				name=sb.toString();
+				break;
+			} else {
+				sb.append(c);
+			}
+		}
+
+	//  parse property
+
+		c = (char)nextChar(in);
+		sb = new StringBuffer();
+		if( c=='<' ) {
+			if( parseEndTag(name, in) ) {
+				parse(in, properties);
+				properties.add( new Object[] {name, props});
+				return;
+			}
+		}
+
+		while( true ) {
+			if( c=='<' ) {
+				if( parseEndTag(name, in) ) {
+					parse(in, properties);
+					properties.add( new Object[] {name, props});
+					return;
+				}
+			}
+		}
+	}
+	int parseEndTag(String name, BufferedReader in) throws IOException {
+		char c;
+		while( true ) {
+			c = (char)nextChar(in);
+			if( c=='/' ) {
+				while( true ) {
+					c = (char)nextChar(in);
+					if( c=='>' ) {
+						String nm = sb.toString();
+						if( !nm.equals(name) ) throw new IOException("error parsing "+name);
+						break;
+					}
+				}
+				return true;
+			} else if( c=="!" ) {
+				parseComment();
+				return false;
+			} else {
+				throw new IOException("error parsing "+name);
+			}
+		}
+	}
+	boolean parseComment(BufferedReader in) throws IOException {
+		while( true ) {
+			c = (char)nextChar(in);
+			if( c==">" )return;
+		}
+	}
+	static String getQuoteString(BufferedReader in) throws IOException {
+		StringBuffer sb = new StringBuffer();
+		int i;
+		while( (char)(i=in.read())!='\"' ) sb.append((char)i);
+		return sb.toString();
+	}
+	static int nextChar( BufferedReader in ) throws IOException {
+		int i;
+		while( (i=in.read())!=-1 ) {
+// System.out.println( (char)i);
+			if( Character.isWhitespace((char)i) )continue;
+			else break;
+		}
+		if( i==-1 ) throw new EOFException();
+		return i;
+	}
+	public static void printProperties( Vector properties, int level ) throws IOException {
+	//	System.out.println( properties.size() );
+		for( int k=0 ; k<properties.size() ; k++) {
+			Object[] p = (Object[])properties.get(k);
+			StringBuffer sb = new StringBuffer();
+			for( int i=0 ; i<level ; i++) sb.append("    ");
+			sb.append( p[0].toString());
+			sb.append(":");
+			if( p[1] instanceof String ) {
+				sb.append( "\t"+p[1].toString());
+				System.out.println( sb);
+			} else {
+				System.out.println( sb);
+				printProperties( (Vector)p[1], level+1);
+			}
+		}
+	}
+	public static void main(String[] args) {
+		if( args.length!=1 ) {
+			System.out.println( "usage: java org.geomapapp.db.util.ParseLink url");
+			System.exit(-1);
+		}
+		try {
+			printProperties( ParseLink.parse( new URL(args[0]) ), 0);
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+		System.exit(0);
+	}
+}

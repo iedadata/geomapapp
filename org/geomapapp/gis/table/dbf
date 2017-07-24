@@ -1,0 +1,101 @@
+	public static GTable readDBF(String path, String filename) throws IOException {
+		boolean url = path.startsWith( "http://" ) || path.startsWith( "file://" );
+		if( url&& !path.endsWith("/") ) path += "/";
+		InputStream in = url ?
+			(new URL( path+filename+".dbf")).openStream()
+			: new FileInputStream( new File(path, filename+".dbf"));
+		DataInputStream input = new DataInputStream(
+			new BufferedInputStream( in ));
+		byte version = input.readByte();
+		input.readByte();
+		input.readByte();
+		input.readByte();
+		int nRecord = LittleIO.readInt( input );
+		int hLength = LittleIO.readShort( input );
+		int recLength = LittleIO.readShort( input );
+	//	System.out.println( nRecord +"\t"+ hLength +"\t"+ recLength);
+		for( int k=12 ; k<32 ; k++) input.readByte();
+		byte[] nm = new byte[11];
+		int index = 32;
+		Vector names = new Vector();
+		Vector classes = new Vector();
+		Vector lengths = new Vector();
+		int rLen = 1;
+		while( rLen<recLength ) {
+// System.out.println( rLen +"\t"+ recLength);
+			input.readFully(nm);
+			int offset=0;
+			for( int j=0 ; j<nm.length ; j++) {
+				if( nm[j]>32 )break;
+				offset++;
+			}
+			int len=nm.length-offset;
+			for( int j=nm.length-1 ; j>=offset ; j--) {
+				if( nm[j]>32 )break;
+				len--;
+			}
+			String name = new String(nm,offset,len);
+		//	name.trim();
+			names.add(name);
+			byte[] tp = new byte[] { input.readByte() };
+			String type = new String(tp);
+			if( type.equalsIgnoreCase("C") ) classes.add( String.class );
+			else if( type.equalsIgnoreCase("N") ) classes.add( Number.class );
+			else if( type.equalsIgnoreCase("L") ) classes.add( Boolean.class );
+			else classes.add( String.class );
+			for( int k=0 ; k<4; k++) input.readByte();
+			len = input.read();
+			rLen += len;
+			lengths.add( new Integer( len ));
+			for( int k=17 ; k<32; k++) input.readByte();
+			index += 32;
+		//	System.out.println( name +"\n\t"+ type +"\t"+ len);
+		}
+		while(index<hLength) {
+			input.read();
+			index++;
+		}
+		Vector records = new Vector();
+		for( int k=0 ; k<nRecord ; k++) {
+			input.read();
+			StringBuffer sb = new StringBuffer();
+			sb.append( (k+1)+"\t");
+			Vector record = new Vector();
+			for( int i=0 ; i<names.size() ; i++) {
+//	System.out.println( ((Integer)lengths.get(i)).intValue() );
+				nm = new byte[((Integer)lengths.get(i)).intValue()];
+				input.readFully(nm);
+				int offset=0;
+				for( int j=0 ; j<nm.length ; j++) {
+					if( nm[j]>32 )break;
+					offset++;
+				}
+				int len=nm.length-offset;
+				for( int j=nm.length-1 ; j>=offset ; j--) {
+					if( nm[j]>32 )break;
+					len--;
+				}
+				String val = new String(nm,offset,len);
+				val.trim();
+//	System.out.println( len +"\t"+ val.length() +"\t"+ nm[0] +"\t"+ nm[len-1]);
+				sb.append( val+"\t");
+				if( classes.get(i)==String.class ) record.add(val);
+				else if( classes.get(i)==Number.class ) {
+					try {
+						record.add(new Double(val));
+					} catch(NumberFormatException ex) {
+						record.add(new Double(Double.NaN));
+					}
+				} else if( classes.get(i)==Boolean.class ) {
+					val = val.toLowerCase();
+					boolean tf = val.startsWith("t") || val.startsWith("y");
+					record.add(new Boolean(tf));
+				} else record.add(val);
+			}
+			records.add( record);
+			// System.out.println( sb);
+		}
+		input.close();
+		GTable table = new GTable( names, records, (StringBuffer)null);
+		return table;
+	}

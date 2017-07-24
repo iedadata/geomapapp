@@ -1,0 +1,424 @@
+package haxby.db.mcs;
+
+import haxby.image.*;
+import haxby.map.*;
+import haxby.util.*;
+import java.util.*;
+import java.util.zip.*;
+import java.io.*;
+import java.net.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.*;
+import java.awt.image.*;
+import javax.swing.*;
+import java.sql.*;
+
+public class MCSImage1 extends JComponent 
+		implements ActionListener, MouseListener, MouseMotionListener,  Zoomable {
+//	MCSLine line;
+	String cruiseID;
+	String lineID;
+
+	MCSBorder border;
+	Scroller scroller;
+	ScalableImage image;
+	int width, height;
+	JFrame imageFrame;
+
+	double[] cdpInterval;
+	double[] tRange;
+	int xRep, yRep, xAvg, yAvg;
+	boolean rev=false;
+
+	protected MCSImage1() {
+		border = null;
+		image = null;
+		cdpInterval = null;
+		tRange = null;
+		scroller = null;
+		xRep = yRep = xAvg = yAvg = 1;
+	}
+	public MCSImage1( String mcsFile ) throws IOException {
+		this();
+		imageFrame = new JFrame();
+		JScrollPane sp = new JScrollPane(this);
+		scroller = new Scroller(sp, WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		Zoomer zoomer = new Zoomer(this);
+		addMouseListener(zoomer);
+		addKeyListener(zoomer);
+		imageFrame.getContentPane().add(sp,"Center");
+		imageFrame.getContentPane().add(getToolBar(), "North");
+		border = new MCSBorder(this);
+		loadImage(mcsFile);
+		imageFrame.pack();
+		imageFrame.setSize(900,600);
+		imageFrame.setLocation(0,300);
+		imageFrame.show();
+	}
+	void loadImage( String mcsFile ) throws IOException {
+		BufferedReader reader = new BufferedReader(
+				new FileReader( mcsFile ));
+		cruiseID = reader.readLine();
+		lineID = reader.readLine();
+		cdpInterval = new double[2];
+		tRange = new double[2];
+		StringTokenizer st = new StringTokenizer(reader.readLine());
+		cdpInterval[0] = Double.parseDouble( st.nextToken() );
+		cdpInterval[1] = Double.parseDouble( st.nextToken() );
+		st = new StringTokenizer(reader.readLine());
+		tRange[0] = Double.parseDouble( st.nextToken() );
+		tRange[1] = Double.parseDouble( st.nextToken() );
+		String imageFile = reader.readLine();
+		reader.close();
+		DataInputStream in = null;
+		border.setTitle();
+		imageFrame.setTitle("Cruise "+cruiseID+", Line "+lineID);
+		if(imageFile.endsWith(".gz")) {
+			in = new DataInputStream(
+				new GZIPInputStream(
+				new BufferedInputStream(
+				new FileInputStream(imageFile))));
+		} else {
+			in = new DataInputStream(
+				new BufferedInputStream(
+				new FileInputStream(imageFile)));
+		}
+		if( in.readInt() != R2.MAGIC ) throw new IOException("unknown format");
+		width = in.readInt();
+		height = in.readInt();
+		if( in.readInt() != 2 ) throw new IOException("unknown format");
+		int size = in.readInt();
+		for( int i=0 ; i<3 ; i++) in.readInt();
+		byte[] bitmap = new byte[size];
+		int pos = 0;
+		int n=0;
+		in.readFully(bitmap);
+		image = new R2(bitmap, width, height);
+		xRep = yRep = xAvg = yAvg = 1;
+		rev = false;
+	}
+	public String getCruiseID() {
+		return cruiseID;
+	}
+	public String getID() {
+		return lineID;
+	}
+	public String toString() {
+		return getID();
+	}
+//	public MCSLine getLine() {
+//		return line;
+//	}
+	public void setImageScales( double cdp1, double cdp2, double topMillis, double bottomMillis) {
+		cdpInterval = new double[] { cdp1, cdp2 };
+		tRange = new double[] { topMillis, bottomMillis };
+		border = new MCSBorder(this);
+	}
+	public Dimension getPreferredSize() {
+		Dimension size = new Dimension( width*xRep/xAvg, height*yRep/yAvg);
+		if(border != null) {
+			Insets ins = border.getBorderInsets(this);
+			size.width += ins.left + ins.right;
+			size.height += ins.top + ins.bottom;
+		}
+		return size;
+	}
+	public void paint(Graphics g) {
+		Graphics2D g2 = (Graphics2D) g;
+		if(border != null) {
+			Rectangle rect = getVisibleRect();
+			Dimension size = getPreferredSize();
+			Rectangle bounds = new Rectangle(0, 0, size.width, size.height);
+			if(rect.contains(bounds)) {
+				rect=bounds;
+				g.clipRect(rect.x, rect.y, rect.width, rect.height);
+			}
+			Insets ins = border.getBorderInsets(this);
+			border.paintBorder(this, g, rect.x, rect.y, rect.width, rect.height);
+			g.translate(ins.left, ins.top);
+			g.clipRect(rect.x, rect.y, 
+				rect.width-ins.left-ins.right, 
+				rect.height-ins.top-ins.bottom);
+		}
+		if(!image.isFlip() && getZoomX()==1 && getZoomY()==1) {
+			g2.drawImage(image.getImage(), 0, 0, this);
+		} else {
+			Rectangle rect = image.getImageableRect(g2.getClipBounds(), xAvg, yAvg, xRep, yRep);
+			if(rect.width<=0 || rect.height <=0)return;
+			BufferedImage im = image.getScaledImage(rect, xAvg, yAvg, xRep, yRep);
+			g2.drawImage( im, rect.x, rect.y, this);
+		}
+	}
+	public double getZoomX() {
+		return (double)xRep / (double)xAvg;
+	}
+	public double getZoomY() {
+		return (double)yRep / (double)yAvg;
+	}
+	public void setXY(Point p) {
+	}
+	public void zoomTo( Rectangle rect) {
+	}
+	public void setRect(Rectangle rect) {
+	}
+	public void newRectangle(Rectangle rect) {
+	}
+	public void zoomIn(Point p) {
+		Insets ins = border.getBorderInsets(this);
+		Rectangle rect = getVisibleRect();
+		double zoomX = getZoomX();
+		double zoomY = getZoomY();
+		double x = (double) (p.x - ins.left) / zoomX;
+		double y = (double) (p.y - ins.top) / zoomY;
+		double w = (double) rect.width - ins.left - ins.right;
+		double h = (double) rect.height - ins.top - ins.bottom;
+		if(xAvg==1) xRep*=2;
+		else xAvg /=2;
+		if(yAvg==1) yRep*=2;
+		else yAvg /=2;
+		zoomX = getZoomX();
+		zoomY = getZoomY();
+		invalidate();
+		int newX = (int) (x*zoomX - rect.getWidth()*.5d);
+		int newY = (int) (y*zoomY - rect.getHeight()*.5d);
+		synchronized(this) {
+			scroller.validate();
+		}
+		scroller.scrollTo(new Point(newX, newY));
+		repaint();
+	}
+	public void zoomOut(Point p) {
+		double zoomX = getZoomX();
+		double zoomY = getZoomY();
+		Insets ins = border.getBorderInsets(this);
+		Rectangle rect = getVisibleRect();
+		Rectangle r1 = getBounds();
+		double x = (double) (p.x - ins.left) / zoomX;
+		double y = (double) (p.y - ins.top) / zoomY;
+		double w = (double) rect.width - ins.left - ins.right;
+		double h = (double) rect.height - ins.top - ins.bottom;
+		if(xRep==1) xAvg*=2;
+		else xRep /=2;
+		if(yRep==1) yAvg*=2;
+		else yRep /=2;
+		zoomX = getZoomX();
+		zoomY = getZoomY();
+		invalidate();
+		int newX = (int) (x*zoomX - w*.5d);
+		int newY = (int) (y*zoomY - h*.5d);
+		synchronized(this) {
+			scroller.validate();
+		}
+		scroller.scrollTo(new Point(newX, newY));
+		repaint();
+	}
+	public void setScroller(Scroller scroller) {
+		this.scroller = scroller;
+	}
+/*
+	public static void main(String[] args) {
+		if(args.length != 2) {
+			System.out.println("usage: java MCSImage1 imageFile stackFile");
+			System.exit(0);
+		}
+		MCSImage1 line = new MCSImage1(new MCSCruise("test"), 0);
+		
+		try {
+			FileInputStream in = new FileInputStream(args[0]);
+			line.setPGM(in, false);
+			try {
+				in.close();
+			} catch(IOException ex) {
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
+		try {
+			BufferedReader in = new BufferedReader(new FileReader(args[1]));
+			in.readLine();
+			StringTokenizer st = new StringTokenizer(in.readLine());
+			double topT = Double.parseDouble(st.nextToken());
+			double bottomT = topT + .001*line.height*Double.parseDouble(st.nextToken());
+			for( int i=0 ; i<7 ; i++) in.readLine();
+			st = new StringTokenizer(in.readLine());
+			double cdp1 = Double.parseDouble(st.nextToken());
+			double cdp2 = cdp1;
+			String s;
+			while((s=in.readLine())!=null) {
+				st = new StringTokenizer(s);
+				double tmp = Double.parseDouble(st.nextToken());
+				if(tmp==0)break;
+				cdp2=tmp;
+			}
+			line.setImageScales(cdp1, cdp2, topT, bottomT);
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
+		JFrame frame = new JFrame("test line 0");
+		JScrollPane sp = new JScrollPane(line);
+		frame.getContentPane().add(sp, "Center");
+		Scroller scroller = new Scroller(sp, JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		line.setScroller(scroller);
+		Zoomer zoomer = new Zoomer(line);
+		line.addMouseListener(zoomer);
+		line.addMouseMotionListener(zoomer);
+		line.addKeyListener(zoomer);
+		frame.pack();
+		frame.setSize(700, 500);
+		frame.setVisible(true);
+	}
+ */
+	public void mouseClicked(MouseEvent e) {
+	}
+	public void mousePressed(MouseEvent e) {
+	}
+	public void mouseReleased(MouseEvent e) {
+	}
+	public void mouseEntered(MouseEvent e) {
+	}
+	public void mouseExited(MouseEvent e) {
+	}
+	public void mouseMoved(MouseEvent e) {
+	}
+	public void mouseDragged(MouseEvent e) {
+	}
+	public void actionPerformed(ActionEvent e) {
+		String cmd = e.getActionCommand();
+		if(cmd.equals("RevVid")) {
+			revVid();
+		} else if( cmd.equals("wider")) {
+			wider();
+		} else if( cmd.equals("narrower")) {
+			narrower();
+		} else if( cmd.equals("flip")) {
+			image.setFlip(!image.isFlip());
+			double zoomX = getZoomX();
+			double zoomY = getZoomY();
+			Insets ins = border.getBorderInsets(this);
+			Rectangle rect = getVisibleRect();
+			Rectangle r1 = getBounds();
+			if(rect.contains(r1)) rect=r1;
+			Point p = new Point();
+			p.x = (rect.width- ins.left - ins.right)/2+rect.x;
+			p.y = (rect.height- ins.top - ins.bottom)/2+rect.y;
+			double x = width - p.getX() / zoomX;
+			double y = p.getY() / zoomY;
+			double w = (double) rect.width - ins.left - ins.right;
+			double h = (double) rect.height - ins.top - ins.bottom;
+			invalidate();
+			int newX = (int) (x*zoomX - w*.5d);
+			int newY = (int) (y*zoomY - h*.5d);
+			synchronized(this) {
+				scroller.validate();
+			}
+			scroller.scrollTo(new Point(newX, newY));
+			repaint();
+		}
+	}
+	public void narrower() {
+		double zoomX = getZoomX();
+		double zoomY = getZoomY();
+		Insets ins = border.getBorderInsets(this);
+		Rectangle rect = getVisibleRect();
+		Rectangle r1 = getBounds();
+		if(rect.contains(r1)) rect=r1;
+		Point p = new Point();
+		p.x = (rect.width- ins.left - ins.right)/2+rect.x;
+		p.y = (rect.height- ins.top - ins.bottom)/2+rect.y;
+		double x = p.getX() / zoomX;
+		double y = p.getY() / zoomY;
+		double w = (double) rect.width - ins.left - ins.right;
+		double h = (double) rect.height - ins.top - ins.bottom;
+		if(xRep==1) xAvg*=2;
+		else xRep /=2;
+		zoomX = getZoomX();
+		zoomY = getZoomY();
+		invalidate();
+		int newX = (int) (x*zoomX - w*.5d);
+		int newY = (int) (y*zoomY - h*.5d);
+		synchronized(this) {
+			scroller.validate();
+		}
+		scroller.scrollTo(new Point(newX, newY));
+		repaint();
+	}
+	public void wider() {
+		double zoomX = getZoomX();
+		double zoomY = getZoomY();
+		Insets ins = border.getBorderInsets(this);
+		Rectangle rect = getVisibleRect();
+		Rectangle r1 = getBounds();
+		if(rect.contains(r1)) rect=r1;
+		Point p = new Point();
+		p.x = (rect.width- ins.left - ins.right)/2+rect.x;
+		p.y = (rect.height- ins.top - ins.bottom)/2+rect.y;
+		double x = p.getX() / zoomX;
+		double y = p.getY() / zoomY;
+		double w = (double) rect.width - ins.left - ins.right;
+		double h = (double) rect.height - ins.top - ins.bottom;
+		if(xAvg==1) xRep*=2;
+		else xAvg /=2;
+		zoomX = getZoomX();
+		zoomY = getZoomY();
+		invalidate();
+		int newX = (int) (x*zoomX - w*.5d);
+		int newY = (int) (y*zoomY - h*.5d);
+		synchronized(this) {
+			scroller.validate();
+		}
+		r1 = getBounds();
+		scroller.scrollTo(new Point(newX, newY));
+		repaint();
+	}
+	public void revVid() {
+		rev = !rev;
+		image.setRevVid(rev);
+		repaint();
+	}
+	JToolBar toolBar=null;
+//	javax.swing.border.Border pressed = BorderFactory.createLoweredBevelBorder();
+	private void initToolBar() {
+		javax.swing.border.Border border = BorderFactory.createRaisedBevelBorder();
+		toolBar = new JToolBar();
+		JButton b = new JButton(Buttons.WIDER());
+		b.setBorder(border);
+		b.addActionListener(this);
+		toolBar.add(b);
+		b.setActionCommand("wider");
+		b = new JButton(Buttons.NARROWER());
+		b.setBorder(border);
+		b.addActionListener(this);
+		toolBar.add(b);
+		b.setActionCommand("narrower");
+
+		JToggleButton tb = new JToggleButton(Buttons.POSITIVE());
+		tb.setSelectedIcon(Buttons.NEGATIVE());
+		tb.setBorder(border);
+		tb.addActionListener(this);
+		toolBar.add(tb);
+		tb.setActionCommand("RevVid");
+
+		tb = new JToggleButton(Buttons.NORMAL());
+		tb.setSelectedIcon(Buttons.REVERSE());
+		tb.setBorder(border);
+		tb.addActionListener(this);
+		toolBar.add(tb);
+		tb.setActionCommand("flip");
+
+		tb = new JToggleButton(Buttons.SAVE());
+		tb.setSelectedIcon(Buttons.REVERSE());
+		tb.setBorder(border);
+	//	tb.addActionListener(this);
+		toolBar.add(tb);
+	//	tb.setActionCommand("save");
+	}
+	public boolean isFlip() { return image.isFlip(); }
+	public JToolBar getToolBar() {
+		if(toolBar==null) initToolBar();
+		return toolBar;
+	}
+	public boolean isRevVid() { return rev; }
+}

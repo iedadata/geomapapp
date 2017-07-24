@@ -1,0 +1,32 @@
+// methods implementing Scrollable
+	public Dimension getPreferredScrollableViewportSize() {
+		return getPreferredSize();
+	}
+	public int getScrollableUnitIncrement(Rectangle visibleRect,
+					int orientation,
+					int direction) {
+		return 10;
+	}
+	public int getScrollableBlockIncrement(Rectangle visibleRect,
+					int orientation,
+					int direction) {
+		Insets ins = axes.getInsets();
+		if( orientation==SwingConstants.HORIZONTAL ) {
+			return (visibleRect.width-ins.left-ins.right) / 2;
+		} else {
+			return (visibleRect.height-ins.top-ins.bottom) / 2;
+		}
+	}
+	public boolean getScrollableTracksViewportWidth() {
+		return tracksWidth;
+	}
+	public boolean getScrollableTracksViewportHeight() {
+		return tracksHeight;
+	}
+	public void setScrollableTracksViewportWidth( boolean tf ) {
+		tracksWidth = tf;
+	}
+	public void setScrollableTracksViewportHeight( boolean tf ) {
+		tracksHeight = tf;
+	}
+

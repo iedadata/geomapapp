@@ -1,0 +1,73 @@
+package org.geomapapp.db.dsdp;
+
+import java.io.*;
+import java.util.Vector;
+import java.util.zip.*;
+
+public class Ranges {
+	public static void main(String[] args) {
+		try {
+			BufferedReader in = new BufferedReader(
+				new InputStreamReader(
+				new GZIPInputStream(
+				new FileInputStream("/home/bill/projects/DSDP2000/janus/JanusMaster.tsf.gz"))));
+			String s = in.readLine();
+			Vector row = Janus.parseRow(s);
+			int rangeInd = -1;
+			for( int k=0 ; k<row.size() ; k++) {
+				s = ((String[])row.get(k))[0];
+				if( s.equals("range") ) {
+					rangeInd=k;
+					break;
+				}
+			}
+			Janus janus = new Janus( Janus.RANGE, "", "", "");
+			while( (s=in.readLine())!=null ) {
+				row = Janus.parseRow(s);
+				if( row.get(rangeInd)==null )continue;
+				String leg = ((String[])row.get(0))[0];
+				janus.setLeg(leg);
+				String site = ((String[])row.get(1))[0];
+				janus.setSite(site);
+				String hole = ((String[])row.get(2))[0];
+				janus.setHole(hole);
+				if( hole.equals("*") )hole="-";
+				Vector[] ranges = janus.getDataTable();
+				String name = leg+"_"+site+"_"+hole+".range";
+				PrintStream out = new PrintStream(
+					new GZIPOutputStream(
+					new FileOutputStream( "/home/bill/projects/DSDP2000/janus/fauna/"
+								+name+".gz")));
+				StringBuffer sb = new StringBuffer();
+				for( int k=0 ; k<ranges[0].size() ; k++) {
+					if( k!=0 ) sb.append("\t");
+					if( ranges[0].get(k)==null ) continue;
+					String[] ss = (String[])ranges[0].get(k);
+					sb.append( ss[0] );
+					if( ss.length==2) {
+						s = ss[1].substring(ss[1].indexOf("=")+1);
+						sb.append( ","+s );
+					}
+				}
+				out.println(sb);
+				for( int i=0 ; i<ranges[1].size() ; i++) {
+					ranges[0] = (Vector)ranges[1].get(i);
+					sb = new StringBuffer();
+					for( int k=0 ; k<ranges[0].size() ; k++) {
+						if( k!=0 ) sb.append("\t");
+						if( ranges[0].get(k)==null ) continue;
+						String[] ss = (String[])ranges[0].get(k);
+						sb.append( ss[0] );
+					}
+					out.println(sb);
+				}
+				out.close();
+				System.out.println( name );
+			}
+		} catch(IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
+		System.exit(0);
+	}
+}

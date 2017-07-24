@@ -1,0 +1,129 @@
+package haxby.map;
+
+import haxby.map.*;
+import haxby.proj.*;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.geom.*;
+import java.awt.image.*;
+import java.awt.event.*;
+import java.io.*;
+import java.util.*;
+
+public class MapSP implements KeyListener {
+	XMap map = null;
+	Mercator proj, merc;
+	MapOverlay focus;
+	boolean focusEnabled;
+	JScrollPane scrollPane;
+	double[] wesn;
+	public MapSP( double[] wesn, int width) {
+		this(wesn, width, true);
+	}
+	public MapSP( double[] wesn, int width, boolean basemap) {
+		this.wesn = wesn;
+		int nPer360 = (int) Math.rint( 360.*(double)width / (wesn[1]-wesn[0]) );
+		merc = new Mercator(0., 0., 360,
+					Projection.SPHERE, 
+					Mercator.RANGE_180W_to_180E);
+		proj = new Mercator(wesn[0], wesn[3], nPer360,
+					Projection.SPHERE, 
+					Mercator.RANGE_180W_to_180E);
+		int height = (int)Math.ceil(proj.getY(wesn[2]));
+		width = (int)Math.ceil(proj.getX( wesn[1] ) );
+		while( width <= 0) width += nPer360;
+
+		map = new XMap( proj, width, height);
+		CylindricalMapBorder border = new CylindricalMapBorder(map);
+		map.setMapBorder(border);
+
+		if(basemap) {
+			MapOverlay baseMap = new MapOverlay( map );
+	//	wesn[0] = -53.;
+		wesn[1] = proj.getLongitude( (double)width );
+		while( wesn[1] <= wesn[0] ) wesn[1]+=360.;
+		wesn[2] = -merc.getY(  proj.getLatitude( (double)height) );
+		wesn[3] = -merc.getY( proj.getLatitude(0.) );
+		wesn = MapServerA.fitWESN( wesn, width, height );
+	System.out.println( wesn[0] +"\t"+
+			wesn[1] +"\t"+
+			wesn[2] +"\t"+
+			wesn[3] +"\t"+
+			width +"\t"+ height);
+		BufferedImage image = new BufferedImage( width, height, BufferedImage.TYPE_INT_RGB);
+		MapServerA.getHighRes( wesn, width, height, image);
+		double y0 = proj.getY( proj.getLatitude(wesn[2]) );
+		baseMap.setImage(image, 0., 0., 1.);
+		map.addOverlay(baseMap);
+		}
+
+		focus = new MapOverlay( map );
+
+		Zoomer zoomer = new Zoomer(map);
+		map.addMouseListener(zoomer);
+		map.addMouseMotionListener(zoomer);
+		map.addKeyListener(zoomer);
+		scrollPane = new JScrollPane(map);
+		focusEnabled = false;
+	}
+	public XMap getMap() {
+		return map;
+	}
+	public void enableFocus(boolean tf) {
+		if( tf == focusEnabled ) return;
+		focusEnabled = tf;
+		if( tf ) {
+			map.addOverlay(focus);
+			map.addKeyListener(this);
+		} else {
+			map.removeOverlay( focus );
+			map.removeKeyListener( this );
+		}
+	}
+	public double[] getWESN() {
+		return wesn;
+	}
+	public JScrollPane getScrollPane() {
+		return scrollPane;
+	}
+	public void keyPressed( KeyEvent evt ) {
+	}
+	public void keyTyped( KeyEvent evt ) {
+	}
+	public void keyReleased( KeyEvent evt ) {
+		if( evt.getKeyCode() == KeyEvent.VK_F ) {
+			double wrap = map.getWrap();
+			double zoom = map.getZoom();
+			if( zoom < 2000./wrap ) {
+				BufferedImage im = null;
+				focus.setImage( im, 0., 0., 1.);
+				return;
+			}
+			Rectangle2D.Double rect = (Rectangle2D.Double)map.getClipRect2D();
+			double[] wesn = new double[4];
+			wesn[0] = proj.getLongitude( rect.x );
+			wesn[1] = wesn[0] + rect.width * 360./wrap;
+			wesn[2] = -merc.getY( proj.getLatitude( rect.y + rect.height ) );
+			wesn[3] = -merc.getY( proj.getLatitude( rect.y ) );
+			int w = (int) Math.rint( zoom*rect.width );
+			int h = (int) Math.rint( zoom*rect.height );
+			BufferedImage image = new BufferedImage( w, h, 
+						BufferedImage.TYPE_INT_RGB);
+			MapServerA.getHighRes( wesn, w, h, image);
+			focus.setImage( image, rect.x, rect.y, 1./zoom );
+			map.repaint();
+		} else if(evt.isControlDown() && evt.getKeyCode() == KeyEvent.VK_S ) {
+			try {
+				map.saveJPEGImage();
+			} catch(IOException ex) {
+				ex.printStackTrace();
+			}
+		} else if(evt.isControlDown() && evt.getKeyCode() == KeyEvent.VK_B ) {
+			try {
+				map.saveBaseMap();
+			} catch(IOException ex) {
+				ex.printStackTrace();
+			}
+		}
+	}
+}
