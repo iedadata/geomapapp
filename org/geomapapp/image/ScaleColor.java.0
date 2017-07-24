@@ -1,0 +1,370 @@
+package org.geomapapp.image;
+
+import org.geomapapp.util.*;
+
+import java.awt.*;
+import java.awt.geom.*;
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.event.*;
+import java.beans.*;
+
+public class ScaleColor extends JComponent {
+	Palette palette;
+	PaletteTool pTool;
+	float[] zRange;
+	Histogram zHist;
+	int side;
+	int lastX;
+	int minX, maxX, middle;
+	JPanel tools;
+	JComboBox palettes;
+	JToggleButton contour;
+	JToggleButton ocean, land;
+	JFileChooser chooser;
+	public ScaleColor( Palette palette, Histogram hist ) {
+		chooser = new JFileChooser(System.getProperty("user.dir"));
+		this.palette = palette;
+		pTool = new PaletteTool(palette);
+		pTool.addPropertyChangeListener(
+			new PropertyChangeListener() {
+				public void propertyChange(PropertyChangeEvent evt) {
+					if( evt.getPropertyName().equals("APPLY_PALLETTE")) {
+						applyPalette();
+					} else if( evt.getPropertyName().equals("SAVE_PALLETTE")) {
+						savePalette();
+					}
+				}
+			}
+		);
+		enableEvents(AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK);
+		setHist( hist );
+		MouseInputAdapter mouse = new MouseInputAdapter() {
+			public void mousePressed(MouseEvent evt) {
+				initDrag(evt.getX());
+			}
+			public void mouseDragged(MouseEvent evt) {
+				drag(evt.getX());
+			}
+			public void mouseReleased(MouseEvent evt) {
+				apply();
+			}
+			public void mouseMoved(MouseEvent evt) {
+				testX(evt.getX());
+			}
+			public void mouseEntered(MouseEvent evt) {
+				mouseMoved(evt);
+			}
+		};
+		addMouseListener( mouse);
+		addMouseMotionListener( mouse);
+		initTools();
+	}
+	void initTools() {
+		javax.swing.border.Border border = BorderFactory.createEmptyBorder(1,1,1,1);
+
+		ocean = new JToggleButton(
+					Icons.getIcon(Icons.OCEAN, false),
+					true);
+		ocean.setSelectedIcon(Icons.getIcon(Icons.OCEAN, true));
+		ocean.setBorder( border );
+		ocean.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+			//	ocean();
+			}
+		});
+
+		land = new JToggleButton(Icons.getIcon(
+					Icons.LAND, false));
+		land.setSelectedIcon(Icons.getIcon(Icons.LAND, true));
+		land.setBorder( border );
+		land.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+			//	ocean();
+			}
+		});
+
+		ButtonGroup group = new ButtonGroup();
+		group.add(ocean);
+		group.add(land);
+
+		JButton stretch = new JButton(Icons.getIcon(Icons.STRETCH, false));
+		stretch.setPressedIcon(Icons.getIcon(Icons.STRETCH, true));
+		stretch.setBorder( border );
+		stretch.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				stretch();
+			}
+		});
+
+		JButton shrink = new JButton(Icons.getIcon(Icons.SHRINK, false));
+		shrink.setPressedIcon(Icons.getIcon(Icons.SHRINK, true));
+		shrink.setBorder( border );
+		shrink.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				shrink();
+			}
+		});
+
+		JButton normalize = new JButton(Icons.getIcon(Icons.NORMALIZE, false));
+		normalize.setPressedIcon(Icons.getIcon(Icons.NORMALIZE, true));
+		normalize.setBorder( border );
+		normalize.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				normalize();
+			}
+		});
+
+		contour = new JToggleButton(Icons.getIcon(Icons.CONTOUR, false));
+		contour.setSelectedIcon(Icons.getIcon(Icons.CONTOUR, true));
+		contour.setBorder( border );
+		contour.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				contour();
+			}
+		});
+
+		tools = new JPanel( new GridLayout(1,0));
+		Box box = Box.createHorizontalBox();
+		box.add(ocean);
+		box.add(land);
+		box.add(stretch);
+		box.add(shrink);
+		box.add(normalize);
+		box.add(contour);
+		tools.add(box);
+
+		palettes = new JComboBox();
+		for( int k=0 ; k<Palette.resources.length ; k++) {
+			palettes.addItem( new Palette(k) );
+		}
+		box.add( palettes );
+		palettes.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				changePalette( palettes.getSelectedIndex() );
+			}
+		});
+	}
+	public JPanel getPaletteTool() {
+		JPanel p = pTool.getDialog();
+		p.setBorder(BorderFactory.createTitledBorder("Palette Tool"));
+		return p;
+	}
+	public JPanel getTools() {
+		return tools;
+	}
+	public void addPalette( Palette palette) {
+		palettes.addItem(palette);
+	}
+	void changePalette( int id ) {
+		try {
+			palette = (Palette)palettes.getItemAt(id);
+			palette.setRange( zRange[0], zRange[1] );
+			pTool.setDefaultPalette( palette );
+			firePropertyChange("PALLETTE_CHANGE", null, palette);
+		} catch(Exception ex) {
+		}
+		repaint();
+	}
+	public Palette getPalette() {
+		return palette;
+	}
+	public void setHist( Histogram hist ) {
+		zHist = hist;
+		zRange = palette.getRange();
+		side = 0;
+		lastX = -1;
+		minX = maxX = middle = 0;
+		if( getParent() != null)repaint();
+	}
+	public void stretch() {
+		float[] oldRange = new float[] { zRange[0], zRange[1] };
+		float x0 = .5f*(zRange[0]+zRange[1]);
+		float dx = (zRange[1]-zRange[0]);
+		zRange[0] = x0-dx;
+		zRange[1] = x0+dx;
+		palette.setRange( zRange[0], zRange[1] );
+		pTool.setRange( zRange );
+		repaint();
+		firePropertyChange("RANGE_CHANGED", oldRange, zRange);
+	}
+	public void shrink() {
+		float[] oldRange = new float[] { zRange[0], zRange[1] };
+		float x0 = .5f*(zRange[0]+zRange[1]);
+		float dx = .25f*(zRange[1]-zRange[0]);
+		zRange[0] = x0-dx;
+		zRange[1] = x0+dx;
+		palette.setRange( zRange[0], zRange[1] );
+		pTool.setRange( zRange );
+		repaint();
+		firePropertyChange("RANGE_CHANGED", oldRange, zRange);
+	}
+	public void normalize() {
+		float[] oldRange = new float[] { zRange[0], zRange[1] };
+		double[] range = zHist.getRange(.01);
+		zRange[0] = (float)range[0];
+		zRange[1] = (float)range[1];
+		palette.setRange( zRange[0], zRange[1] );
+		pTool.setRange( zRange );
+		repaint();
+		firePropertyChange("RANGE_CHANGED", null, zRange);
+	}
+	public void contour() {
+		boolean tf = contour.isSelected();
+		// firePropertyChange("CONTOUR", !tf, tf);
+	}
+	int nearbyTest( int x ) {
+		if( x- minX < 3 && x-minX > -3 ||
+				x- maxX < 3 && x-maxX > -3 ) {
+			return (x- minX < 3) ? -1 : 1;
+		}
+		if(side!=0)setCursor( Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR) );
+		return 0;
+	}
+	void testX(int x) {
+		side = nearbyTest(x);
+		if(side == 0) return;
+		setCursor( Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR) );
+	}
+	void drag(int x) {
+		if( side==0 ) {
+			initDrag(x);
+			return;
+		}
+		if(side==1&&x-minX<10) return;
+		if(side==-1&&maxX-x<10) return;
+		drawLine();
+		lastX = x;
+		drawLine();
+	}
+	void initDrag(int x) {
+		testX(x);
+		if( side==0 )return;
+		drawLine();
+		lastX=x;
+		drawLine();
+	}
+	void applyPalette() {
+		Palette oldPalette = palette;
+		zRange = palette.getRange();
+		palette = pTool.getPalette();
+		palette.setRange(zRange[0], zRange[1]);
+		repaint();
+		firePropertyChange("PALLETTE_CHANGED", null, palette);
+	}
+	void savePalette() {
+		JTextField field = new JTextField(palette.toString());
+		JPanel panel = new JPanel(new GridLayout(0,1) );
+		panel.add(new JLabel("enter palette name"));
+		panel.add(field);
+		JCheckBox file = new JCheckBox("save to file", false);
+		panel.add(file);
+		JCheckBox list = new JCheckBox("add to list", true);
+		panel.add(list);
+		int ok = JOptionPane.showConfirmDialog(getTopLevelAncestor(),
+					panel,
+					"name the palette",
+					 JOptionPane.OK_CANCEL_OPTION,
+					JOptionPane.PLAIN_MESSAGE);
+		if( ok== JOptionPane.CANCEL_OPTION )return;
+		if( !(file.isSelected()||list.isSelected()) ) return;
+		Palette pal = (Palette)pTool.getPalette().clone();
+		String name = field.getText();
+		pal.setName(name);
+		if( list.isSelected() ) palettes.addItem(pal);
+		if( file.isSelected() ) {
+			chooser.setSelectedFile(
+				new java.io.File(chooser.getCurrentDirectory(),name+".lut"));
+			ok =chooser.showSaveDialog(getTopLevelAncestor());
+			if(ok==chooser.CANCEL_OPTION)return;
+			try {
+				pal.save(chooser.getSelectedFile());
+			} catch (Exception ex) {
+				 JOptionPane.showMessageDialog(getTopLevelAncestor(),
+					"Save failed:\n"+ex.getMessage());
+			}
+		}
+	}
+	void apply() {
+		if(side==0) return;
+		float[] oldRange = new float[] { zRange[0], zRange[1] };
+		if(side==-1) {
+			zRange[0] = zRange[0] +
+				(zRange[1]-zRange[0]) * (float)(lastX-minX)
+				/ (float)( maxX-minX );
+		} else {
+			zRange[1] = zRange[0] +
+				(zRange[1]-zRange[0]) * (float)(lastX-minX)
+				/ (float)( maxX-minX );
+		}
+		palette.setRange( zRange[0], zRange[1] );
+		pTool.setRange( zRange );
+		lastX = -1;
+		repaint();
+		firePropertyChange("RANGE_CHANGED", oldRange, zRange);
+	}
+	void drawLine() {
+		if( lastX<0 || side==0) return;
+		synchronized (getTreeLock()) {
+			Graphics2D g = (Graphics2D)getGraphics();
+			Dimension dim = getSize();
+			g.setXORMode( Color.white );
+			g.drawLine(lastX,0,lastX,dim.height);
+		}
+	}
+	public Dimension getMinimumSize() {
+		return new Dimension( 100, 40 );
+	}
+	public Dimension getPreferredSize() {
+		return new Dimension( 300, 100 );
+	}
+	public void paint( Graphics g ) {
+		Graphics2D g2 = (Graphics2D)g;
+		Dimension dim = getSize();
+		g.setColor( Color.white );
+		g.fillRect( 0, 0, dim.width, dim.height );
+		middle = dim.width / 2;
+		minX = middle - dim.width/4;
+		maxX = middle + dim.width/4;
+		float z0 = .5f*(zRange[0]+zRange[1]);
+		float dz = (zRange[1]-zRange[0] );
+		z0 -= dz;
+		dz = 2f * dz / (float)dim.width;
+		double[] range = new double[] {z0, z0+dz};
+	//	zHist.rebin( middle, range );
+		float scale = ((float)dim.height-20) / (float)zHist.getMaxCounts();
+		float z;
+		GeneralPath path = new GeneralPath();
+		path.moveTo( 0f, (float)dim.width);
+		for( int i=0 ; i<dim.width ; i++ ) {
+			z = z0 + (float)i * dz;
+			int y =  dim.height-20 - 
+					(int)(scale* (float)zHist.getCounts(z));
+			Rectangle  r = new Rectangle( i, y, 1, dim.height-15-y);
+			g.setColor( new Color(palette.getRGB( z )) );
+			g2.fill( r );
+			path.lineTo( (float)i, (float)y);
+		}
+		g.setColor( Color.black );
+		g2.draw( path );
+		g2.translate(0, dim.height-15);
+		double dx = .5*(double)(zRange[1]-zRange[0]);
+		Axes.drawAxis( g2, false, null, -dx+(double)zRange[0],
+				dx+(double)zRange[1], dim.width, 4);
+/*
+		String val = "" + (int)zRange[0];
+		Rectangle2D bounds = g2.getFont().getStringBounds( val, g2.getFontRenderContext() );
+		int x = minX - (int) (bounds.getWidth()/2.);
+		g2.drawString( val, x, dim.height-3 );
+		val = "" + (int)zRange[1];
+		bounds = g2.getFont().getStringBounds( val, g2.getFontRenderContext() );
+		x = maxX - (int) (bounds.getWidth()/2.);
+		g2.drawString( val, x, dim.height-3 );
+		g.drawLine( 0, dim.height-15, dim.width, dim.height-15);
+*/
+		g2.translate(0, -(dim.height-15));
+		g.setColor( new Color( 0,0,0,100) );
+		g.drawLine( minX, 0, minX, dim.height-15);
+		g.drawLine( maxX, 0, maxX, dim.height-15);
+	}
+}

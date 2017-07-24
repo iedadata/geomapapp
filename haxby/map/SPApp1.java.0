@@ -1,0 +1,138 @@
+package haxby.map;
+
+import haxby.proj.*;
+import haxby.db.mb.*;
+
+import java.io.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.*;
+import java.awt.geom.*;
+import javax.swing.*;
+
+public class SPApp1 implements KeyListener, ActionListener {
+	XMap map = null;
+	Zoomer zoomer;
+	MapTools tools;
+	JFrame frame;
+	MapOverlay focus;
+	MapOverlay baseMap;
+	JToggleButton plotB;
+	JToggleButton[] pallette;
+	MBGrids_SP grids;
+	File mbControl=null;
+	MBTracks db=null;
+	public SPApp1(String dir, int base, int scale) {
+		JWindow startup = new JWindow();
+		StartUp start = new StartUp();
+		startup.getContentPane().add(start, "Center");
+		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+		startup.pack();
+		Dimension win = startup.getSize();
+		startup.setLocation( (screen.width-win.width)/2, (screen.height-win.height)/2 );
+		startup.show();
+		if(dir==null)dir = "/scratch/ridgembs/bill/antarctic";
+		int gridScale = 4;
+		PolarStereo proj = new PolarStereo( new Point(320, 320),
+				180., 25600., -71., PolarStereo.SOUTH, PolarStereo.WGS84);
+		int width = 640;
+		int height = 640;
+		map = new XMap( this, proj, width, height);
+		PolarMapBorder border = new PolarMapBorder(map);
+		map.setMapBorder(border);
+		start.setText("Composing Basemap Image");
+		baseMap = new MapOverlay( map );
+		if( !SPMapServerA.getImage( new Rectangle(0,0,640,640), baseMap, 512) ) {
+			System.out.println("unable to create base map");
+			System.exit(0);
+		}
+		map.addOverlay(baseMap);
+		start.setText("Initiallizing GUI");
+		focus = new MapOverlay( map );
+		map.addOverlay(focus);
+		zoomer = new Zoomer(map);
+		map.addMouseListener(zoomer);
+		map.addMouseMotionListener(zoomer);
+		map.addMouseMotionListener(zoomer);
+		map.addKeyListener(zoomer);
+		map.addKeyListener(this);
+		try {
+			grids = new MBGrids_SP( map, dir, base, scale, 
+				InputEvent.SHIFT_MASK | InputEvent.BUTTON1_MASK);
+			map.addOverlay( grids );
+			map.addMouseListener( grids );
+			grids.setPlot(true);
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+		tools = new MapTools( this, map, focus);
+		JScrollPane sp = new JScrollPane(map);
+
+		frame = new JFrame("MapApp");
+		frame.setDefaultCloseOperation( frame.EXIT_ON_CLOSE );
+		frame.getContentPane().add( tools.getTools(), "North");
+		frame.getContentPane().add( sp, "Center");
+		mbControl= new File(dir+"/mb_control");
+		db = new MBTracks(map, 4000, mbControl);
+		plotB = new JToggleButton("plot grid", true);
+		plotB.addActionListener(this);
+		Box box = Box.createVerticalBox();
+		box.add( plotB );
+		JButton button = new JButton("re-color");
+		button.addActionListener( grids);
+		box.add(button);
+		pallette = new JToggleButton[2];
+		pallette[0] = new JToggleButton("pallette 1");
+		pallette[1] = new JToggleButton("pallette 2");
+		ButtonGroup bg = new ButtonGroup();
+		bg.add( pallette[0] );
+		bg.add( pallette[1] );
+		box.add(pallette[0]);
+		box.add(pallette[1]);
+		pallette[0].addActionListener(this);
+		pallette[1].addActionListener(this);
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.add(box, "North" );
+		if( db.loadDB()) {
+			db.setEnabled(true);
+			panel.add( db.getSelectionDialog(), "South");
+			frame.getContentPane().add( panel, "West");
+			frame.getContentPane().add( db.getDataDisplay(), "South");
+			map.addOverlay( db );
+		}
+		startup.dispose();
+		frame.pack();
+		frame.show();
+	}
+	public void keyPressed( KeyEvent evt ) {
+	}
+	public void keyTyped( KeyEvent evt ) {
+	}
+	public void keyReleased( KeyEvent evt ) {
+		if( evt.getKeyCode() == KeyEvent.VK_F ) mapFocus();
+	}
+	public void actionPerformed(ActionEvent evt) {
+		Object src = evt.getSource();
+		if( src==pallette[0] ) {
+			grids.setPallette(0);
+		} else if( src==pallette[1] ) {
+			grids.setPallette(1);
+		} else {
+			grids.setPlot( plotB.isSelected() );
+		}
+		map.repaint();
+	}
+	public void mapFocus() {
+		if( SPMapServerA.getImage( map.getClipRect2D(), focus, 512) ) map.repaint();
+	}
+	public static void main( String[] args) {
+		if( args.length != 3 ) {
+			System.out.println( "usage: java haxby.map.SPApp1 dir base scale");
+			System.exit(0);
+		}
+		String dir = args[0];
+		int base = Integer.parseInt(args[1]);
+		int scale = Integer.parseInt(args[2]);
+		new SPApp1( dir, base, scale );
+	}
+}

@@ -1,0 +1,62 @@
+package org.geomapapp.gis.shape;
+
+import java.awt.geom.Rectangle2D;
+import java.io.*;
+import org.geomapapp.io.LittleIO;
+
+public class ESRIMultiPointZ extends ESRIMultiPointM
+			implements ESRIZ {
+	public double[] z;
+	public double[] zRange;
+	public ESRIMultiPointZ( double xmin,
+				double ymin,
+				double xmax,
+				double ymax,
+				int npt) {
+		super( xmin, ymin, xmax, ymax, npt);
+		z = new double[npt];
+	}
+	public void setZRange( double minz,
+				double maxz ) {
+		zRange = new double[] {minz, maxz};
+	}
+	public double[] getZRange() {
+		if( z.length==0 )return new double[] {0., 0.};
+		if( zRange==null ) zRange=new double[] {z[0], z[0]};
+		for( int i=0 ; i<z.length ; i++) {
+			if( z[i]>zRange[1] )zRange[1] = z[i];
+			else if( z[i]<zRange[0] )zRange[0] = z[i];
+		}
+		return zRange;
+	}
+	public double[][] inverse(org.geomapapp.geom.MapProjection proj, 
+					double[][] bounds) {
+		bounds = super.inverse( proj, bounds);
+		if( z.length==0 ) return bounds;
+		double[] z = getZRange();
+		if( bounds[3]==null ) {
+			bounds[3] = z;
+			return bounds;
+		}
+		if( z[1]>bounds[3][1] )bounds[3][1]=z[1];
+		if( z[0]<bounds[3][0] )bounds[3][0]=z[0];
+		return bounds;
+	}
+	public double[] getZ() {
+		return z;
+	}
+	public void addZ(int i, double z) {
+		this.z[i] = z;
+	}
+	public int writeShape( OutputStream out ) throws IOException {
+		int length = 16+super.writeShape(out);
+		LittleIO.writeDouble( getZRange()[0], out );
+		LittleIO.writeDouble( getZRange()[1], out );
+		for( int k=0 ; k<pts.length ; k++) LittleIO.writeDouble( z[k], out);
+		length += 8*pts.length;
+		return length;
+	}
+	public int getType() {
+		return 18;
+	}
+}

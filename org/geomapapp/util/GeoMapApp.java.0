@@ -1,0 +1,75 @@
+package org.geomapapp.util;
+
+import org.geomapapp.geom.MapProjection;
+
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
+import java.awt.geom.Point2D;
+
+import javax.swing.*;
+
+public class GeoMapApp {
+	ScalableComp map;
+	LayerManager layers;
+
+	Select selecter;
+	Pan pan;
+	ZoomIn zoomIn;
+	ZoomOut zoomOut;
+
+	JFrame frame;
+	JToggleButton selectTB;
+	JToggleButton panTB;
+	JToggleButton zoomInTB;
+	JToggleButton zoomOutTB;
+	public GeoMapApp() {
+		map = new ScalableComp(new Rectangle(0, -260, 1280, 498 ));
+		Mercator merc = new Mercator( 0., 0, 640, Projection.SPHERE, CylindricalProjection.RANGE_0_to_360);
+		layers = new LayerManager( map );
+		layers.setProjection(merc);
+		selecter = new Select(map);
+	}
+			Select sel = new Select(sc);
+			Pan pan = new Pan(sc);
+			Zoom zoom = new Zoom(sc);
+			Box tools = Box.createHorizontalBox();
+		//	JPanel tools = new JPanel();
+			ButtonGroup gp = new ButtonGroup();
+			JToggleButton tb = sel.getToggle();
+			tb.setBorder( BorderFactory.createEmptyBorder(1,1,2,2) );
+			tools.add(tb);
+			gp.add(tb);
+			tb = pan.getToggle();
+			tb.setBorder( BorderFactory.createEmptyBorder(1,1,2,2) );
+			tools.add(tb);
+			gp.add(tb);
+			tb = zoom.getZoomInToggle();
+			tb.setBorder( BorderFactory.createEmptyBorder(1,1,2,2) );
+			tools.add(tb);
+			gp.add(tb);
+			tb = zoom.getZoomOutToggle();
+			tb.setBorder( BorderFactory.createEmptyBorder(1,1,2,2) );
+			tools.add(tb);
+			gp.add(tb);
+			Info info = new Info(sc);
+			sc.addMouseMotionListener( info );
+			
+			sc.addMouseListener(sel);
+			sc.addMouseMotionListener(sel);
+			sc.addMouseListener(zoom);
+			sc.addMouseMotionListener(zoom);
+			sc.addMouseListener(pan);
+			sc.addMouseMotionListener(pan);
+			JFrame frame = new JFrame( c.getSelectedFile().getName() );
+			frame.getContentPane().add( tools, "North" );
+			frame.getContentPane().add( sc );
+			frame.getContentPane().add( info.getLabel(), "South" );
+			frame.setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
+			frame.pack();
+			frame.show();
+		} catch( Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+}

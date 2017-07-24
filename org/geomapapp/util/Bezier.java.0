@@ -1,0 +1,155 @@
+import java.awt.*;
+import java.awt.geom.*;
+import javax.swing.*;
+import java.util.*;
+
+public class Bezier extends JComponent {
+	XMap map;
+	double[] a = new double[4];
+	double[] b = new double[4];
+	Point2D p1;
+	Point2D c1;
+	Point2D p2;
+	Point2D c2;
+	Vector xy = null;
+	public Bezier(XMap map, Point2D p1, Point2D c1, Point2D p2, Point2D c2) {
+		this.map = map;
+		this.p1 = p1;
+		this.c1 = c1;
+		this.p2 = p2;
+		this.c2 = c2;
+		compute();
+	}
+	public void addPoint(Point p) {
+		if(xy == null)xy = new Vector();
+		Graphics2D g = (Graphics2D)map.getGraphics();
+		g.setColor(Color.black);
+		g.draw(new Rectangle(p.x-1, p.y-1, 2, 2));
+		AffineTransform at = map.getTransform();
+		try {
+			xy.add(at.inverseTransform(new Point2D.Double(p.getX(), p.getY()), null));
+		} catch (NoninvertibleTransformException e) {
+		}
+	}
+	public void fit() {
+		int n = xy.size();
+		if(n<4) {
+			xy = null;
+			return;
+		}
+		double[] x = new double[n];
+		double[] y = new double[n];
+		double[] t = new double[n];
+		for(int i=0 ; i<n ; i++) {
+			Point2D p = (Point2D) xy.elementAt(i);
+			x[i] = p.getX();
+			y[i] = p.getY();
+			if(i==0) t[i] = 0;
+			else t[i] = t[i-1] + Math.sqrt(Math.pow(x[i]-x[i-1],2) + Math.pow(y[i]-y[i-1],2));
+		}
+		for(int i=1 ; i<n ; i++) {
+			t[i] /= t[n-1];
+		}
+		a = PolyFit.fit(t, x, 3);
+		b = PolyFit.fit(t, y, 3);
+		p1 = new Point2D.Double(a[0], b[0]);	
+		c1 = new Point2D.Double(a[0] + a[1]/3d, b[0] + b[1]/3d);
+		p2 = new Point2D.Double(a[0]+a[1]+a[2]+a[3], b[0]+b[1]+b[2]+b[3]);
+		c2 = new Point2D.Double(p2.getX()-(a[1]+2d*a[2]+3d*a[3])/3d, p2.getY()-(b[1]+2d*b[2]+3d*b[3])/3d);
+		map.repaint();
+	}
+	public void setP1(int x, int y) {
+		AffineTransform at = map.getTransform();
+		try {
+			p1 = at.inverseTransform(new Point2D.Double((double)x, (double)y), null);
+			compute();
+			map.repaint();
+		} catch (NoninvertibleTransformException e) {
+		}
+	}
+	public void setP2(int x, int y) {
+		AffineTransform at = map.getTransform();
+		try {
+			p2 = at.inverseTransform(new Point2D.Double((double)x, (double)y), null);
+			compute();
+			map.repaint();
+		} catch (NoninvertibleTransformException e) {
+		}
+	}
+	public void setC1(int x, int y) {
+		AffineTransform at = map.getTransform();
+		try {
+			c1 = at.inverseTransform(new Point2D.Double((double)x, (double)y), null);
+			compute();
+			map.repaint();
+		} catch (NoninvertibleTransformException e) {
+		}
+	}
+	public void setC2(int x, int y) {
+		AffineTransform at = map.getTransform();
+		try {
+			c2 = at.inverseTransform(new Point2D.Double((double)x, (double)y), null);
+			compute();
+			map.repaint();
+		} catch (NoninvertibleTransformException e) {
+		}
+	}
+	protected void compute() {
+		a[0] = p1.getX();
+		b[0] = p1.getY();
+		a[1] = 3d* (c1.getX() - a[0]);
+		b[1] = 3d* (c1.getY() - b[0]);
+		double a1 = p2.getX() - a[0] - a[1];
+		double a2 = 3d*(p2.getX() - c2.getX()) - a[1];
+		a[2] = 3d*a1 - a2;
+		a[3] = a2 - 2d*a1;
+		a1 = p2.getY() - b[0] - b[1];
+		a2 = 3d*(p2.getY() - c2.getY()) - b[1];
+		b[2] = 3d*a1 - a2;
+		b[3] = a2 - 2d*a1;
+	}
+	public void paint(Graphics g) {
+		Graphics2D g2d = (Graphics2D)g;
+		if(xy != null) {
+			g2d.setColor(Color.black);
+			for(int i=0 ; i<xy.size() ; i++) {
+				Point2D.Double p = (Point2D.Double) xy.elementAt(i);
+				g2d.draw(new Rectangle2D.Double(p.x-1d, p.y-1d, 2d, 2d));
+			}
+			xy = null;
+		}
+		g2d.setColor(new Color(0f,0f,1f));
+		g2d.draw(new Rectangle2D.Double(c1.getX()-2d, c1.getY()-2d,4d,4d));
+		g2d.draw(new Line2D.Double(p1,c1));
+		g2d.draw(new Rectangle2D.Double(c2.getX()-2d, c2.getY()-2d,4d,4d));
+		g2d.draw(new Line2D.Double(p2,c2));
+		GeneralPath path = new GeneralPath();
+		g2d.setColor(Color.red);
+		path.moveTo((float)a[0],(float)b[0]);
+		g2d.fill(new Rectangle2D.Double(a[0]-2d,b[0]-2d,4d,4d));
+		for(int i=1 ; i<=20 ; i++) {
+			double s = .05d*(double)i;
+			double s0 = s;
+			double x = a[0];
+			double y = b[0];
+			for(int k=1 ; k<4 ; k++) {
+				x += a[k]*s;
+				y += b[k]*s;
+				s *= s0;
+			}
+			path.lineTo((float)x, (float)y);
+			g2d.fill(new Rectangle2D.Double(x-2d,y-2d,4d,4d));
+		}
+		g2d.setColor(Color.black);
+		g2d.draw(path);
+	//	g2d.setColor(new Color(0f,1f,0f,.5f));
+	//	g2d.draw(new CubicCurve2D.Double(p1.getX(),
+	//					p1.getY(),
+	//					c1.getX(),
+	//					c1.getY(),
+	//					c2.getX(),
+	//					c2.getY(),
+	//					p2.getX(),
+	//					p2.getY()));
+	}
+}

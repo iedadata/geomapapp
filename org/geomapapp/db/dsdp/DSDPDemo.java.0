@@ -1,0 +1,356 @@
+package org.geomapapp.db.dsdp;
+
+import org.geomapapp.gis.table.*;
+import org.geomapapp.util.*;
+
+import javax.swing.*;
+import javax.swing.event.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+
+public class DSDPDemo {
+	DSDP dsdp;
+	Box box;
+	haxby.util.XBTable table;
+	JDialog holeDialog;
+	JDialog logDialog;
+	JDialog dsdpF;
+	CoreDisplay coreDisp;
+	AgeDisplay ageDisp;
+	FossilDisplay fossilDisp;
+	DSDPHole hole;
+	JScrollPane sp;
+	FossilGroup group;
+	JComboBox fossilCB;
+	JToggleButton logs;
+	JTree logTree;
+	ImageComponent image;
+	JDialog imageDialog;
+	JDialog graphDialog;
+	BRGTable brgTable;
+	XYGraph graph;
+	JLabel label;
+	BRGAcronyms acronyms;
+	JTextField acro;
+
+	public DSDPDemo(haxby.map.MapApp app) {
+	//	xb.bill.PC pc = new xb.bill.PC();
+	//	haxby.map.MapApp app = new haxby.map.MapApp(0);
+		dsdp = new DSDP();
+		table = dsdp.getTable();
+		dsdp.setMap( app.getMap() );
+		try {
+			group = dsdp.loadGroup( "DIATOMS");
+		} catch(java.io.IOException e) {
+			e.printStackTrace();
+		}
+		JFrame mapFrame = (JFrame)app.getMap().getTopLevelAncestor();
+		mapFrame.setSize(800, 700);
+		dsdpF = new JDialog(mapFrame, "DSDP");
+		dsdpF.getContentPane().add(new JScrollPane(table));
+		dsdpF.pack();
+		dsdpF.setLocation(0, 700);
+		dsdpF.setSize(800,200);
+		dsdpF.setVisible(true);
+		table.getSelectionModel().addListSelectionListener(
+			new ListSelectionListener() {
+				public void valueChanged(ListSelectionEvent e) {
+					setHole();
+				}
+			});
+	}
+	public void show() {
+		dsdpF.setVisible(true);
+	}
+	void setHole() {
+		if( table.getSelectedRows().length!=1 )return;
+		int i = table.getSelectedRow();
+		if( i<0 ) return;
+		String id = (String)table.getValueAt(i, 0);
+		DSDPHole hole = dsdp.holeForID(id);
+	//	if( hole==this.hole )return;
+		this.hole = hole;
+		display();
+		table.getSelectionModel().setSelectionInterval( i, i);
+	}
+	void display() {
+		Dimension dim = null;
+		if( holeDialog==null ) {
+			holeDialog = new JDialog(dsdpF, hole.toString());
+			JTextField field = new JTextField(20);
+			JTextField field2 = new JTextField(20);
+			coreDisp = new CoreDisplay(hole, field);
+			ageDisp = new AgeDisplay(hole, field);
+			fossilDisp = new FossilDisplay(hole, field, coreDisp, group, field2);
+			box = Box.createHorizontalBox();
+			box.add( coreDisp );
+		//	box.add( box.createHorizontalStrut(1));
+			box.add( ageDisp );
+		//	box.add( box.createHorizontalStrut(1));
+			box.add( fossilDisp );
+			box.add( box.createHorizontalGlue());
+			sp = new JScrollPane(box, 
+				sp.VERTICAL_SCROLLBAR_ALWAYS,
+				sp.HORIZONTAL_SCROLLBAR_ALWAYS);
+			sp.getViewport().setSize(400, 800);
+			holeDialog.getContentPane().add(sp, "Center");
+
+			JPanel fields = new JPanel(new GridLayout(0,1));
+			fields.add(field);
+			fields.add(field2);
+			holeDialog.getContentPane().add(fields, "South");
+
+			Vector gps = dsdp.getFossilGroups();
+			Collections.sort( gps, new Comparator() {
+				public int compare(Object o1, Object o2) {
+					return o1.toString().compareTo(o2.toString());
+				}
+			});
+
+			JPanel  panel = new JPanel(new GridLayout(0,1));
+			logs = new JToggleButton("Logs");
+			logs.addActionListener( new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					setHole();
+				}
+			});
+			panel.add(logs);
+
+			fossilCB = new JComboBox( gps );
+			fossilCB.setSelectedIndex( gps.indexOf("DIATOMS"));
+			fossilCB.addPopupMenuListener( new PopupMenuListener() {
+				public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+				}
+				public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+					newGroup();
+				}
+				public void popupMenuCanceled(PopupMenuEvent e) {
+				}
+			});
+		//	fossilCB.addItemListener( new ItemListener() {
+		//		public void itemStateChanged(ItemEvent e) {
+		//			if( e.getStateChange()==e.SELECTED )newGroup();
+		//		}
+		//	});
+		//	fossilCB.addActionListener( new ActionListener() {
+		//		public void actionPerformed(ActionEvent e) {
+		//			newGroup();
+		//		}
+		//	});
+			panel.add(fossilCB);
+			holeDialog.getContentPane().add(panel, "North");
+
+			holeDialog.pack();
+			dim = holeDialog.getSize();
+			dim.height = 800;
+			holeDialog.setSize(dim);
+			holeDialog.setLocation( 800, 0);
+
+		} else {
+			dim = holeDialog.getSize();
+			coreDisp.setHole(hole);
+			ageDisp.setHole(hole);
+			fossilDisp.setHole(hole);
+			coreDisp.invalidate();
+			ageDisp.invalidate();
+			fossilDisp.invalidate();
+			box.revalidate();
+			sp.revalidate();
+			holeDialog.setTitle( hole.toString() );
+			coreDisp.repaint();
+			ageDisp.repaint();
+			fossilDisp.repaint();
+		}
+			
+	//	holeDialog.pack();
+	//	holeDialog.setSize(dim);
+		if(!holeDialog.isVisible())holeDialog.setVisible(true);
+	//	holeDialog.setVisible(true);
+		table.requestFocus();
+		if( logs.isSelected() ) {
+			StringTokenizer st = new StringTokenizer( hole.toString(), "-");
+			BRGEntry root = null;
+			try {
+				root = (new ParseBRG( st.nextToken(), st.nextToken())).getRoot();
+			} catch(Exception e) {
+				return;
+			}
+				
+			if(logDialog==null) {
+				logDialog = new JDialog(dsdpF, hole.toString());
+				logTree = new JTree(root);
+				logDialog.getContentPane().add(new JScrollPane(logTree), "Center");
+				JButton openURL = new JButton("Open BRG Page");
+				logDialog.getContentPane().add( openURL, "North");
+
+				label = new JLabel("logs in "+hole.toString());
+				logDialog.getContentPane().add( label, "South" );
+				openURL.addActionListener( new ActionListener() {
+					public void actionPerformed( ActionEvent e) {
+						openURL();
+					}
+				});
+				logDialog.pack();
+			//	logDialog.setLocation(820, 20);
+				logTree.addTreeSelectionListener( new TreeSelectionListener() {
+					public void valueChanged(TreeSelectionEvent e) {
+						BRGEntry entry = (BRGEntry)e.getPath().getLastPathComponent();
+						setLog( entry );
+					}
+				});
+			} else {
+				logTree.setModel( new javax.swing.tree.DefaultTreeModel(root) );
+				logDialog.setTitle( hole.toString());
+			}
+			if(!logDialog.isVisible())logDialog.setVisible(true);
+		} else if( logDialog!=null) {
+			logDialog.setVisible(false);
+		}
+	}
+	void openURL() {
+		try {
+			String url = "http://www.ldeo.columbia.edu/BRG/online2/Leg";
+			StringTokenizer st = new StringTokenizer( hole.toString(), "-");
+			url += st.nextToken()+"/"+ st.nextToken()+"/";
+			com.Ostermiller.util.Browser.init();
+			com.Ostermiller.util.Browser.displayURL(url);
+		} catch(Exception e) {
+		}
+	}
+	void setLog( BRGEntry entry ) {
+		try {
+			String url = entry.getURL();
+			if( url==null ) {
+				if( imageDialog!=null ) imageDialog.setVisible(false);
+				if( graphDialog!=null ) graphDialog.setVisible(false);
+				return;
+			}
+			if( url.toLowerCase().endsWith(".gif") ) {
+				if( graphDialog!=null ) graphDialog.setVisible(false);
+				label.setText("gif image");
+				if( imageDialog==null ) {
+					image = new ImageComponent( javax.imageio.ImageIO.read(new java.net.URL(url)) );
+					image.setScrollableTracksViewportWidth(true);
+					Zoomer z = new Zoomer(image);
+					image.addMouseListener(z);
+					image.addKeyListener(z);
+					imageDialog = new JDialog(dsdpF);
+					imageDialog.getContentPane().add(new JScrollPane(image));
+				//	JButton button = new JButton("Modify Color Balance");
+				//	imageDialog.getContentPane().add( button, "North");
+				//	button.addActionListener(new ActionListener() {
+				//		public void actionPerformed( ActionEvent e ) {
+				//			showBalance();
+				//		}
+				//	});
+					imageDialog.pack();
+					imageDialog.setSize( new Dimension( 400,500) );
+					imageDialog.setLocation(600,0);
+				} else {
+					image.setImage( javax.imageio.ImageIO.read(new java.net.URL(url)));
+				}
+				if(!imageDialog.isVisible())imageDialog.setVisible(true);
+				image.repaint();
+			} else if( url.toLowerCase().endsWith(".dat")) {
+				label.setText("Data Table");
+				if( imageDialog!=null ) imageDialog.setVisible(false);
+				brgTable = new BRGTable(url);
+				if( graphDialog==null ) {
+					acronyms = new BRGAcronyms();
+					acro = new JTextField(20);
+					graph = new XYGraph( new BRGTable(url), 0 );
+					graph.setScrollableTracksViewportWidth(true);
+					Zoomer z = new Zoomer(graph);
+					graph.addMouseListener(z);
+					graph.addKeyListener(z);
+					graph.addKeyListener( new KeyAdapter() {
+						public void keyPressed(KeyEvent e) {
+							if( e.getKeyCode()==e.VK_SPACE)nextDataIndex();
+							if( e.getKeyCode()==e.VK_BACK_SPACE)previousDataIndex();
+						}
+					});
+					graphDialog = new JDialog(dsdpF);
+					graphDialog.getContentPane().add(new JScrollPane(graph), "Center");
+
+					JPanel panel = new JPanel(new GridLayout(0,1) );
+					panel.add(acro);
+					JButton trim = new JButton("Trim");
+				//	JButton highTrim = new JButton("Trim high");
+				//	JPanel panel1 = new JPanel(new GridLayout(1,0) );
+				//	panel1.add( lowTrim );
+				//	panel1.add( highTrim );
+					panel.add(trim);
+					trim.addActionListener( new ActionListener() {
+						public void actionPerformed(ActionEvent e) {
+							trim();
+						}
+					});
+				//	lowTrim.addActionListener( new ActionListener() {
+				//		public void actionPerformed(ActionEvent e) {
+				//			trim( false );
+				//		}
+				//	});
+					graphDialog.getContentPane().add(panel, "North");
+					graphDialog.pack();
+					graphDialog.setSize( new Dimension( 400,500) );
+					graphDialog.setLocation(600,0);
+				} else {
+					graph.setPoints( new BRGTable(url), 0 );
+				}
+				int n = brgTable.getDataCount();
+				acro.setText( acronyms.getDescription(brgTable.getXTitle(0)) +" (1 of "+n+")");
+				if(!graphDialog.isVisible())graphDialog.setVisible(true);
+				graph.repaint();
+			} else {
+				label.setText("logs in "+hole.toString());
+				if( imageDialog!=null ) imageDialog.setVisible(false);
+				if( graphDialog!=null ) graphDialog.setVisible(false);
+			}
+			logTree.requestFocus();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	void trim() {
+		int i = graph.getDataIndex();
+		brgTable.trim( i );
+		graph.setPoints( brgTable, i);
+		graph.repaint();
+	}
+	void trim(boolean max) {
+		brgTable.trim( max, graph.getDataIndex() );
+	}
+	void showBalance() {
+		if( image==null )return;
+		image.showColorDialog();
+	}
+	void previousDataIndex() {
+		int n = brgTable.getDataCount();
+		int i = graph.getDataIndex();
+		i = (i+n-1)%n;
+		graph.setPoints( brgTable, i);
+		graph.repaint();
+		acro.setText( acronyms.getDescription(brgTable.getXTitle(i)) +" ("+(i+1)+" of "+n+")" );
+	}
+	void nextDataIndex() {
+		int n = brgTable.getDataCount();
+		int i = graph.getDataIndex();
+		i = (i+1)%n;
+		graph.setPoints( brgTable, i);
+		graph.repaint();
+		acro.setText( acronyms.getDescription(brgTable.getXTitle(i)) +" ("+(i+1)+" of "+n+")");
+	}
+	void newGroup() {
+		String gp = (String)fossilCB.getSelectedItem();
+		if( gp.equals(group.getGroupName()) )return;
+		dsdp.removeFossilGroup(gp);
+		try {
+			group = dsdp.loadGroup(gp);
+			fossilDisp.setGroup( group );
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		display();
+	}
+}

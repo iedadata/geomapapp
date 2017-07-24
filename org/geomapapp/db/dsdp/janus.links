@@ -1,0 +1,115 @@
+	public static final int NAME = 	// Site/Hole Summary (meters recovered)
+	public static final int NAME = 	// Hole/Core Summary (cores)
+	public static final int NAME = 	// Core/Section Summary (sections)
+	public static final int NAME = 	// Corelog (samples)
+	public static final int NAME = 	// GRA Bulk Density (sections)
+	public static final int NAME = 	// Magnetic Susceptibility (sections)
+	public static final int NAME = 	// Natural Gamma Radiation (sections)
+	public static final int NAME = 	// P-Wave Vel (Whole Core) (sections)
+	public static final int NAME = 	// P-Wave Vel (Split Core) (samples)
+	public static final int NAME = 	// Moisture Density (samples)
+	public static final int NAME = 	// Thermcon (samples)
+	public static final int NAME = 	// Shear Strength (samples)
+	public static final int NAME = 	// Color Reflectance (sections)
+	public static final int NAME = 	// Point Susceptibility - MS2F (sections)
+	public static final int NAME = 	// Downhole Temp. - Adara (samples)
+	public static final int NAME = 	// Splicer (tie points)
+	public static final int NAME = 	// Tensor (cores)
+	public static final int NAME = 	// Cryomag (sections)
+	public static final int NAME = 	// Paleo Investigation (samples)
+	public static final int NAME = 	// Range Table (taxa)
+	public static final int NAME = 	// Ageprofile (Datum list)
+	public static final int NAME = 	// Depth-Age Model
+	public static final int NAME = 	// X-Ray Diffraction (samples)
+	public static final int NAME = 	// XRD Images (samples)
+	public static final int NAME = 	// X-Ray Fluorescence (samples)
+	public static final int NAME = 	// ICP (samples)
+	public static final int NAME = 	// Chem: Rock Eval (samples)
+	public static final int NAME = 	// Chem: Carbonates (samples)
+	public static final int NAME = 	// Chem: Gas Elements (samples)
+	public static final int NAME = 	// Chem: Interstitial Water (samples)
+	public static final int NAME = 	// Smear Slides (samples)
+	public static final int NAME = 	// Sedimentary Thin Sections (samples)
+	public static final int NAME = 	// Hard Rock Thin Sections (samples)
+	public static final int NAME = 	// Visual Core Description (sections)
+	public static final int NAME = 	// Core Photo Images
+	public static final int NAME = 	// Section Photo Images
+	public static final int NAME = 	// Closeup Info
+	public static String[] description = new String[] {
+		"Site/Hole Summary (meters recovered)",
+		"Hole/Core Summary (cores)",
+		"Core/Section Summary (sections)",
+		"Corelog (samples)",
+		"GRA Bulk Density (sections)",
+		"Magnetic Susceptibility (sections)",
+		"Natural Gamma Radiation (sections)",
+		"P-Wave Vel (Whole Core) (sections)",
+		"P-Wave Vel (Split Core) (samples)",
+		"Moisture Density (samples)",
+		"Thermcon (samples)",
+		"Shear Strength (samples)",
+		"Color Reflectance (sections)",
+		"Point Susceptibility - MS2F (sections)",
+		"Downhole Temp. - Adara (samples)",
+		"Splicer (tie points)",
+		"Tensor (cores)",
+		"Cryomag (sections)",
+		"Paleo Investigation (samples)",
+		"Range Table (taxa)",
+		"Ageprofile (Datum list)",
+		"Depth-Age Model",
+		"X-Ray Diffraction (samples)",
+		"XRD Images (samples)",
+		"X-Ray Fluorescence (samples)",
+		"ICP (samples)",
+		"Chem: Rock Eval (samples)",
+		"Chem: Carbonates (samples)",
+		"Chem: Gas Elements (samples)",
+		"Chem: Interstitial Water (samples)",
+		"Smear Slides (samples)",
+		"Sedimentary Thin Sections (samples)",
+		"Hard Rock Thin Sections (samples)",
+		"Visual Core Description (sections)",
+		"Core Photo Images",
+		"Section Photo Images",
+		"Closeup Info"
+	}
+	static String[] cgi = new String[] {
+		"coring_summaries/sitesumm.cgi?",
+		"coring_summaries/holesumm.cgi?",
+		"coring_summaries/coresumm.cgi?",
+		"sample/sample.cgi?",
+		"physprops/gradat.cgi?",
+		"physprops/msldat.cgi?",
+		"physprops/ngrdat.cgi?",
+		"physprops/pwldat.cgi?",
+		"physprops/pwsdat.cgi?",
+		"physprops/maddat.cgi?",
+		"physprops/tcondat.cgi?",
+		"physprops/avspentordat.cgi?",
+		"physprops/colordat.cgi?",
+		"physprops/ms2fdat.cgi?",
+		"physprops/adara.cgi?",
+		"general/splice.cgi?",
+		"paleomag/tensdat.cgi?",
+		"paleomag/cryomag.cgi?",
+		"paleo/palinv.cgi?",
+		"paleo/range.cgi?",
+		"paleo/ageprofile.cgi?",
+		"paleo/agemodel.cgi?",
+		"xray/xrddat.cgi?",
+		"imaging/primedataimages.cgi?dataType=XRD?",
+		"xray/xrfdat.cgi?",
+		"xray/icpdat.cgi?",
+		"chemistry/rockeval.cgi?",
+		"chemistry/chemcarb.cgi?",
+		"chemistry/chemgas.cgi?",
+		"chemistry/chemiw.cgi?",
+		"physprops/sslide.cgi?",
+		"physprops/sts.cgi?",
+		"imaging/tsmicro.cgi?",
+		"imaging/primedataimages.cgi?dataType=VCD?",
+		"imaging/photo.cgi?",
+		"imaging/photo.cgi?",
+		"imaging/closeup.cgi?"
+	}

@@ -1,0 +1,247 @@
+package org.geomapapp.grid;
+
+import org.geomapapp.geom.*;
+
+import java.awt.geom.Point2D;
+import java.io.*;
+import java.util.*;
+import java.util.zip.*;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+
+public class ImportGrid implements Runnable {
+	JFrame frame;
+	JTextArea area;
+	JFileChooser chooser;
+	File file;
+	double lonmin,lonmax,latmin,latmax;
+	double xmin,xmax,ymin,ymax;
+	double dx,dy;
+	double zmin, zmax;
+	int width, height;
+	int zone;
+	JButton openB;
+	public ImportGrid() {
+		chooser = haxby.map.MapApp.getFileChooser();
+		init();
+	}
+	void init() {
+		frame = new JFrame("ImportGrid");
+		openB = new JButton("open");
+		openB.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				begin();
+			}
+		});
+		JPanel p = new JPanel(new java.awt.FlowLayout());
+		p.add(openB);
+		area = new JTextArea( 6, 40);
+		frame.getContentPane().add( new JScrollPane(area));
+		frame.getContentPane().add( p,"North");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.pack();
+		frame.setVisible(true);
+	}
+	Grid2D grid(File file, GGG ggg) {
+		String s;
+		try {
+			BufferedReader in = new BufferedReader(
+				new InputStreamReader(
+				new GZIPInputStream(
+				new FileInputStream(file))));
+			UTMProjection utm = new UTMProjection(ggg.xmin, ggg.ymax, ggg.dx, ggg.dy, ggg.zone, UTM.WGS84, UTM.NORTH );
+			Grid2D grid = new Grid2D.Short( new Rectangle(0,0,ggg.width,ggg.height),
+						utm);
+			double offset = (ggg.zmax+ggg.zmin) * .5;
+			double spread = ggg.zmax - ggg.zmin;
+			double scale = 1.;
+			while( spread*scale < 16000. ) scale*=2;
+			if( scale>100. )scale=100.;
+			((Grid2D.Short)grid).scale( offset, scale);
+			while( (s=in.readLine())!=null ) {
+				StringTokenizer st = new StringTokenizer(s);
+				if( st.countTokens()<3 )continue;
+				double x = Double.parseDouble( st.nextToken() );
+				double y = Double.parseDouble( st.nextToken() );
+				int ix = (int)Math.rint( (x-ggg.xmin)/ggg.dx );
+				int iy = (int)Math.rint( (ggg.ymax-y)/ggg.dy );
+				grid.setValue( ix, iy, -Double.parseDouble( st.nextToken() ));
+			}
+			in.close();
+			return grid;
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	public void begin() {
+		(new Thread(this)).start();
+	}
+	public void run() {
+		openB.setEnabled(false);
+		try {
+			open();
+		}catch(IOException e) {
+			e.printStackTrace();
+		}
+		openB.setEnabled(true);
+	}
+	void open() throws IOException {
+		int mode = chooser.getFileSelectionMode();
+		boolean multi = chooser.isMultiSelectionEnabled();
+		chooser.setMultiSelectionEnabled( false );
+		javax.swing.filechooser.FileFilter f1 = new javax.swing.filechooser.FileFilter() {
+			public boolean accept(File f) {
+				return f.getName().toLowerCase().endsWith(".grd");
+			}
+			public String getDescription() {
+				return "GMT-grd files (.grd, .GRD)";
+			}
+		});
+		chooser.addFileChoosableFilter(f1);
+		int ok = chooser.showOpenDialog(null);
+		if( ok==chooser.CANCEL_OPTION )return;
+		File choice = chooser.getSelectedFile();
+		chooser.setMultiSelectionEnabled(multi);
+		chooser.removeFileChoosableFilter(f1);
+		area.setText("");
+		open( choice );
+	}
+	void open( File file ) throws IOException {
+		String s;
+		String name = file.getName();
+		name = name.substring( 0, name.lastIndexOf(".") );
+		area.append( "\n"+ name +":  ");
+		area.paintImmediately( area.getVisibleRect() );
+		xmin = xmax = ymin = ymax = zmin = zmax = 0.;
+		latmin = latmax = lonmin = lonmax = 0.;
+		boolean start = true;
+		frame.setTitle( file.getName() );
+		Grid2D grd = Grd.readGrd( file.getPath() );
+		Rectangle bounds = grd.getBounds();
+		
+		width = bounds.width;
+		height = bounds.height;
+		RectangularProjection proj = (RectangularProjection)grd.getProjection();
+		lonmin = proj.getLongitude( 0. );
+		lonmax = proj.getLongitude( bounds.width-1. );
+		latmin = proj.getLatitude( bounds.height-1. );
+		latmax = proj.getLatitude( 0. );
+	area.append( "\n  "+ grids[k].lonmin +"\t"+ grids[k].lonmax +"\t"+ grids[k].latmin +"\t"+ grids[k].latmax );
+		}
+		zmin = grids[0].zmin;
+		zmax = grids[0].zmax;
+		lonmin = grids[0].lonmin;
+		lonmax = grids[0].lonmax;
+		latmin = grids[0].latmin;
+		latmax = grids[0].latmax;
+		dx = grids[0].dx;
+		dy = grids[0].dx;
+		for( int k=1 ; k<grids.length ; k++) {
+			if( grids[k].zmin<zmin )zmin=grids[k].zmin;
+			if( grids[k].zmax>zmax )zmax=grids[k].zmax;
+			if( grids[k].lonmin<lonmin )lonmin=grids[k].lonmin;
+			if( grids[k].lonmax>lonmax )lonmax=grids[k].lonmax;
+			if( grids[k].latmin<latmin )latmin=grids[k].latmin;
+			if( grids[k].latmax>latmax )latmax=grids[k].latmax;
+			if( grids[k].dx<dx )dx=grids[k].dx;
+			if( grids[k].dy<dy )dx=grids[k].dy;
+		}
+	area.append( "\n  "+ lonmin +"\t"+ lonmax +"\t"+ latmin +"\t"+ latmax );
+	// compute GMA resolution
+		double dx0 = Math.cos( Math.toRadians( .5*(latmin+latmax) ) );
+		dx0 *= 2.*Math.PI*UTM.major[0] / 640.;
+		int res=1;
+		while( dx0/res>1.4*dx )res*=2;
+		area.append( "\n"+ dx +", "+ (dx0/res) +", "+ res);
+		area.paintImmediately( area.getVisibleRect() );
+		double offset = (zmax+zmin) * .5;
+		double spread = zmax - zmin;
+		double scale = 1.;
+		while( spread*scale < 16000. ) scale*=2;
+		if( scale>100. )scale=100.;
+		File dir = files[0].getParentFile();
+		File top = new File( dir +"/z_"+res );
+		if( !top.exists() ) top.mkdirs();
+		Mercator proj = new Mercator( 0., 0., res*640, Mercator.SPHERE, Mercator.RANGE_0_to_360);
+		TileIO.Short tileIO = new TileIO.Short(proj,
+				dir +"/z_"+res, 320, 0);
+		tileIO.setReadonly(false);
+	//	System.out.println( name +":  "+ dx +"\t"+ (dx0/res) +"\t"+ res);
+		for( int k=0 ; k<grids.length ; k++) {
+			tile( files[k], grids[k], tileIO, proj, scale, offset);
+		}
+	}
+	void tile(File file, GGG ggg, TileIO tileIO, Mercator proj, double scale, double offset) {
+		Grid2D grd = grid(file, ggg);
+	area.append( "\n  "+ ggg.lonmin +"\t"+ ggg.lonmax +"\t"+ ggg.latmin +"\t"+ ggg.latmax );
+		Point2D ul = proj.getMapXY(new Point2D.Double( ggg.lonmin, ggg.latmax));
+		Point2D lr = proj.getMapXY(new Point2D.Double( ggg.lonmax, ggg.latmin));
+		int x1 = (int)Math.ceil(ul.getX());
+		int y1 = (int)Math.ceil(ul.getY());
+		int x2 = (int)Math.ceil(lr.getX());
+		int y2 = (int)Math.ceil(lr.getY());
+		int ix1 = (int)Math.floor(x1/320.);
+		int iy1 = (int)Math.floor(y1/320.);
+		int ix2 = (int)Math.floor(x2/320.);
+		int iy2 = (int)Math.floor(y2/320.);
+		for( int ix=ix1 ; ix<=ix2 ; ix++) {
+			int xA = (int)Math.max(ix*320, x1);
+			int xB = (int)Math.min((ix+1)*320, x2);
+			for( int iy=iy1 ; iy<=iy2 ; iy++) {
+				int yA = (int)Math.max(iy*320, y1);
+				int yB = (int)Math.min((iy+1)*320, x2);
+				Grid2D.Short tile=null;
+				try {
+					tile = (Grid2D.Short)tileIO.readGridTile(xA, yA);
+				} catch(Exception ex) {
+					tile = (Grid2D.Short)tileIO.createGridTile(xA, yA);
+					tile.scale(offset, scale);
+				}
+				boolean hasData = false;
+				for( int x=xA ; x<xB ; x++) {
+					for( int y=yA ; y<yB ; y++) {
+						Point2D.Double p = (Point2D.Double)proj.getRefXY(new Point(x, y));
+						p = (Point2D.Double)grd.getProjection().getMapXY(p);
+					//	while(p.x>=bounds.x+bounds.width)p.x-=wrap;
+					//	while(p.x<bounds.x)p.x+=wrap;
+						double val = grd.valueAt(p.x, p.y);
+						if( Double.isNaN(val))continue;
+						hasData = true;
+						tile.setValue(x, y, val);
+					}
+				}
+				double[] scales = tile.getScales();
+				if( hasData ) {
+					area.append("\n"+ tileIO.getName(xA, yA) 
+						+"\t"+ tile.isScaled()
+						+"\t"+ scales[0]
+						+"\t"+ scales[1] );
+					area.paintImmediately( area.getVisibleRect() );
+					try {
+						tileIO.writeGridTile(tile);
+					} catch(Exception ex) {
+						ex.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+	class GGG {
+		public double xmin, xmax;
+		public double ymin, ymax;
+		public double zmin, zmax;
+		public double lonmin, lonmax;
+		public double latmin, latmax;
+		public double dx, dy;
+		public int width, height;
+		public int zone;
+		public GGG() {
+		}
+	}
+	public static void main(String[] args) {
+		new ImportGrid();
+	}
+}

@@ -1,0 +1,855 @@
+package org.geomapapp.grid;
+
+import org.geomapapp.gis.shape.ESRIShapefile;
+import org.geomapapp.grid.Grid2D.Double;
+import org.geomapapp.image.RenderingTools;
+import org.geomapapp.util.*;
+
+import haxby.map.MapApp;
+import haxby.proj.PolarStereo;
+import haxby.map.XMap;
+
+import java.io.FileNotFoundException;
+import java.util.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+
+import javax.swing.*;
+import javax.swing.border.*;
+import javax.swing.event.*;
+
+/*
+ * This is used for hosted and user-imported grids via the Layers interface.
+ * Automatic reloading of grids needs to be added when panning and zooming.
+ */
+
+public class GridLayerDialog implements ActionListener, ItemListener, WindowListener {
+	public JComboBox gridCB = null;
+	JRadioButton color, pers;
+	JFrame owner;
+	JFrame dialog;
+	Grid2DOverlay grid;
+	public JToggleButton toggleListLockUnlock;
+
+//	GMA 1.4.8: TESTING
+	Hashtable mGrids;
+
+//	***** GMA 1.5.2: Add hashtable that contains everything currently in gridCB
+	public Hashtable gridCBElements;
+
+//	***** GMA 1.6.4: TESTING
+	Hashtable toggleTable = new Hashtable();
+	protected JToggleButton customizeColor;
+
+	MultiGrid mGrid;
+	JComponent currentPanel;
+	JToggleButton gridTB;
+	public boolean loaded = false;
+	public GridLayerDialog( Grid2DOverlay grid, 
+				MultiGrid mGrid,
+				JFrame owner ) {
+		this.grid = grid;
+		this.mGrid = mGrid;
+		this.owner = owner;
+		gridTB = new JToggleButton(Icons.getIcon(Icons.GRID, false));
+		gridTB.setBorder( BorderFactory.createEmptyBorder(1,1,1,1));
+		gridTB.setSelectedIcon( Icons.getIcon(Icons.GRID, true));
+		gridTB.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if( gridTB.isSelected() )showDialog( null );
+				else dialog.hide();
+			}
+		});
+
+		mGrids = new Hashtable();
+		mGrids.put( mGrid.grid.name, mGrid );
+
+//		***** GMA 1.5.2: Initialize gridCBElements and add grid to gridCBElements
+		gridCBElements = new Hashtable();
+		gridCBElements.put( mGrid.grid.name, mGrid.grid );
+//		***** GMA 1.5.2
+
+		showDialog( mGrid.grid.name );
+	}
+	public JToggleButton getToggle() {
+		return gridTB;
+	}
+
+	public void showDialog( String gridName ) {
+		initDialog(gridName);
+
+		if (!dialog.isVisible()) {
+			Point point = owner.getLocation();
+			point.y = owner.getHeight() -200;
+			point.x = owner.getWidth() -500;
+			dialog.setLocation(point.x, point.y); //sets frame location
+		}
+		dialog.setVisible(true);
+	}
+	void initDialog( String gridName ) {
+		if( dialog!=null ) return;
+		ChangeListener cl = new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				switchPanel();
+			}
+		};
+		if( owner==null && grid!=null ) {
+			owner = (JFrame)grid.getMap().getTopLevelAncestor();
+		}
+
+		dialog = new JFrame("Contributed Grids");
+		dialog.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+
+		dialog.addWindowListener(this);
+		Box panel = Box.createHorizontalBox();
+
+		Border b = BorderFactory.createCompoundBorder(
+				BorderFactory.createCompoundBorder(
+					BorderFactory.createEmptyBorder(1,1,1,1),
+					BorderFactory.createEtchedBorder()),
+				BorderFactory.createEmptyBorder(1,1,1,1));
+
+//		***** GMA 1.5.2: TESTING
+		if ( !mGrids.containsKey(mGrid.grid.name) ) {
+			mGrids.put( mGrid.grid.name, mGrid );
+		}
+		if ( !gridCBElements.containsKey(mGrid.grid.name) ) {
+			gridCBElements.put( mGrid.grid.name, mGrid.grid );
+		}
+//		***** GMA 1.5.2
+		gridCB = new JComboBox();
+
+//		***** GMA 1.5.2: Add stuff to gridCB
+		for ( Enumeration e = gridCBElements.keys(); e.hasMoreElements(); ) {
+			String currentKey = (String)e.nextElement();
+			Grid2DOverlay currentElement = (Grid2DOverlay)gridCBElements.get(currentKey);
+			gridCB.addItem(currentKey);
+		}
+		panel.add(gridCB);
+//		***** GMA 1.5.2
+
+		gridCB.addItemListener( this );
+
+		if ( gridName != null ) {
+			gridCB.setSelectedItem( gridName );
+		}
+		else {
+			gridCB.setSelectedItem( mGrid.grid.name );
+		}
+
+		panel.add( Box.createHorizontalStrut(10) );
+
+		// Add lock to stop zoom if toggling between list of grids to display
+		toggleListLockUnlock = new JToggleButton(Icons.getIcon(Icons.LOCK, false));
+		toggleListLockUnlock.setBorder( BorderFactory.createEmptyBorder(1,1,1,1));
+		toggleListLockUnlock.setToolTipText("Click to unlock displayed map area");
+		toggleListLockUnlock.setSelectedIcon(Icons.getIcon(Icons.UNLOCK, false)); // Startup default position is locked
+		panel.add( toggleListLockUnlock );
+
+		toggleListLockUnlock.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(toggleListLockUnlock.isSelected()) {
+					toggleListLockUnlock.setToolTipText("Click to lock displayed map area");
+				} else {
+					toggleListLockUnlock.setToolTipText("Click to unlock displayed map area");
+				}
+			}
+		});
+
+		JButton save = new JButton( Icons.getIcon(Icons.SAVE, false) );
+		save.setPressedIcon( Icons.getIcon(Icons.SAVE, true) );
+		save.setBorder( BorderFactory.createEmptyBorder(1,1,1,1));
+		panel.add( save );
+		save.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				save();
+			}
+		});
+
+//		***** GMA 1.6.4: TESTING
+//		JButton gridB = new JButton("Load Grid");
+		JButton gridB = new JButton("Reload");
+//		***** GMA 1.6.4
+
+		gridB.setBorder( b );
+		panel.add( gridB );
+		gridB.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				loadGrid();
+			}
+		});
+
+		JButton fillB = new JButton("Fill In");
+		fillB.setBorder( b );
+		fillB.setToolTipText( "fill data gaps");
+//		panel.add( fillB );
+		fillB.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				fill();
+			}
+		});
+
+		JButton disposeB = new JButton("Close");
+		disposeB.setBorder( b );
+		disposeB.setToolTipText( "Free Memory");
+		panel.add( disposeB );
+		disposeB.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				disposeGrid();
+			}
+		});
+
+		panel.add( Box.createHorizontalStrut(10));
+		ButtonGroup bg = new ButtonGroup();
+
+		color = new JRadioButton("2D ");
+		color.setToolTipText( "Color Palette Tool");
+		pers = new JRadioButton("3D ");
+		pers.setToolTipText("3D Perspective Tool");
+		panel.add( color );
+		panel.add( pers );
+
+//		***** GMA 1.6.4: TESTING
+
+//		try {
+//			JLabel paletteImageIcon = new JLabel( new ImageIcon( URLFactory.url("http://www.ldeo.columbia.edu/~akm/images/palette2.PNG") ) );
+//			JLabel paletteImageIcon = new JLabel( Icons.getIcon(Icons.PALETTE2, false) );
+//			paletteImageIcon.setToolTipText("Color Options");
+//			panel.add(paletteImageIcon);
+//		} catch (MalformedURLException mue) {
+//			mue.printStackTrace();
+//		}
+//		***** GMA 1.6.4
+//		panel.add( pers );
+//		***** GMA 1.6.4: TESTING
+
+//		try {
+//			JLabel threeDLabel = new JLabel( new ImageIcon( URLFactory.url("http://www.ldeo.columbia.edu/~akm/images/threed.PNG") ) );
+//			JLabel threeDLabel = new JLabel( Icons.getIcon(Icons.THREED, false) );
+//			threeDLabel.setToolTipText("3-D View");
+//			panel.add(threeDLabel);
+//		} catch (MalformedURLException mue) {
+//			mue.printStackTrace();
+//		}
+//		***** GMA 1.6.4
+
+		bg.add( color );
+		bg.add( pers );
+		color.setSelected(true);
+		color.addChangeListener( cl );
+		JPanel toolPanel = new JPanel(new BorderLayout());
+		toolPanel.add(panel,"West");
+		dialog.getContentPane().add( toolPanel,"North");
+		dialog.pack();
+		// only zoom if user has not zoomed past default of 1
+		if (grid.getMap().getZoom() <= 1) {
+			// GMA 1.4.8: Zoom to location of grid on map so that layer loads correctly
+			zoomTo();
+		}
+
+//		GMA 1.4.8: Changing GridLayerDialog to have same functionality as GridDialog
+		if ( !loaded )	{
+			loadGrid();
+		}
+		switchPanel();
+//		***** GMA 1.6.6: Automatically adjust Color bar when different grid is selected
+
+		XMap map = grid.getMap();
+		if ( map != null && map.getApp() instanceof MapApp && loaded ) {
+			((MapApp)map.getApp()).initializeColorScale();
+		}
+//		***** GMA 1.6.6
+	}
+	public void dispose(String gridToRemoveName) {
+		disposeChosenGrid(gridToRemoveName);
+		if( dialog!=null ) {
+			if ( gridCBElements.isEmpty() ) {
+				dialog.dispose();
+			}
+		}
+	}
+
+	public void disposeGrid() {
+		if (gridCB.getSelectedItem() == null) return;
+//		GMA 1.4.8: TESTING
+
+		Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+		if( grid==null )return;
+
+		RenderingTools tools = grid.getRenderer();
+		if ( tools.profileB.isSelected() ) {
+			tools.profileB.doClick();
+		}
+
+//		set the layer visibility to false in the layer manager
+		((MapApp)grid.getMap().getApp()).layerManager.setLayerVisible(((MultiGrid)mGrids.get(grid.toString())).shape,false);
+
+		//Removes the Layer Panel
+		((MapApp)grid.getMap().getApp()).layerManager.removeLayerPanel(((MultiGrid)mGrids.get(grid.toString())).shape);
+
+		//Set units to null
+		org.geomapapp.gis.shape.ESRIShapefile.nullUnits();
+
+//		***** GMA 1.5.2: Remove grids from hashtables
+		mGrids.remove(grid.name);
+		gridCBElements.remove(grid.name);
+
+		XMap map = grid.getMap();
+		grid.dispose();
+		map.repaint();
+		gridCB.removeItem(grid.name);
+		switchPanel();
+
+//		GMA 1.4.8: Remove grid from combo box
+		if ( gridCB.getItemCount() == 0 ) {
+			loaded = false;
+		}
+
+//		***** GMA 1.6.6: Automatically adjust Color bar when Grid Options window is disposed
+
+		if ( map != null && map.getApp() instanceof MapApp) {
+			((MapApp)map.getApp()).initializeColorScale();
+		}
+//		***** GMA 1.6.6
+		System.gc();
+	}
+
+	public void disposeChosenGrid(String gridToRemoveName) {
+		if ( gridToRemoveName != null ) {
+			if ( mGrids.containsKey(gridToRemoveName) ) {
+				mGrids.remove(gridToRemoveName);
+			}
+			if ( gridCBElements.containsKey(gridToRemoveName) ) {
+				XMap map = ((Grid2DOverlay)gridCBElements.get(gridToRemoveName)).getMap();
+				Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridToRemoveName);
+				RenderingTools tools = grid.getRenderer();
+				if ( tools.profileB.isSelected() ) {
+					tools.profileB.doClick();
+				}
+				// Remove reference to saving grid
+				((MapApp)map.getApp()).setToolsGrid(null);
+				((Grid2DOverlay)gridCBElements.get(gridToRemoveName)).dispose();
+				gridCBElements.remove(gridToRemoveName);
+
+				if ( gridCB != null ) {
+					grid.dispose();
+					gridCB.removeItem(gridToRemoveName);
+					switchPanel();
+					map.repaint();
+					if ( gridCB.getItemCount() == 0 ) {
+						loaded = false;
+					}
+				}
+
+//				***** GMA 1.6.6: Automatically adjust Color bar when Grid Options window is disposed
+				if ( map != null && map.getApp() instanceof MapApp) {
+					((MapApp)map.getApp()).initializeColorScale();
+				}
+//				***** GMA 1.6.6
+			}
+		}
+	}
+
+	void save() {
+
+//	***** GMA 1.6.4: Bring up same save menu as save button in main toolbar
+/*
+	//	Grid2DOverlay grid = (Grid2DOverlay)gridCB.getSelectedItem();
+
+//		GMA 1.4.8: TESTING
+		Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+
+		try {
+			(new KMZSave(grid)).save();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+/*
+		Grid2D.Image g = grid.getGeoRefImage().getGeoImage();
+		try {
+			javax.imageio.ImageIO.write( g.getBuffer(), "PNG", new java.io.FileOutputStream(new java.io.File("test.png")));
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+*/
+
+		XMap map = ((Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem())).getMap();
+		((MapApp)map.getApp()).saveImage();
+//		***** GMA 1.6.4
+
+	}
+	void fill() {
+		if( gridCB.getItemCount()==0 )return;
+		Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+		grid.fillNaNs();
+	}
+
+	public Vector getGridZValues( double lon, double lat ) {
+		Vector gridInfo = new Vector();
+		String gridName = null;
+		double zValue = Double.NaN;
+		for ( int i = 0; i < gridCBElements.size(); i++ ) {
+			Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getItemAt(i));
+			
+			if (grid != null && grid.grid != null) {
+				//may need to adjust x by adding or subtracting the wrap value
+				//if beyond the bounds of the map 
+				double wrap = grid.getMap().getWrap();
+				Point2D pt = grid.grid.getProjection().getMapXY(lon, lat);
+				if( wrap>0. ) {
+					wrap /= grid.gridScale;
+					double x = pt.getX();
+					Rectangle r = grid.grid.getBounds();
+					while( x<r.x )x+=wrap;
+					while( x>r.x+r.width ) x-=wrap;
+					pt.setLocation( x, pt.getY() );
+				}
+				zValue = grid.grid.valueAt( pt.getX(),pt.getY());
+				if ( zValue != Double.NaN ) {
+					gridName = grid.name;
+				}
+			}
+		}
+		gridInfo.add(0, gridName);
+		gridInfo.add(1, java.lang.Double.toString(zValue));
+		return gridInfo;
+	}
+
+	public void refreshGrid(ESRIShapefile shape) {
+		if( gridCB.getItemCount()==0 )return;
+		for ( int i = 0; i < gridCB.getItemCount(); i++ ) {
+			final Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getItemAt(i));
+			if ( shape.equals(((MultiGrid)mGrids.get(grid.toString())).shape) ) {
+				if (grid != null) {
+					final XMap map = grid.getMap();
+					MapApp app = ((MapApp) map.getApp());
+
+					app.addProcessingTask(grid.toString(), new Runnable() {
+						public void run() {
+							boolean merc =  map.getProjection() instanceof haxby.proj.Mercator;
+							int res=2;
+							while( res < map.getZoom()*1.4 ) res *= 2;
+
+							Grid2D grd;// = ((MultiGrid)mGrids.get( grid.toString() )).getGrid( res, map.getClipRect2D());
+							if (merc)
+								grd = ((MultiGrid)mGrids.get( grid.toString() )).getGrid( res, map.getClipRect2D());
+							else {
+								boolean southPole =
+									((PolarStereo) map.getProjection()).getHemisphere() == PolarStereo.SOUTH;
+								grd = ((MultiGrid)mGrids.get( grid.toString() )).getGridPolar(res, map.getClipRect2D(), southPole);
+							}
+
+							if ( grd != null ) {
+								Rectangle r = grd.getBounds();
+								Grid2D.Boolean land = new Grid2D.Boolean( r, grd.getProjection() );
+								boolean hasLand = false;
+								boolean hasOcean = false;
+								int count = 0;
+								for( int y=r.y ; y<r.y+r.height ; y++) {
+									for( int x=r.x ; x<r.x+r.width ; x++) {
+										double val = grd.valueAt(x,y);
+										if( Double.isNaN(val) )continue;
+										count++;
+										if( val>=0. ) {
+											hasLand=true;
+											land.setValue( x, y, true);
+										} else hasOcean=true;
+									}
+								}
+								grid.setGrid( grd, land, hasLand, hasOcean);
+								if (grid.lut.contourB.isSelected()) {
+									grid.contour.contour(grid.interval, grid.cb);
+									grid.contour.setVisible(true);
+								}
+								switchPanel();
+								loaded = true;
+							}
+							map.repaint();
+						}
+					});
+				}
+				return;
+			}
+		}
+	}
+
+	public void refreshGrids() {
+		if( gridCB.getItemCount()==0 )return;
+		for ( int i = 0; i < gridCB.getItemCount(); i++ ) {
+			final Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getItemAt(i));
+			if (grid == null || !((MapApp)grid.getMap().getApp()).layerManager.getLayerVisible(((MultiGrid)mGrids.get(grid.toString())).shape) ) continue;
+			final XMap map = grid.getMap();
+			MapApp app = ((MapApp) map.getApp());
+
+			app.addProcessingTask(grid.toString(), new Runnable() {
+				public void run() {
+					boolean merc =  map.getProjection() instanceof haxby.proj.Mercator;
+					int res=2;
+					while( res < map.getZoom()*1.4 ) res *= 2;
+
+					Grid2D grd;// = ((MultiGrid)mGrids.get( grid.toString() )).getGrid( res, map.getClipRect2D());
+					if (merc)
+						grd = ((MultiGrid)mGrids.get( grid.toString() )).getGrid( res, map.getClipRect2D());
+					else {
+						boolean southPole =
+							((PolarStereo) map.getProjection()).getHemisphere() == PolarStereo.SOUTH;
+						grd = ((MultiGrid)mGrids.get( grid.toString() )).getGridPolar(res, map.getClipRect2D(), southPole);
+					}
+
+					if ( grd != null ) {
+						Rectangle r = grd.getBounds();
+						Grid2D.Boolean land = new Grid2D.Boolean( r, grd.getProjection() );
+						boolean hasLand = false;
+						boolean hasOcean = false;
+						int count = 0;
+						for( int y=r.y ; y<r.y+r.height ; y++) {
+							for( int x=r.x ; x<r.x+r.width ; x++) {
+								double val = grd.valueAt(x,y);
+								if( Double.isNaN(val) )continue;
+								count++;
+								if( val>=0. ) {
+									hasLand=true;
+									land.setValue( x, y, true);
+								} else hasOcean=true;
+							}
+						}
+						grid.setGrid( grd, land, hasLand, hasOcean);
+						if (grid.lut.contourB.isSelected()) {
+							grid.contour.contour(grid.interval, grid.cb);
+							grid.contour.setVisible(true);
+						}
+						switchPanel();
+						loaded = true;
+						map.repaint();
+						System.gc();
+					}
+				}
+			});
+		}
+	}
+
+	public void loadGrid() {
+		if( gridCB.getItemCount()==0 )return;
+//		printHashContents();
+//		System.out.println("gridCB.getSelectedItem(): " + gridCB.getSelectedItem());
+		Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+		XMap map = grid.getMap();
+		MapApp app = (MapApp) map.getApp();
+
+		app.addProcessingTask(grid.toString(), new Runnable() {
+			public void run() {
+				//if (loaded) return; - added this line for saving grid sessions, but it prevents loading a second polar grid
+				//commented out for now.  Need to see if it causes problems with sessions.
+				Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+				XMap map = grid.getMap();
+
+				boolean merc =  map.getProjection() instanceof haxby.proj.Mercator;
+//				if( !merc ) return;
+				int res=2;
+				while( res < map.getZoom()*1.4 ) res *= 2;
+
+//				GMA 1.4.8: TESTING
+//				Grid2D grd = mGrid.getGrid( res, map.getClipRect2D());
+				Grid2D grd;
+				MultiGrid mg = ((MultiGrid)mGrids.get( grid.toString() ));
+				if (merc)
+					grd = mg.getGrid( res, map.getClipRect2D());
+				else {
+					boolean southPole =
+						((PolarStereo) map.getProjection()).getHemisphere() == PolarStereo.SOUTH;
+					grd = mg.getGridPolar(res, map.getClipRect2D(), southPole);
+				}
+
+				if ( grd != null ) {
+					Rectangle r = grd.getBounds();
+					Grid2D.Boolean land = new Grid2D.Boolean( r, grd.getProjection() );
+					boolean hasLand = false;
+					boolean hasOcean = false;
+					int count = 0;
+					for( int y=r.y ; y<r.y+r.height ; y++) {
+						for( int x=r.x ; x<r.x+r.width ; x++) {
+							double val = grd.valueAt(x,y);
+							if( Double.isNaN(val) )continue;
+							count++;
+							if( val>=0. ) {
+								hasLand=true;
+								land.setValue( x, y, true);
+							} else hasOcean=true;
+						}
+					}
+				//	System.out.println( count);
+					grid.setGrid( grd, land, hasLand, hasOcean);
+					switchPanel();
+					loaded = true;
+
+					((haxby.map.MapApp)(map.getApp())).setToolsGrid(grid);
+					
+					if ( map != null && map.getApp() instanceof MapApp && loaded ) {
+						((MapApp)map.getApp()).initializeColorScale();
+					}
+				}
+			}
+		});
+	}
+
+//	GMA 1.4.8: TESTING
+	Grid2DOverlay currentGrid;
+
+	JComponent defaultPanel = new JComponent() {
+				public Dimension getPreferredSize() {
+					return new Dimension(400, 50);
+				}
+				public void paint(Graphics g) {
+					g.drawString("Grid falls outside displayed map area", 10, 40);
+				}
+			};
+
+	public void addGrid( Grid2DOverlay grid, MultiGrid mGrid ) {
+		if ( !mGrids.containsKey(mGrid.grid.name) ) {
+			mGrids.put( mGrid.grid.name, mGrid );
+		}
+		if ( !gridCBElements.containsKey(mGrid.grid.name) ) {
+			gridCBElements.put( mGrid.grid.name, mGrid.grid );
+			System.out.println("Adding to combo box");
+		}
+		if ( gridCB.getItemCount() == 0 ) {
+			gridCB.addItem(mGrid.grid.name);
+		}
+		else {
+			boolean doNotAdd = false;
+			for ( int i = 0; i < gridCB.getItemCount(); i++ ) {
+				if ( gridCB.getItemAt(i).equals(mGrid.grid.name) ) {
+					doNotAdd = true;
+				}
+			}
+			if ( !doNotAdd ) {
+				gridCB.addItem( mGrid.grid.name );
+			}
+		}
+		gridCB.setSelectedItem( mGrid.grid.name );
+		loadGrid();
+	}
+
+//	GMA 1.4.8: Adding switch grid so selecting different grids in the combo box switches 
+//	between those grids
+	public void switchGrid() {
+		if( gridCB.getItemCount()==0 )return;
+//		Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+//		System.out.println( grid );
+		switchPanel();
+		zoomTo();
+	}
+
+	public void switchGridNoZoom() {
+		if( gridCB.getItemCount()==0 )return;
+		switchPanel();
+	}
+
+//	GMA 1.4.8: TESTING
+	void zoomTo() {
+		Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+		if( grid==null ) {
+			System.out.println("null");
+			return;
+		}
+		MultiGrid tempMGrid = ((MultiGrid)mGrids.get( grid.toString() ));
+		XMap m = grid.getMap();
+		try {
+			Rectangle2D.Double rect = null;
+			Rectangle2D shape = (Rectangle2D)tempMGrid.shape.getShapes().get( 0 );
+			double w = shape.getWidth();
+			double h = shape.getHeight();
+			rect = new Rectangle2D.Double( shape.getX()-.25*w, shape.getY()-.25*h, w*1.5, h*1.5 );
+			// Tracks zoom before, does zoom, tracks zoom after
+			m.setZoomHistoryPast(m);
+			m.zoomToRect( rect );
+			m.setZoomHistoryNext(m);
+			m.repaint();
+		} catch(Exception e) {}
+	}
+
+	void switchPanel() {
+		if ( !gridCBElements.isEmpty() ) {
+			Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+
+			// Set Map Tools Save grid
+			((haxby.map.MapApp)(grid.getXMap().getApp())).setToolsGrid(grid);
+
+			if( grid==null ) {
+				if (currentPanel != defaultPanel) {
+					if (currentPanel != null)
+						dialog.getContentPane().remove( currentPanel );
+					dialog.getContentPane().add(defaultPanel, "Center");
+				}
+				return;
+			}
+
+			try {
+				RenderingTools tools = grid.getRenderer();
+
+//				***** GMA 1.6.4
+				tools.setParentFrame(dialog);
+
+//				if ( toggleTable.containsKey(grid.name) ) {
+//					customizeColor = (JToggleButton)toggleTable.get(grid.name);
+//				}
+//				else {
+//					customizeColor = tools.customizeColor;
+//					toggleTable.put( grid.name, tools.customizeColor );
+//					customizeColor.addActionListener(this);
+//				}
+
+				JComponent tool = grid.getGrid()==null ?
+					defaultPanel :
+					tools.getTool( color.isSelected() ? "color" : "3D");
+				if (currentPanel != tool) {
+					if( currentPanel!=null )
+						dialog.getContentPane().remove( currentPanel );
+					dialog.getContentPane().add(tool, "Center");
+				}
+				currentPanel = tool;
+			} catch(Exception e) {
+				e.printStackTrace();
+				if (currentPanel != defaultPanel) {
+					if (currentPanel != null)
+						dialog.getContentPane().remove( currentPanel );
+					dialog.getContentPane().add(defaultPanel, "Center");
+				}
+				currentPanel = defaultPanel;
+			}
+			Dimension dim = dialog.getSize();
+			dialog.pack();
+			if ( currentPanel!=grid.getRenderer() ) {
+				dialog.setSize(dim);
+			}
+//			dialog.show();
+			dialog.repaint();
+		}
+		else {
+			if (currentPanel != defaultPanel) {
+				if (currentPanel != null)
+					dialog.getContentPane().remove( currentPanel );
+				dialog.getContentPane().add(defaultPanel, "Center");
+			}
+			currentPanel = defaultPanel;
+
+			Dimension dim = dialog.getSize();
+			dialog.pack();
+			dialog.setSize(dim);
+//			dialog.show();
+			dialog.repaint();
+		}
+	}
+
+	public void printHashContents() {
+		for ( Enumeration e1 = gridCBElements.keys(); e1.hasMoreElements(); ) {
+			String currentKey = (String)e1.nextElement();
+			System.out.println("gridCBElements: " + currentKey);
+		}
+		for ( Enumeration e2 = mGrids.keys(); e2.hasMoreElements(); ) {
+			String currentKey = (String)e2.nextElement();
+			System.out.println("mGrids: " + currentKey);
+		}
+	}
+
+	public Grid2DOverlay getGrid() {
+		if ( gridCB.getSelectedItem() != null ) {
+			return (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+		}
+		else {
+			return null;
+		}
+	}
+
+//	GMA 1.4.8: TESTING
+	public void itemStateChanged(ItemEvent e) {
+		if (e.getStateChange() == ItemEvent.DESELECTED &&
+				gridCBElements.isEmpty()) {
+			grid = null;
+		}
+
+		if ( e.getSource() == gridCB &&
+				e.getStateChange() == ItemEvent.SELECTED &&
+				!gridCBElements.isEmpty() ) {
+			grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+			//System.out.println( "Selected grid in combo box changed " + toggleListLockUnlock.isSelected());
+			// If locked don't zoom when switching grids.
+			if(toggleListLockUnlock.isSelected()) {
+				switchGrid(); // unlocked
+			} else {
+				switchGridNoZoom(); //locked
+			}
+
+			ESRIShapefile shape = ((MultiGrid)mGrids.get(grid.toString())).shape;
+			String p = ((MultiGrid)mGrids.get(grid.toString())).baseURL;
+			try {
+				shape.readUnits(p, "units.txt");
+			} catch (FileNotFoundException e1) {
+				e1.printStackTrace();
+			}
+			grid.getMap().removeOverlay( shape );
+			grid.getMap().addOverlay(shape.getName(), shape.getInfoURL(), shape);
+
+			new Thread( new Runnable() {
+				public void run() {
+					loadGrid();
+				}
+			});
+		}
+	}
+
+	public void actionPerformed(ActionEvent ae) {
+
+//		***** GMA 1.6.4: TESTING
+		if ( ae.getSource() == customizeColor ) {
+			Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getSelectedItem());
+			dialog.getContentPane().remove( currentPanel );
+			RenderingTools tools = grid.getRenderer();
+			if ( customizeColor.isSelected() ) {
+				tools.addColorPanel();
+			}
+			else {
+				tools.removeColorPanel();
+			}
+			JComponent tool = grid.getGrid() == null ? defaultPanel : 
+				tools.getTool(color.isSelected() ? "color" : "3D");
+
+			if (currentPanel != tool) {
+				if( currentPanel!=null )
+					dialog.getContentPane().remove( currentPanel );
+				dialog.getContentPane().add(tool, "Center");
+			}
+			currentPanel = tool;
+			dialog.pack();
+			dialog.repaint();
+		}
+//		***** GMA 1.6.4
+	}
+	public void windowActivated(WindowEvent we) {
+	}
+	public void windowClosed(WindowEvent we) {
+	}
+	public void windowClosing(WindowEvent we) {
+		if ( we.getSource().equals(dialog) ) {
+			if( gridCB.getItemCount() == 0 ) {
+				return;
+			}
+			for ( int i = 0; i < gridCB.getItemCount(); i++ ) {
+				Grid2DOverlay grid = (Grid2DOverlay)gridCBElements.get(gridCB.getItemAt(i));
+				if ( grid.getRenderer().profileB.isSelected() ) {
+					grid.getRenderer().profileB.doClick();
+				}
+			}
+		}
+	}
+	public void windowDeactivated(WindowEvent we) {
+	}
+	public void windowDeiconified(WindowEvent we) {
+	}
+	public void windowIconified(WindowEvent we) {
+	}
+	public void windowOpened(WindowEvent we) {
+	}
+}

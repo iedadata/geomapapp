@@ -1,0 +1,121 @@
+package haxby.map;
+
+import haxby.proj.*;
+import haxby.db.mb.*;
+
+import java.io.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.*;
+import java.awt.geom.*;
+import javax.swing.*;
+
+public class SPApp implements KeyListener, ActionListener {
+	XMap map = null;
+	Zoomer zoomer;
+	MapTools tools;
+	JFrame frame;
+	MapOverlay focus;
+	MapOverlay baseMap;
+	JToggleButton plotB, plot1B;
+	MBGrids_SP grids, grids1;
+	File mbControl=null;
+	MBTracks db=null;
+	public SPApp(String dir) {
+		JWindow startup = new JWindow();
+		StartUp start = new StartUp();
+		startup.getContentPane().add(start, "Center");
+		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+		startup.pack();
+		Dimension win = startup.getSize();
+		startup.setLocation( (screen.width-win.width)/2, (screen.height-win.height)/2 );
+		startup.show();
+		if(dir==null)dir = "/scratch/ridgembs/bill/antarctic";
+		int gridScale = 4;
+		PolarStereo proj = new PolarStereo( new Point(320, 320),
+				180., 25600., -71., PolarStereo.SOUTH, PolarStereo.WGS84);
+		int width = 640;
+		int height = 640;
+		map = new XMap( this, proj, width, height);
+		PolarMapBorder border = new PolarMapBorder(map);
+		map.setMapBorder(border);
+		start.setText("Composing Basemap Image");
+		baseMap = new MapOverlay( map );
+		if( !SPMapServer.getImage( new Rectangle(0,0,640,640), baseMap, 512) ) {
+			System.out.println("unable to create base map");
+			System.exit(0);
+		}
+		map.addOverlay(baseMap);
+		start.setText("Initiallizing GUI");
+		focus = new MapOverlay( map );
+		map.addOverlay(focus);
+		zoomer = new Zoomer(map);
+		map.addMouseListener(zoomer);
+		map.addMouseMotionListener(zoomer);
+		map.addMouseMotionListener(zoomer);
+		map.addKeyListener(zoomer);
+		map.addKeyListener(this);
+		try {
+			grids = new MBGrids_SP( map, dir, 4, 1, InputEvent.SHIFT_MASK | InputEvent.BUTTON1_MASK);
+			map.addOverlay( grids );
+			map.addMouseListener( grids );
+			grids.setPlot(true);
+			grids1 = new MBGrids_SP( map, dir, 1, 1, InputEvent.SHIFT_MASK | InputEvent.BUTTON2_MASK);
+			map.addOverlay( grids1 );
+			map.addMouseListener( grids1 );
+			grids1.setPlot(false);
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+		tools = new MapTools( this, map, focus);
+		JScrollPane sp = new JScrollPane(map);
+
+		frame = new JFrame("MapApp");
+		frame.setDefaultCloseOperation( frame.EXIT_ON_CLOSE );
+		frame.getContentPane().add( tools.getTools(), "North");
+		frame.getContentPane().add( sp, "Center");
+		mbControl= new File(dir+"/mb_control");
+		db = new MBTracks(map, 4000, mbControl);
+		plotB = new JToggleButton("low res", true);
+		plotB.addActionListener(this);
+		plot1B = new JToggleButton("high res", true);
+		plot1B.addActionListener(this);
+		Box box = Box.createVerticalBox();
+		box.add( plotB );
+		box.add( plot1B );
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.add(box, "North" );
+		if( db.loadDB()) {
+			db.setEnabled(true);
+			panel.add( db.getSelectionDialog(), "South");
+			frame.getContentPane().add( panel, "West");
+			frame.getContentPane().add( db.getDataDisplay(), "South");
+			map.addOverlay( db );
+		}
+		startup.dispose();
+		frame.pack();
+		frame.show();
+	}
+	public void keyPressed( KeyEvent evt ) {
+	}
+	public void keyTyped( KeyEvent evt ) {
+	}
+	public void keyReleased( KeyEvent evt ) {
+		if( evt.getKeyCode() == KeyEvent.VK_F ) mapFocus();
+	}
+	public void actionPerformed(ActionEvent evt) {
+		grids.setPlot( plotB.isSelected() );
+		grids1.setPlot( plot1B.isSelected() );
+		map.repaint();
+	}
+	public void mapFocus() {
+		if( SPMapServer.getImage( map.getClipRect2D(), focus, 512) ) map.repaint();
+	}
+	public static void main( String[] args) {
+		if( args.length==1 ) new SPApp(args[0]);
+		else {
+			String dir=null;
+			new SPApp(dir);
+		}
+	}
+}

@@ -1,0 +1,55 @@
+	protected static void initCruises(XMap map) throws IOException {
+		URL url = new URL("http://ocean-ridge.ldeo.columbia.edu/cgi-bin/MCS/mcs_init");
+		BufferedReader in = new BufferedReader(
+				new InputStreamReader( url.openStream() ));
+		String s;
+		StringTokenizer st;
+		Vector tmp = new Vector();
+		while( (s=in.readLine()) != null ) {
+			if(s.equals("@")) break;
+			st = new StringTokenizer(s);
+			if(st.countTokens() != 6) continue;
+			String id = st.nextToken();
+			Timestamp ts = new Timestamp(Long.parseLong(st.nextToken()));
+			double[] wesn = new double[] { Double.parseDouble(st.nextToken()),
+						Double.parseDouble(st.nextToken()),
+						Double.parseDouble(st.nextToken()),
+						Double.parseDouble(st.nextToken()) };
+			MCSCruise cruise = new MCSCruise(map, id, ts, wesn);
+			tmp.add(cruise);
+			Vector vec = new Vector();
+			String lineID = "";
+			while( !(s=in.readLine()).equals("@") ) {
+				st = new StringTokenizer(s);
+				id = st.nextToken();
+				if( !lineID.equals(id) ) {
+					if( vec.size() > 1 ) {
+						CDP[] cdps = new CDP[vec.size()];
+						for( int i=0 ; i<cdps.length ; i++)cdps[i]=(CDP)vec.get(i);
+						MCSLine line = new MCSLine(map, cruise, lineID,cdps);
+						cruise.addLine(line);
+					}
+					lineID = id;
+					vec.removeAllElements();
+				}
+				long time = Long.parseLong(st.nextToken());
+				double lon = Double.parseDouble(st.nextToken());
+				double lat = Double.parseDouble(st.nextToken());
+				int cdp = Integer.parseInt(st.nextToken());
+				boolean connect = (vec.size()==0) ? false : true;
+				vec.add(new CDP(cdp, lon, lat, time, connect));
+			}
+			if( vec.size() > 1 ) {
+				CDP[] cdps = new CDP[vec.size()];
+				for( int i=0 ; i<cdps.length ; i++)cdps[i]=(CDP)vec.get(i);
+				MCSLine line = new MCSLine(map, cruise, lineID,cdps);
+				cruise.addLine(line);
+			}
+		}
+		in.close();
+		cruises = new MCSCruise[tmp.size()];
+		for( int i=0 ; i<cruises.length ; i++) {
+			cruises[i] = (MCSCruise) tmp.get(i);
+		}
+		initiallized = true;
+	}
