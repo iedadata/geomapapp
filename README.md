@@ -1,5 +1,5 @@
 # GeoMapApp
-Java application for exploring geoscience data
+Java application for exploring geoscience data.
 
 # Overview
 GeoMapApp is an earth science exploration and visualization application that is continually being expanded as part of the Marine Geoscience Data System (MGDS) at the Lamont-Doherty Earth Observatory of Columbia University. The application provides direct access to the Global Multi-Resolution Topography (GMRT) compilation that hosts high resolution (~100 m node spacing) bathymetry from multibeam data for ocean areas and ASTER (Advanced Spaceborne Thermal Emission and Reflection Radiometer) and NED (National Elevation Dataset) topography datasets for the global land masses.
@@ -19,6 +19,9 @@ http://wiki.iedadata.org/display/GFG/How+to+build+GeoMapApp+with+PetDB+Portal+fr
 # Building and Releasing GeoMapApp
 The instructions for building and releasing GeoMapApp can be found here:
 http://wiki.iedadata.org/display/GFG/How+to+build+and+release+GeoMapApp
+
+# Release History
+* v3.6.6 Public release of v3.6.6 of GeoMapApp.
 
 # What's here
 
