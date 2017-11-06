@@ -9,15 +9,21 @@ This code base also includes the code for Virtual Ocean. Virtual Ocean integrate
 The code is implemented in Java.
 
 # Requirements
-* Java 8 or higher.
-* ant.
+*	Developers must have convenient access to the source code as well as modern IDE (Integrated Development Environment) tools to easily participate in the project’s life-cycle. Concurrent editing of the same source should be naturally supported.
+*	The project leader must have robust, industry-standard versioning tools to manage the incoming code from contributors (accept, revert & modify changes). 
+*	To ensure consistent build releases, the project leader must have tools to mark existing code (at any given time) as alpha, beta or release candidate. 
+*	The project leader must have tools to define user permissions for source code access and/or modification. 
+*	The project leader must guide the development team by publishing:
+   	* Desired Features Specifications
+    * UML, Use Case & Flow Control diagrams
+    *	Known Application Bugs
 
-# Installation
+# Installation and Development Environment Setup
 The instructions for setting up the code for GeoMapApp for development can be found here:
-http://wiki.iedadata.org/display/GFG/How+to+build+GeoMapApp+with+PetDB+Portal+from+source+code
+http://wiki.iedadata.org/download/attachments/14582856/GMA_and_Eclipse.doc
 
 # Building and Releasing GeoMapApp
-The instructions for building and releasing GeoMapApp can be found here:
+The instructions for building and releasing GeoMapApp for Unix, Windows and Apple OS X can be found here:
 http://wiki.iedadata.org/display/GFG/How+to+build+and+release+GeoMapApp
 
 # Release History
