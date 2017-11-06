@@ -9,6 +9,7 @@ This code base also includes the code for Virtual Ocean. Virtual Ocean integrate
 The code is implemented in Java.
 
 # Requirements
+*  Java SE Development Kit 7 or higher.
 *	Developers must have convenient access to the source code as well as modern IDE (Integrated Development Environment) tools to easily participate in the project’s life-cycle. Concurrent editing of the same source should be naturally supported.
 *	The project leader must have robust, industry-standard versioning tools to manage the incoming code from contributors (accept, revert & modify changes). 
 *	To ensure consistent build releases, the project leader must have tools to mark existing code (at any given time) as alpha, beta or release candidate. 
