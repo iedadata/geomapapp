@@ -64,13 +64,16 @@ public class ShipTracks implements Database, ListSelectionListener, MouseListene
 	public boolean isLoaded() {
 		return loaded;
 	}
+	
+	public void unloadDB() {
+		loaded = false;
+	}
+	
 	public void disposeDB() {
 		tracks = null;
 		loaded = false;
 	}
-	
 
-	
 	static final class XBTableExtension extends XBTable {
 		TableCellRenderer renderer = new HyperlinkTableRenderer();
 

@@ -13,6 +13,8 @@ import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DragSource;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -31,6 +33,7 @@ import javax.activation.ActivationDataFlavor;
 import javax.activation.DataHandler;
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.DropMode;
 import javax.swing.ImageIcon;
@@ -38,6 +41,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -45,6 +49,7 @@ import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.TransferHandler;
 import javax.swing.event.ListSelectionEvent;
@@ -57,6 +62,7 @@ import haxby.map.MapApp;
 import haxby.map.XMap;
 import haxby.map.Zoomer;
 import haxby.util.BrowseURL;
+import haxby.util.GeneralUtils;
 import haxby.util.PathUtil;
 
 public class Digitizer implements Database,
@@ -64,27 +70,33 @@ public class Digitizer implements Database,
 				MouseMotionListener,
 				KeyListener,
 				ListSelectionListener,
-				ActionListener {
-	Vector<Object> objects;
+				ActionListener, ComponentListener {
+	public Vector<Object> objects;
 	XMap map;
 	JPanel tools;
 	boolean enabled;
 	DigitizerObject currentObject;
 	int lastSelectedIndex;
-	JToggleButton startStopBtn;
-	JButton deleteBtn, helpBtn, saveBtn, deletePtsBtn, addBtn;
+	public JToggleButton startStopBtn;
+	public JButton deleteBtn, helpBtn, saveBtn, deletePtsBtn, addBtn;
 	JCheckBox autoscaleCB;
-	Class[] objectClasses;
-	JList list;
-	DigListModel model;
+	public JRadioButton greatCircleRB, straightLineRB;
+	public JTextField speedTF;
+	public Class[] objectClasses;
+	public JList list;
+	public DigListModel model;
 	DigitizerOptionsDialog options;
 	boolean listening;
-	JTable table;
-	JScrollPane tableSP;
+	public JTable table;
+	public JScrollPane tableSP;
+	public JPanel buttons, speedP;
 	XYGraph graph;
 	DigProfile profile;
-	int obj_ind = 1;
+	public int obj_ind = 1;
 	boolean editing;
+	private boolean loadedGMRTForDig = false;
+	private boolean isSurveyPlanner = false; //is Digitizer being used by Survey Planner
+	private double speed = 0; // for use in Survey Planner
 	
 	public Digitizer( XMap map ) {
 		this.map = map;
@@ -110,6 +122,7 @@ public class Digitizer implements Database,
 		graph.addMouseListener( zoomer );
 		graph.addMouseMotionListener( zoomer );
 		graph.addKeyListener( zoomer );
+		map.addComponentListener(this);
 	}
 	JPanel dialogPanel;
 	JRadioButton[] tabs;
@@ -117,7 +130,7 @@ public class Digitizer implements Database,
 		table = new JTable(new LineSegmentsObject(map, this));
 		table.addKeyListener( this );
 		table.addMouseListener( this);
-		// make rows draggable
+		// make rows drag-able
 		table.setDragEnabled(true);
 		table.setDropMode(DropMode.INSERT_ROWS);
 		table.setTransferHandler(new TableRowTransferHandler(table)); 
@@ -125,7 +138,7 @@ public class Digitizer implements Database,
 		
 		dialogPanel = new JPanel( new BorderLayout() ); // bottom panel
 		dialogPanel.add( tableSP, "Center" );
-		JPanel buttons = new JPanel( new GridLayout(0, 1) );
+		buttons = new JPanel( new GridLayout(0, 1) );
 
 		ButtonGroup gp = new ButtonGroup();
 		tabs = new JRadioButton[3];
@@ -183,7 +196,32 @@ public class Digitizer implements Database,
 		addBtn.addActionListener(this);
 		addBtn.setEnabled(false);
 		panel.add(addBtn);
+				
+		greatCircleRB = new JRadioButton("Great Circle");
+		greatCircleRB.setToolTipText("Always draws shortest path.");
+		greatCircleRB.addActionListener(this);
+		straightLineRB = new JRadioButton("Straight Line");
+		straightLineRB.setToolTipText("Always draws between points.");
+		straightLineRB.addActionListener(this);
+		ButtonGroup linesBG = new ButtonGroup();
+		linesBG.add(greatCircleRB);
+		linesBG.add(straightLineRB);
+		greatCircleRB.setSelected(true);
+		panel.add(greatCircleRB);
+		panel.add(straightLineRB);
 		
+		// for survey planner
+		speedP = new JPanel();
+		speedP.setLayout(new BoxLayout(speedP, BoxLayout.LINE_AXIS));		
+		JLabel speedL = new JLabel("Ship speed (knots)");
+		speedTF = new JTextField();
+		speedTF.setPreferredSize(new Dimension(50,23));
+		speedTF.setMaximumSize(new Dimension(50,23));
+		speedTF.setText(Double.toString(getSpeed()));
+		speedTF.addKeyListener(this);
+		speedP.add(speedL);
+		speedP.add(speedTF);
+
 		objectClasses = new Class[2];
 		objectClasses[0] = null;
 		tools.add( panel, "North" );
@@ -233,11 +271,14 @@ public class Digitizer implements Database,
 		}
 	}
 	
-	protected void makeProfile() {
+	public void makeProfile() {
 		try {
 			LineSegmentsObject obj = (LineSegmentsObject) table.getModel();
+			obj.updatePoints();
 			obj.getProfile();
-			
+			try {
+				speed = Double.parseDouble(speedTF.getText());
+			} catch(Exception e) {}
 			// update the viewport based on the selected radio button
 			if(tabs[0].isSelected()) {
 				try {
@@ -257,7 +298,7 @@ public class Digitizer implements Database,
 				try {
 					profile.setLine( obj );
 					graph.setPoints( profile, 0 );
-					graph.setScrollableTracksViewportWidth(autoscaleCB.isSelected());			
+					graph.setScrollableTracksViewportWidth(autoscaleCB.isSelected());		
 					tableSP.setViewportView( graph );
 					tableSP.revalidate();
 				} catch( ClassCastException ex) {
@@ -273,9 +314,7 @@ public class Digitizer implements Database,
 		//enable the add button if a segment is selected
 		if (list.getSelectedIndices().length > 0) addBtn.setEnabled(true);
 		if (evt.getSource() == helpBtn) {
-			BrowseURL.browseURL(
-					PathUtil.getPath("HTML/DIGITIZER_HELP", 
-							MapApp.BASE_URL+"gma_html/UserGuide.htm#Toolbar_digitiser"));
+			BrowseURL.browseURL(PathUtil.getPath("HTML/DIGITIZER_HELP"));
 		}
 		autoscaleCB.setEnabled(tabs[2].isSelected());
 		if(evt.getSource()==tabs[0]) {
@@ -302,6 +341,9 @@ public class Digitizer implements Database,
 			try {
 				LineSegmentsObject obj = (LineSegmentsObject) table.getModel();
 				profile.setLine( obj );
+				if (isSurveyPlanner && !((MapApp)map.getApp()).getMapTools().getGridDialog().isDialogVisible()) {
+					((MapApp)map.getApp()).getMapTools().getGridDialog().getToggle().doClick();
+				}
 				graph.setPoints( profile, 0 );
 				graph.setScrollableTracksViewportWidth(autoscaleCB.isSelected());
 				tableSP.setViewportView( graph );
@@ -315,7 +357,7 @@ public class Digitizer implements Database,
 				//make sure zoom and pan buttons are de-selected
 				map.getMapTools().selectB.doClick();
 				//always default to Digitized Points
-				tabs[0].setSelected(true);
+				tabs[0].doClick();
 				saveBtn.setEnabled(false);
 				map.removeMouseListener( this );
 				map.removeMouseMotionListener( this );
@@ -375,7 +417,7 @@ public class Digitizer implements Database,
 				//make sure zoom and pan buttons are de-selected
 				map.getMapTools().selectB.doClick();
 				//always default to Digitized Points
-				tabs[0].setSelected(true);
+				tabs[0].doClick();
 				saveBtn.setEnabled(false);
 				map.removeMouseListener( this );
 				map.removeMouseMotionListener( this );
@@ -428,6 +470,10 @@ public class Digitizer implements Database,
 			map.repaint();
 			saveBtn.setEnabled(false);
 		}
+		else if (evt.getSource() == greatCircleRB || evt.getSource() == straightLineRB) {
+			map.repaint();
+			makeProfile();
+		}
 		else if (evt.getSource() == autoscaleCB) {
 			graph.setScrollableTracksViewportWidth( autoscaleCB.isSelected() );
 			graph.invalidate();
@@ -445,6 +491,8 @@ public class Digitizer implements Database,
 			for (int row : table.getSelectedRows()) {
 					itemsToRemove.add((double[])obj.points.get(row));
 			}
+			// update the displayToDataIndex
+			obj.displayToDataIndex.subList(table.getSelectedRows()[0], table.getSelectedRows()[table.getSelectedRows().length-1]+1).clear();
 			
 			//if deleting the last point, delete line
 			if (itemsToRemove.size() == obj.points.size()) {
@@ -554,6 +602,9 @@ public class Digitizer implements Database,
 	public void keyReleased( KeyEvent evt ) {
 		//make sure Digitizer is at the top of the Layer Manager so that segments can be displayed
 		moveDigitizerLayerToTop();
+		if( evt.getSource()==speedTF) {
+			makeProfile();
+		}
 		if( evt.getSource()==map && evt.getKeyCode() == KeyEvent.VK_ENTER ) {
 			// Not sure if we want the Select Colors dialog anymore.
 			// Comment out for now, maybe bring back later.  NSS 06/12/17
@@ -589,6 +640,36 @@ public class Digitizer implements Database,
 				save();
 		}
 	
+	}
+	
+	@Override
+	public void componentResized(ComponentEvent e) {
+		// refresh the table if the zoom is changed (will affect the precision shown)
+		synchronized( map.getTreeLock() )  {
+			if (e.getSource() == map) {
+				for (JRadioButton tab : tabs) {
+					if (tab.isSelected()) tab.doClick();
+				}
+			}
+		}
+	}
+
+	@Override
+	public void componentMoved(ComponentEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void componentShown(ComponentEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void componentHidden(ComponentEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	void save(){
@@ -684,8 +765,6 @@ public class Digitizer implements Database,
 	void saveTable() {
 		try {
 			LineSegmentsObject obj = (LineSegmentsObject) table.getModel();
-			String dataType = obj.grid.getDataType();
-			String units = obj.grid.getUnits();
 			JFileChooser chooser = MapApp.getFileChooser();
 			String defaultFileName = list.getSelectedValue().toString().replace(" ", "_") + ".xyz";
 			chooser.setSelectedFile(new File(defaultFileName));
@@ -699,30 +778,39 @@ public class Digitizer implements Database,
 			
 			PrintStream out = new PrintStream(
 					new FileOutputStream( file ));
-			out.println ( "Longitude\tLatitude\t" + dataType + 
-					      " (" + units + ")"); //\tDistance between points (km)\tCumulative distance (km)");
 
+			//add disclaimer at the top of the output file
+			out.println("#NOT TO BE USED FOR NAVIGATION PURPOSES");
+			
+			String header = "";
+			for (int col = 0; col < obj.getColumnCount() - 1; col++) {
+				header += obj.getColumnName(col) + "\t";
+			}
+			header += obj.getColumnName(obj.getColumnCount()-1);
+			out.println(header);
+			
 			//first print the digitized points 
 			out.println("Digitized points");
 			for (int row = 0; row < obj.points.size(); row ++) {
-				out.println(obj.getValueAt(row, 0, 0) +"\t" +
-							obj.getValueAt(row, 1, 0) +"\t" +
-							obj.getValueAt(row, 2, 0));
-//							obj.getValueAt(row, 2, 0) +"\t" +
-//							obj.getValueAt(row, 3, 0) +"\t" +
-//							obj.getValueAt(row, 4, 0));
+				String line = "";
+				for (int col = 0; col < obj.getColumnCount() - 1; col++) {
+					line += obj.getValueAt(row, col, 0, true).toString().replace(",", "") + "\t";
+				}
+				line += obj.getValueAt(row, obj.getColumnCount()-1, 0, true);
+				out.println(line);
 			}
 			
 			//then print the interpolated points
 			out.println("Interpolated points");
 			for (int row = 0; row < obj.profile.size(); row ++) {
-				out.println(obj.getValueAt(row, 0, 1) +"\t" +
-							obj.getValueAt(row, 1, 1) +"\t" +
-							obj.getValueAt(row, 2, 1));
-//							obj.getValueAt(row, 2, 1) +"\t" +
-//							obj.getValueAt(row, 3, 1) +"\t" +
-//							obj.getValueAt(row, 4, 1));
+				String line = "";
+				for (int col = 0; col < obj.getColumnCount() - 1; col++) {
+					line += obj.getValueAt(row, col, 1, true).toString().replace(",", "") + "\t";
+				}
+				line += obj.getValueAt(row, obj.getColumnCount()-1, 1, true);
+				out.println(line);
 			}
+
 			out.close();
 		} catch(IOException ex) {
 			JOptionPane.showMessageDialog( map.getTopLevelAncestor(),
@@ -754,6 +842,8 @@ public class Digitizer implements Database,
 	public boolean isLoaded() {
 		return true;
 	}
+	public void unloadDB() {
+	}
 	public void disposeDB() {
 		setEnabled( false );
 	}
@@ -781,7 +871,43 @@ public class Digitizer implements Database,
 	}
 
 	private void moveDigitizerLayerToTop() {
-		((MapApp)map.getApp()).layerManager.moveToTop("Digitizer");
+		if (((MapApp)map.getApp()).getCurrentDB() == this) {
+			((MapApp)map.getApp()).layerManager.moveToTop(this);
+		}
+	}
+	
+	public void setLoadedGMRTForDig (boolean tf) {
+		loadedGMRTForDig = tf;
+	}
+	
+	public boolean getLoadedGMRTForDig() {
+		return loadedGMRTForDig;	
+	}
+	
+	public boolean isStraightLine() {
+		return straightLineRB.isSelected();
+	}
+	
+	public void setSurveyPlanner (boolean tf) {
+		isSurveyPlanner = tf;
+	}
+	
+	public boolean isSurveyPlanner() {
+		return isSurveyPlanner;
+	}
+	
+	public void setSpeed(double s) {
+		speed = s;
+	}
+	
+	public double getSpeed() {
+		return speed;
+	}
+	
+	public double calculateDuration(int cumulativeDistance) {
+		if (speed == 0) return 0;
+		double duration = cumulativeDistance / (speed * GeneralUtils.KNOTS_2_KPH);
+		return (double)Math.round(duration * 100d) / 100d;
 	}
 	
 	static ImageIcon SEGMENTS(boolean selected) {
@@ -832,7 +958,9 @@ public class Digitizer implements Database,
 	 * based on code from https://stackoverflow.com/questions/638807/how-do-i-drag-and-drop-a-row-in-a-jtable
 	 */
 	public class TableRowTransferHandler extends TransferHandler {
-		   private final DataFlavor localObjectFlavor = new ActivationDataFlavor(Integer.class, "application/x-java-Integer;class=java.lang.Integer", "Integer Row Index");
+
+		private static final long serialVersionUID = -3738670301072037773L;
+		private final DataFlavor localObjectFlavor = new ActivationDataFlavor(Integer.class, "application/x-java-Integer;class=java.lang.Integer", "Integer Row Index");
 		   private JTable           table             = null;
 
 		   public TableRowTransferHandler(JTable table) {

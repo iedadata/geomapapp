@@ -5,6 +5,7 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.geom.Point2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -12,6 +13,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Vector;
+import java.util.stream.IntStream;
 
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -19,27 +23,35 @@ import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.table.DefaultTableModel;
 
 import haxby.db.Database;
+import haxby.db.dig.Digitizer;
 import haxby.map.MapApp;
 import haxby.map.XMap;
 import haxby.util.BrowseURL;
 import haxby.util.URLFactory;
 
-public class SurveyPlanner extends JFrame implements Database, MouseListener {
+public class SurveyPlanner extends JFrame implements Database, MouseListener, MouseMotionListener {
 
 	private static final long serialVersionUID = 1L;
 	private XMap map;
 	private boolean enabled;
 	private boolean loaded;
 	private SurveyPlannerDataDisplay display;
-	private SurveyPlannerSelector spSel;
+	public SurveyPlannerSelector spSel;
 	private ArrayList<SurveyLine> surveyLines;
-	private DefaultTableModel tm;
+	protected DefaultTableModel tm;
 	private static String SURVEY_PLANNER_HELP_URL = MapApp.BASE_URL+"/gma_html/help/survey_planner_help.html";
+	private Digitizer dig;
+	protected boolean waypoints = false;
+	protected boolean importLines = false;
+	private SurveyLine currentLine = null;
+	protected boolean editLine = false;
 	
 	JDialog disclaimerDialog, helpDialog;
 	
@@ -49,43 +61,52 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 		loaded = false;
 		this.surveyLines = new ArrayList<SurveyLine>();
 		System.out.println("Loading Survey Planner");
-		display = new SurveyPlannerDataDisplay(this);
+		// initialize the Digitizer for generating waypoints
+		dig = new Digitizer(map);
+		display = new SurveyPlannerDataDisplay(this, dig);
 		tm = display.getTableModel();
-		spSel = new SurveyPlannerSelector(this);
+		spSel = new SurveyPlannerSelector(this, dig);
 	}
 
 
 	public void addLine(SurveyLine line) {
 		//first check if new, empty line
 		if (Double.isNaN(line.getStartLat())) {
-			tm.addRow(new Object[]{"-", "-", "-", "-", "-", "-","-","-","-",line});
+			Vector<Object> rowData = new Vector<Object>(Arrays.asList("-", "-", "-", "-", "-", "-","-","-","-",line));
+			display.addRowToTable(rowData);
 			surveyLines.add(line);
 			return;
 		}
-		//get depths
-		double startDepth = getDepth(line.getStartLat(), line.getStartLon());
-		double endDepth = getDepth(line.getEndLat(), line.getEndLon());
-		//add depths to survey line
-		line.setDepths(startDepth, endDepth);
+		//get elevations
+		double startElevation = getElevation(line.getStartLat(), line.getStartLon());
+		double endElevation = getElevation(line.getEndLat(), line.getEndLon());
+		//add elevations to survey line
+		line.setElevations(startElevation, endElevation);
 		//add to list
 		surveyLines.add(line);
-		//add to table
-		tm.addRow(new Object[]{line.getLineNum(), line.getStartLat(), line.getStartLon(), startDepth,
-				line.getEndLat(), line.getEndLon(), endDepth, line.getCumulativeDistance(), line.getDuration(), line});
+		
+		if (!importLines) {
+			//add to table
+			Vector<Object> rowData = new Vector<Object>(Arrays.asList(Integer.toString(line.getLineNum()), Double.toString(line.getStartLon()), 
+					Double.toString(line.getStartLat()), Double.toString(startElevation),Double.toString(line.getEndLon()), Double.toString(line.getEndLat()),
+					Double.toString(endElevation), Integer.toString(line.getCumulativeDistance()), Double.toString(line.getDuration()), line));
+			display.addRowToTable(rowData);
+		}
 	}
 	
-	public Integer getDepth(double lat, double lon) {
+	public Integer getElevation(double lat, double lon) {
 		if (Double.isNaN(lat) || Double.isNaN(lon)) return null;
 		return (int) map.getFocus().getZ(new Point2D.Double(lon,lat));
 	}
 	
 	public void clearLines() {
-		//reset table
-		tm.setRowCount(0);
 		//clear list
 		surveyLines.clear();
 		//reset static counters and accumulators in surveyLine
-		SurveyLine.resetAll();
+		SurveyLine.resetAll();	
+		//reset table
+		tm = new SurveyPlannerTableModel(this);
+		display.setTableModel((SurveyPlannerTableModel) tm);
 	}
 	
 	public void deleteLine(SurveyLine line) {
@@ -97,7 +118,7 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 	}
 	
 	public String getDBName() {
-		return "Survey Planner";
+		return "Waypoints and Survey Planner";
 	}
 
 	public String getCommand() {
@@ -105,75 +126,40 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 	}
 
 	public String getDescription() {
-		return "Survey Planner";
+		return "Waypoints and Survey Planner";
 	}
 	@Override
 	public void draw(Graphics2D g) {
-		if( !loaded ) return;
-		double zoom = map.getZoom();
-		g.setStroke( new BasicStroke( 2f/(float)zoom ));
-		for (SurveyLine sl : surveyLines) {
-			sl.draw(g);
+		if(!loaded) return;
+		if (waypoints) {
+			//draw waypoints
+			dig.draw(g);
+		} else {
+			double zoom = map.getZoom();
+			g.setStroke( new BasicStroke( 2f/(float)zoom ));
+			for (SurveyLine sl : surveyLines) {
+				sl.draw(g);
+			}
 		}
 	}
 
 	@Override
 	public boolean loadDB() {
 		if( loaded ) return loaded;
-		//map.getMapTools().getGridDialog().getToggle().doClick();
 		displayDisclaimer();
 		loaded = true;
 		return loaded;
 	}
 	
 	public void displayDisclaimer() {
-		
-//		final Object[] options = {"Accept", "Survey Planner Help"};
-		final Object[] options = {"Accept"};
-		String disclaimerText = "<html> <p>The Survey Planner portal is released as a Beta test.<br> "
-				+ "Expanded functionality is being developed for a future release.</p><br>"
-				+ "<p>The displayed maps, images, data tables and this portal are not to be used for navigation purposes.</p></html>";
-		
 
-		
-		JOptionPane.showOptionDialog(null, disclaimerText, "Survey Planner Disclaimer", 
+		final Object[] options = {"Accept"};
+		String disclaimerText = "<html> <p>The Waypoints and Survey Planner portal is released as a Beta test.</p><br/>"
+				+ "<p>The displayed maps, images, data tables and this portal are not to be used for navigation purposes.</p></html>";
+
+		JOptionPane.showOptionDialog(null, disclaimerText, "Waypoints and Survey Planner Disclaimer", 
 				JOptionPane.OK_OPTION, JOptionPane.WARNING_MESSAGE,  null,  options, options[0]);
 		
-//		
-//		disclaimerDialog = new JDialog(this,"Survey Planner Disclaimer");
-//		disclaimerDialog.setModal(false);
-//		JOptionPane diclaimerPane = new JOptionPane(disclaimerText, JOptionPane.WARNING_MESSAGE, 
-//				JOptionPane.YES_NO_OPTION, null,  options, options[0]); 
-//		diclaimerPane.addPropertyChangeListener(new PropertyChangeListener() {
-//			public void propertyChange(PropertyChangeEvent e) {
-//				if (e.getPropertyName().equals("value")) {
-//					if (e.getNewValue().equals(options[0])) {
-//						disclaimerDialog.dispose();
-//					} else if (e.getNewValue().equals(options[1])) {
-//						displayHelp();
-//					}
-//				}
-//			}
-//		});
-//		disclaimerDialog.setContentPane(diclaimerPane);
-//		disclaimerDialog.pack();
-//		disclaimerDialog.setLocationRelativeTo(this);
-//		try {
-//		    Thread.sleep(2000);                 //1000 milliseconds is one second.
-//		} catch(InterruptedException ex) {
-//		    Thread.currentThread().interrupt();
-//		}
-//		disclaimerDialog.setVisible(true);
-//		disclaimerDialog.toFront();
-		
-		
-		
-//		int selection = JOptionPane.showOptionDialog(null, disclaimerText, "Survey Planner Disclaimer", 
-//				JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,  null,  options, options[0]);
-//		
-//		if (selection == JOptionPane.NO_OPTION) {
-//			displayHelp();
-//		} 
 	}
 	
 	public void displayHelp() {
@@ -236,11 +222,14 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 			}
 		});
 		
-		helpDialog.setContentPane(helpPane);
+		JScrollPane scrollPane = new JScrollPane(helpPane);
+		ep.setCaretPosition(0);
+		helpDialog.setContentPane(scrollPane);
 		helpDialog.pack();
+		helpDialog.setSize(700, 600);
 		helpDialog.setLocationRelativeTo(this);
 		helpDialog.setVisible(true);
-		helpDialog.toFront();
+		helpDialog.toFront();	
 
 	}
 	
@@ -250,12 +239,25 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 	}
 	
 	@Override
+	public void unloadDB() {
+		loaded = false;
+	}
+	
+	@Override
 	public void disposeDB() {
-		setEnabled( false );
-		map.removeMouseListener( this );
+		setEnabled(false);
+		map.removeMouseListener(this);
+		map.removeMouseMotionListener(this);
+		map.removeMouseListener(spSel);
+		map.removeMouseMotionListener(spSel);
 		clearLines();
 		//reset all buttons and field on the right-side menu
-		spSel = new SurveyPlannerSelector(this);
+		waypoints = false;
+		SurveyLine.setIsStraightLine(false);
+		dig = new Digitizer(map);
+		spSel = new SurveyPlannerSelector(this, dig);
+		display = new SurveyPlannerDataDisplay(this, dig);
+		tm = display.getTableModel();
 		loaded = false;
 		System.gc();
 	}
@@ -264,7 +266,9 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 	public void setEnabled(boolean tf) {
 		if( tf && enabled ) return;
 		map.removeMouseListener( this );
+		map.removeMouseMotionListener(this);
 		map.addMouseListener(this);
+		map.addMouseMotionListener(this);
 		enabled = tf;
 	}
 	
@@ -280,6 +284,12 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 	public JComponent getDataDisplay() {
 		return display.getPanel();
 	}
+	
+	//reinitialize data display (eg if switching to waypoints)
+	public void initDataDisplay() {
+		display.initDisplay();
+		map.repaint();
+	}
 
 	public int getSurveyLineColumn() {
 		return display.getSurveyLineColumn();
@@ -287,6 +297,11 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 	
 	public DefaultTableModel getTableModel() {
 		return tm;
+	}
+	
+	public void setTableModel (SurveyPlannerTableModel tm) {
+		display.setTableModel(tm);
+		this.tm = tm;
 	}
 	
 	public XMap getMap() {
@@ -304,8 +319,19 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 	}
 
 	public void mousePressed(MouseEvent e) {
+		Point2D.Double p = (Point2D.Double)map.getScaledPoint(e.getPoint());
+		currentLine = null;
+		for(int i=0; i<surveyLines.size(); i++) {
+			SurveyLine sl = surveyLines.get(i);
+			//find if the mouse point coincides with the start or end point of a survey line
+			if (sl.selectPointInLine(p)) {
+				currentLine = sl;
+				editLine = true;
+			}
+		}
 	}
 	public void mouseReleased(MouseEvent e) {
+		editLine = false;
 	}
 	public void mouseEntered(MouseEvent e) {
 	}
@@ -314,8 +340,49 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener {
 	public void mouseMoved(MouseEvent e) {
 	}
 	public void mouseDragged(MouseEvent e) {
+		if (SwingUtilities.isLeftMouseButton(e)  && map.getMapTools().tb[0].isSelected() && currentLine != null) {
+			Point2D.Double p = (Point2D.Double)map.getScaledPoint(e.getPoint());
+			//update line
+			currentLine.updateSelectedPoint(p);
+			//show dragged lat/lon on table
+			((SurveyPlannerTableModel)tm).updateRow(currentLine);
+			tm.fireTableDataChanged();
+			map.repaint();
+		}
 	}
+	
 	public void mouseClicked(MouseEvent e) {
+		if (waypoints) return;
+		if( e.getSource()==map ) {
+			//will highlight the selected survey lines on the map and in the table
+			if( e.isControlDown() ) return;
+			SurveyLine sl = null;
+			Point2D.Double p = (Point2D.Double)map.getScaledPoint( e.getPoint() );
+			for(int i=0; i<surveyLines.size(); i++) {
+				try {
+					sl = surveyLines.get(i);
+				} catch (Exception ex) {
+					continue;
+				}
+				if( sl.select( p.x, p.y ) ) {
+					sl.setSelected(true);
+					display.table.setRowSelectionInterval(i, i);
+				} else sl.setSelected(false);
+			}
+		} else if( e.getSource() == display.table ) {
+			//will highlight the selected survey lines on the map
+			int[] rows = display.table.getSelectedRows();
+			for(int i=0; i<surveyLines.size(); i++) {
+				final int num = i;
+				//some fancy Java8 code!
+				surveyLines.get(i).setSelected(IntStream.of(rows).anyMatch(x -> x == num));
+			}
+		}
+		map.repaint();
 	}
-
+	void moveLayerToTop() {
+		if (((MapApp)map.getApp()).getCurrentDB() == this) {
+			((MapApp)map.getApp()).layerManager.moveToTop(this);
+		}
+	}
 }

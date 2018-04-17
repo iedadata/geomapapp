@@ -61,6 +61,7 @@ public class PDBSample {
 		return ( (int)rockType & type )!= 0;
 	}
 	static void unload() {
+		if (sample == null) return;
 		for (int i = 0 ; i < sample.length; i++)
 		{
 			if (sample[i] != null)

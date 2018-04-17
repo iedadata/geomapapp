@@ -618,7 +618,7 @@ public class WFSViewServer implements ActionListener {
 					in = new BufferedReader( new InputStreamReader( layerURL.openStream() ) );
 					Vector testerHap = new Vector();
 
-					if ( capabilitiesURL.toString().indexOf(".ldeo") != -1 || capabilitiesURL.toString().indexOf("marine-geo") != -1 || capabilitiesURL.toString().indexOf("ciesin") != -1 ) {
+					if ( capabilitiesURL.toString().indexOf(".ldeo") != -1 || capabilitiesURL.toString().indexOf("marine-geo") != -1 || capabilitiesURL.toString().indexOf("gmrt") != -1 || capabilitiesURL.toString().indexOf("ciesin") != -1 ) {
 						while ( ( s = in.readLine() ) != null )	{
 							s = s.trim();
 							//If result set is null prompt user.
@@ -1030,6 +1030,7 @@ public class WFSViewServer implements ActionListener {
 		contentPane.add(thirdPane, BorderLayout.SOUTH);
 		frame.pack();
 		frame.setVisible(true);
+		MapApp.sendLogMessage("Imported_WFS&URL="+layerURL);
 		return sb;
 	}
 

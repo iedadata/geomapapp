@@ -44,6 +44,10 @@ public class PathUtil {
 	public static String getPath(String key) {
 		if (keyToURL == null) loadPaths();
 		String url = keyToURL.get(key.toLowerCase());
+		// if running in dev mode, replace any production URLs with the dev version
+		if (url != null && MapApp.BASE_URL != null && MapApp.BASE_URL.matches(MapApp.DEV_URL)) {
+			url = url.replace(MapApp.PRODUCTION_URL, MapApp.DEV_URL);
+		}
 		if (url != null) return url;
 		System.err.println("KEY: " + key + " not found");
 		return null;
@@ -52,6 +56,10 @@ public class PathUtil {
 	public static String getPath(String key, String defaultURL) {
 		if (keyToURL == null) loadPaths();
 		String url = keyToURL.get(key.toLowerCase());
+		// if running in dev mode, replace any production URLs with the dev version
+		if (url != null && MapApp.BASE_URL != null && MapApp.BASE_URL.matches(MapApp.DEV_URL)) {
+			url = url.replace(MapApp.PRODUCTION_URL, MapApp.DEV_URL);
+		}
 		if (url != null) return url;
 		System.err.println("KEY: " + key + " not found\n Using: " + defaultURL);
 
@@ -181,12 +189,5 @@ public class PathUtil {
 		for (Map.Entry<String, String> entry : keyToURL.entrySet()) {
 			entry.setValue(entry.getValue().replace(placeHolder, var));
 		}
-	}
-	
-	
-	public static void main(String[] args) {
-		loadPaths();
-		for (String s : keyToURL.keySet())
-			System.out.println(s + "\t" + keyToURL.get(s));
 	}
 }

@@ -35,7 +35,7 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 
 	JPanel panel;
 	UnknownDataSet ds;
-	JComboBox lat,lon, rgb, polyline, shape, lineStyle;
+	JComboBox<String> lat,lon, rgb, polyline, shape, lineStyle;
 	JRadioButton station, track;
 	ButtonGroup bg;
 	JCheckBox editable, drawOutline;
@@ -46,6 +46,7 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 	JComboBox anotCB;
 	JButton color;
 	JFormattedTextField lineThick;
+	Vector<String> latlonOptions, columnOptions;
 
 	public DBConfigDialog(Frame owner, UnknownDataSet ds){
 		super((Frame) null,"Config " + ds.desc.name, true);
@@ -66,13 +67,16 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 		name.setText(ds.desc.name);
 		panel.add(name);
 		panel.add(new JLabel("Latitude Column: "));
-		lat = new JComboBox(ds.header);
-		if (ds.latIndex!=-1)lat.setSelectedIndex(ds.latIndex);
+
+		latlonOptions = new Vector<String>(ds.header.size()-1);
+		latlonOptions.addAll(ds.header.subList(1, ds.header.size()));
+		lat = new JComboBox<String>(latlonOptions);
+		if (ds.latIndex!=-1)lat.setSelectedIndex(ds.latIndex-1);
 		else {
-			String choice = ds.header.get(0);
-			for (int i = 1; i < ds.header.size(); i++)
-				if (ds.header.get(i).toString().toLowerCase().startsWith("lat")) {
-					choice = ds.header.get(i);
+			String choice = latlonOptions.get(0);
+			for (int i = 1; i < latlonOptions.size(); i++)
+				if (latlonOptions.get(i).toString().toLowerCase().startsWith("lat")) {
+					choice = latlonOptions.get(i);
 					break;
 				}
 			lat.setSelectedItem(choice);
@@ -80,13 +84,13 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 		panel.add(lat);
 
 		panel.add(new JLabel("Longitude Column: "));
-		lon = new JComboBox(ds.header);
-		if (ds.lonIndex!=-1)lon.setSelectedIndex(ds.lonIndex);
+		lon = new JComboBox<String>(latlonOptions);
+		if (ds.lonIndex!=-1)lon.setSelectedIndex(ds.lonIndex-1);
 		else {
-			String choice = ds.header.get(0);
-			for (int i = 1; i < ds.header.size(); i++) 
-				if (ds.header.get(i).toString().toLowerCase().startsWith("lon")) {
-					choice = ds.header.get(i);
+			String choice = latlonOptions.get(0);
+			for (int i = 1; i < latlonOptions.size(); i++) 
+				if (latlonOptions.get(i).toString().toLowerCase().startsWith("lon")) {
+					choice = latlonOptions.get(i);
 					break;
 				}
 			lon.setSelectedItem(choice);
@@ -94,33 +98,29 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 		panel.add(lon);
 
 		panel.add(new JLabel("RGB Column: "));
-		Vector<String> headerCopy = new Vector<String>(ds.header.size());
-		headerCopy.add(0, "None");
-		headerCopy.addAll(ds.header);
-		rgb = new JComboBox(headerCopy);
-		if (ds.rgbIndex!=-1)rgb.setSelectedIndex(ds.rgbIndex+1);
+		columnOptions = new Vector<String>(ds.header.size());
+		columnOptions.addAll(ds.header.subList(1, ds.header.size()));
+		columnOptions.add(0, "None");
+		rgb = new JComboBox<String>(columnOptions);
+		if (ds.rgbIndex!=-1)rgb.setSelectedIndex(ds.rgbIndex);
 		else {
 			int rgbIndex = 0;
-			for (int i = 1; i < headerCopy.size(); i++) 
-				if (headerCopy.get(i).toString().toLowerCase().startsWith("rgb")) {
+			for (int i = 1; i < columnOptions.size(); i++) 
+				if (columnOptions.get(i).toString().toLowerCase().startsWith("rgb")) {
 					rgbIndex = i;
 					break;
 				}
 			rgb.setSelectedIndex(rgbIndex);
 		}
-
 		panel.add(rgb);
 
 		panel.add(new JLabel("Polyline Column: "));
-		headerCopy = new Vector<String>(ds.header.size());
-		headerCopy.add(0, "None");
-		headerCopy.addAll(ds.header);
-		polyline = new JComboBox(headerCopy);
-		if (ds.polylineIndex!=-1)polyline.setSelectedIndex(ds.polylineIndex+1);
+		polyline = new JComboBox<String>(columnOptions);
+		if (ds.polylineIndex!=-1)polyline.setSelectedIndex(ds.polylineIndex);
 		else {
 			int polylineIndex = 0;
-			for (int i = 1; i < headerCopy.size(); i++) 
-				if (headerCopy.get(i).toString().toLowerCase().startsWith("polyline")) {
+			for (int i = 1; i < columnOptions.size(); i++) 
+				if (columnOptions.get(i).toString().toLowerCase().startsWith("polyline")) {
 					polylineIndex = i;
 					break;
 				}
@@ -165,13 +165,13 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 		shapeL = new JLabel("Shape");
 		panel.add(shapeL);
 		shapeL.setEnabled(ds.station);
-		headerCopy = new Vector<String>();
-		headerCopy.add("Circle");
-		headerCopy.add("Square");
-		headerCopy.add("Triangle");
-		headerCopy.add("Star");
+		Vector<String> shapeOptions = new Vector<String>();
+		shapeOptions.add("Circle");
+		shapeOptions.add("Square");
+		shapeOptions.add("Triangle");
+		shapeOptions.add("Star");
 
-		shape = new JComboBox(headerCopy);
+		shape = new JComboBox<String>(shapeOptions);
 		
 		if(ds.shapeString.equalsIgnoreCase("Circle"))
 			shape.setSelectedIndex(0);
@@ -214,12 +214,12 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 		lineStyleL = new JLabel("Line Style:");
 		lineStyleL.setEnabled(!ds.station);
 		panel.add(lineStyleL);
-		headerCopy = new Vector<String>();
-		headerCopy.add("Solid");
-		headerCopy.add("Dashed");
-		headerCopy.add("Dotted");
-		headerCopy.add("Dash-dotted");
-		lineStyle = new JComboBox(headerCopy);		
+		Vector<String> lineOptions = new Vector<String>();
+		lineOptions.add("Solid");
+		lineOptions.add("Dashed");
+		lineOptions.add("Dotted");
+		lineOptions.add("Dash-dotted");
+		lineStyle = new JComboBox<String>(lineOptions);		
 		if(ds.lineStyleString.equalsIgnoreCase("Solid"))
 			lineStyle.setSelectedIndex(0);
 		if(ds.lineStyleString.equalsIgnoreCase("Dashed"))
@@ -253,7 +253,7 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 		getContentPane().setLayout( new BorderLayout() );
 		getContentPane().add(p2);
 		panel = new JPanel();
-		b = new JButton("Ok");
+		b = new JButton("OK");
 		b.addActionListener(this);
 		b.setActionCommand("ok");
 		getRootPane().setDefaultButton(b);
@@ -273,7 +273,7 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 
 		getContentPane().add(panel,BorderLayout.SOUTH);
 		pack();
-		setLocation(owner.getX()+owner.getWidth()/2-getWidth()/2, owner.getY()+owner.getHeight()/2-getWidth()/2);
+		if (owner != null) setLocation(owner.getX()+owner.getWidth()/2-getWidth()/2, owner.getY()+owner.getHeight()/2-getWidth()/2);
 		setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 	}
 
@@ -336,10 +336,10 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 
 		ds.desc.name=name.getText();
 		ds.tm.editable=editable.isSelected();
-		ds.latIndex = lat.getSelectedIndex();
-		ds.lonIndex = lon.getSelectedIndex();
-		ds.rgbIndex = rgb.getSelectedIndex() - 1;
-		ds.polylineIndex = polyline.getSelectedIndex() - 1;
+		ds.latIndex = lat.getSelectedIndex() + 1;
+		ds.lonIndex = lon.getSelectedIndex() + 1;
+		ds.rgbIndex = rgb.getSelectedIndex();
+		ds.polylineIndex = polyline.getSelectedIndex() ;
 		ds.setColor(color.getBackground());
 		//ds. do something with unkown data set
 		//TODO
@@ -421,29 +421,39 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 
 	public void defaults(){
 		symbolSize.setValue(100);
-		String choice = ds.header.get(0);
-		for (int i = 1; i < ds.header.size(); i++)
-			if (ds.header.get(i).toString().toLowerCase().startsWith("lat")) {
-				choice = ds.header.get(i);
+			
+		String choice = latlonOptions.get(0);
+		for (int i = 1; i < latlonOptions.size(); i++)
+			if (latlonOptions.get(i).toString().toLowerCase().startsWith("lat")) {
+				choice = latlonOptions.get(i);
 				break;
 			}
 		lat.setSelectedItem(choice);
-
-		choice = ds.header.get(0);
-		for (int i = 1; i < ds.header.size(); i++)
-			if (ds.header.get(i).toString().toLowerCase().startsWith("lon")) {
-				choice = ds.header.get(i);
+		
+		choice = latlonOptions.get(0);
+		for (int i = 1; i < latlonOptions.size(); i++) 
+			if (latlonOptions.get(i).toString().toLowerCase().startsWith("lon")) {
+				choice = latlonOptions.get(i);
 				break;
 			}
 		lon.setSelectedItem(choice);
-		rgb.setSelectedIndex(0);
-		for (int i = 0; i < ds.header.size(); i++) {
-			if (ds.header.get(i).toLowerCase().startsWith("rgb")) {
-				rgb.setSelectedItem(ds.header.get(i));
+
+		int rgbIndex = 0;
+		for (int i = 1; i < columnOptions.size(); i++) 
+			if (columnOptions.get(i).toString().toLowerCase().startsWith("rgb")) {
+				rgbIndex = i;
 				break;
 			}
-		}
-
+		rgb.setSelectedIndex(rgbIndex);
+				
+		int polylineIndex = 0;
+		for (int i = 1; i < columnOptions.size(); i++) 
+			if (columnOptions.get(i).toString().toLowerCase().startsWith("polyline")) {
+				polylineIndex = i;
+				break;
+			}
+		polyline.setSelectedIndex(polylineIndex);
+		
 		drawOutline.setSelected(true);
 		station.setSelected(true);
 		track.setSelected(false);
@@ -457,30 +467,46 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 	public void reset(){
 		color.setBackground(ds.getColor());
 		symbolSize.setValue(ds.symbolSize);
-		if (ds.latIndex==-1){
-			String choice = ds.header.get(0);
-			int compare=Math.abs(choice.toLowerCase().compareTo("lat"));
-			for (int i = 1; i < ds.header.size(); i++)
-				if (Math.abs(ds.header.get(i).toLowerCase().compareTo("lat")) < compare){
-					choice = ds.header.get(i);
-					compare = Math.abs(choice.toLowerCase().compareTo("lat"));
+		
+		if (ds.latIndex!=-1)lat.setSelectedIndex(ds.latIndex-1);
+		else {
+			String choice = latlonOptions.get(0);
+			for (int i = 1; i < latlonOptions.size(); i++)
+				if (latlonOptions.get(i).toString().toLowerCase().startsWith("lat")) {
+					choice = latlonOptions.get(i);
+					break;
 				}
 			lat.setSelectedItem(choice);
-		} else lat.setSelectedIndex(ds.latIndex);
-
-		if (ds.lonIndex==-1){
-			String choice = ds.header.get(0);
-			int compare=Math.abs(choice.toLowerCase().compareTo("lon"));
-			for (int i = 1; i < ds.header.size(); i++)
-				if (Math.abs(ds.header.get(i).toLowerCase().compareTo("lon")) < compare){
-					choice = ds.header.get(i);
-					compare = Math.abs(choice.toLowerCase().compareTo("lon"));
+		}
+		
+		if (ds.lonIndex!=-1)lon.setSelectedIndex(ds.lonIndex-1);
+		else {
+			String choice = latlonOptions.get(0);
+			for (int i = 1; i < latlonOptions.size(); i++) 
+				if (latlonOptions.get(i).toString().toLowerCase().startsWith("lon")) {
+					choice = latlonOptions.get(i);
+					break;
 				}
 			lon.setSelectedItem(choice);
-		} else lon.setSelectedIndex(ds.lonIndex);
-
-		rgb.setSelectedIndex(ds.rgbIndex+1);
-		polyline.setSelectedIndex(ds.polylineIndex+1);
+		}
+		
+		if (ds.rgbIndex==-1){
+			rgb.setSelectedIndex(0);
+			for (int i = 1; i < columnOptions.size(); i++) 
+				if (columnOptions.get(i).toString().toLowerCase().startsWith("rgb")) {
+					rgb.setSelectedIndex(i);
+					break;
+				}
+		} else rgb.setSelectedIndex(ds.rgbIndex);
+		
+		if (ds.polylineIndex==-1){
+			polyline.setSelectedIndex(0);
+			for (int i = 1; i < columnOptions.size(); i++) 
+				if (columnOptions.get(i).toString().toLowerCase().startsWith("polyline")) {
+					polyline.setSelectedIndex(i);
+					break;
+				} 		
+		} else polyline.setSelectedIndex(ds.polylineIndex);
 
 		drawOutline.setSelected(ds.drawOutlines);
 		station.setSelected(ds.station);

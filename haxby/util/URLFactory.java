@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import haxby.map.MapApp;
+
 public class URLFactory {
 	public static Map<String, String> subMap = new HashMap<String, String>(); 
 	
@@ -39,14 +41,33 @@ public class URLFactory {
 	 * Check if the url has been redirected, and change the url if so.
 	 */
 	public static String checkForRedirect(String url) {
+		if (MapApp.AT_SEA) return url;
 		try {
 			HttpURLConnection con = (HttpURLConnection) new URL( url ).openConnection();
-			if (con.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM) {
+			if (con.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || con.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) {
 				url = con.getHeaderField("Location");
 			}
 		} catch(IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 		return url;
+	}
+	
+	/*
+	 * check whether a URL returns a 200 response code
+	 */
+	public static boolean checkWorkingURL(String url) {
+		if (MapApp.AT_SEA) return true;
+		url = checkForRedirect(url);
+		try {
+			HttpURLConnection con = (HttpURLConnection) new URL( url ).openConnection();
+			if (con.getResponseCode() == HttpURLConnection.HTTP_OK) {
+				return true;
+			}
+		} catch(IOException e) {
+			//e.printStackTrace();
+			return false;
+		}
+		return false;
 	}
 }

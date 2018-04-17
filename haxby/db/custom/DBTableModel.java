@@ -1,7 +1,5 @@
 package haxby.db.custom;
 
-import haxby.util.XBTable;
-
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -12,11 +10,13 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
-import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableModel;
 
 import org.geomapapp.geom.GCTP_Constants;
 
-public class DBTableModel extends AbstractTableModel{
+import haxby.util.XBTable;
+
+public class DBTableModel extends DefaultTableModel{
 
 	/**
 	 * 
@@ -25,6 +25,7 @@ public class DBTableModel extends AbstractTableModel{
 	UnknownDataSet ds;
 	public Map<Integer, Integer> rowToDisplayIndex = new HashMap<Integer, Integer>();
 	public Vector<Integer> displayToDataIndex = new Vector<Integer>();
+	public Vector<Integer> oldList = new Vector<Integer>();
 	public Vector<Integer> indexH = new Vector<Integer>();
 	public boolean editable;
 
@@ -40,6 +41,10 @@ public class DBTableModel extends AbstractTableModel{
 	private Comparator<Integer> columnSorter;
 
 	public DBTableModel(UnknownDataSet ds){
+		this(ds, true);
+	}
+	
+	public DBTableModel(UnknownDataSet ds, Boolean addPlotColumn){
 		this.ds = ds;
 
 		for (int i = 0; i < ds.rowData.size();i++)
@@ -48,10 +53,12 @@ public class DBTableModel extends AbstractTableModel{
 		for (int i = 0; i < ds.header.size(); i++)
 			indexH.add( i );
 
-		addPlotColumn();
-		updateRowToDisplayIndex();
+		if (addPlotColumn) {
+			addPlotColumn();
+			updateRowToDisplayIndex();
+		}
 	}
-	
+
 	public void addPlotColumn() {
 		//a boolean column to determine whether a datapoint should be plotted on the map
 		ds.header.insertElementAt("Plot", 0);
@@ -66,6 +73,7 @@ public class DBTableModel extends AbstractTableModel{
 	 * Add Cumulative Distance to Data
 	 */
 	public void addCD(){
+		if (ds.header.contains("Cumulative Distance (km)")) return;
 		double radius = GCTP_Constants.major[0];
 		ds.header.add("Cumulative Distance (km)");
 		indexH.add(ds.header.size() - 1);
@@ -114,6 +122,7 @@ public class DBTableModel extends AbstractTableModel{
 	 * Remove Cumulative Distance 
 	 */
 	public void removeCD(){
+		if (ds.header.get(ds.header.size()-1) != "Cumulative Distance (km)") return;
 		for (int i =0; i < indexH.size();i++)
 			if (indexH.get(i).equals(ds.header.size() - 1))
 				indexH.remove(i);
@@ -132,9 +141,11 @@ public class DBTableModel extends AbstractTableModel{
 		Vector<Integer> v = new Vector<Integer>();
 		int[] s = ds.dataT.getSelectedRows(); 
 
-		for (int i=0;i<s.length;i++)
-			s[i] = displayToDataIndex.get(s[i]);
-
+		for (int i=0;i<s.length;i++) {
+			if (s[i] < displayToDataIndex.size())
+				s[i] = displayToDataIndex.get(s[i]);
+			else s[i] = -1;
+		}
 		displayToDataIndex.removeAllElements();
 		double xMin = bounds.getX();
 		double xMax = xMin+bounds.getWidth();
@@ -144,7 +155,7 @@ public class DBTableModel extends AbstractTableModel{
 		int z = 0;
 		for(int i=0 ; i<ds.data.size() ; i++) {
 			UnknownData d = ds.data.get(i);
-
+			d.setVisible(true);
 			boolean inBounds = checkDataBounds(d, xMin, xMax, yMin, yMax, wrap);
 			if (!inBounds) inBounds = checkPolygonBounds(d, bounds, wrap);
 			if (!inBounds) { 
@@ -159,7 +170,9 @@ public class DBTableModel extends AbstractTableModel{
 			}
 		}
 		displayToDataIndex.trimToSize();
-
+		oldList.clear();
+		oldList.addAll(displayToDataIndex);
+		
 		ds.dataT.getSelectionModel().removeListSelectionListener(ds);
 
 		// Each time we change the displayIndex we need to update
@@ -280,19 +293,78 @@ public class DBTableModel extends AbstractTableModel{
 		return columnSorter;
 	}
 
-	private void updateRowToDisplayIndex() {
+	public void updateRowToDisplayIndex() {
 		rowToDisplayIndex.clear();
 		int i = 0;
-		for (Integer rowIndex : displayToDataIndex)
-			rowToDisplayIndex.put(rowIndex, i++);
+		for (Integer rowIndex : displayToDataIndex) {
+				rowToDisplayIndex.put(rowIndex, i++);
+		}
 	}
 
+	public void updateDisplayToDataIndex() {
+		int[] s = ds.dataT.getSelectedRows(); 
+
+		displayToDataIndex.removeAllElements();
+		double xMin = rect.getX();
+		double xMax = xMin+rect.getWidth();
+		double yMin = rect.getY();
+		double yMax = yMin+rect.getHeight();
+		double wrap = ds.map.getWrap();
+		int z = 0;
+		for(int i=0 ; i<ds.data.size() ; i++) {
+			UnknownData d = ds.data.get(i);
+			boolean inBounds = checkDataBounds(d, xMin, xMax, yMin, yMax, wrap);
+			if (!inBounds) inBounds = checkPolygonBounds(d, rect, wrap);
+			if (!inBounds) { 
+				continue;
+			}
+
+			if (d.isVisible()) displayToDataIndex.add(i);
+		}
+		displayToDataIndex.trimToSize();
+		ds.dataT.getSelectionModel().removeListSelectionListener(ds);
+
+		// Each time we change the displayIndex we need to update
+		// the sort as well
+		if (lastSortedCol != -1) {
+			ascent = !ascent;
+			sortByColumn(lastSortedCol);
+		}
+		else {
+			updateRowToDisplayIndex();
+			fireTableDataChanged();
+		}
+		for (int i=0;i<s.length;i++) {
+			z = s[i];
+			ds.dataT.getSelectionModel().addSelectionInterval(z, z);
+		}
+
+		ds.dataT.getSelectionModel().addListSelectionListener(ds);
+	}
+	
+	public void resetDisplayIndices() {
+		displayToDataIndex.clear();
+		displayToDataIndex.addAll(oldList);
+		for (int i : oldList) {
+			ds.data.get(i).setVisible(true);
+		}
+		updateRowToDisplayIndex();
+	}
+	
 	public String getColumnName(int col) {
 		return ds.header.get(indexH.get(col));
 	}
-	public int getRowCount() { return displayToDataIndex.size(); }
-	public int getColumnCount() { return indexH.size(); }
+	public int getRowCount() { 
+		if (displayToDataIndex == null) return 1;
+		return displayToDataIndex.size(); 
+	}
+	public int getColumnCount() { 
+		if (indexH == null) return 1;
+		return indexH.size(); }
 	public Object getValueAt(int row, int col) {
+		if (col == -1) return true;
+		if (row >= displayToDataIndex.size() || col >= indexH.size()) return "-";
+		if (indexH.get(col) >= ds.rowData.get(displayToDataIndex.get(row)).size()) return "-";
 		return ds.rowData.get(displayToDataIndex.get(row))
 				.get(indexH.get(col));
 	}
@@ -320,6 +392,10 @@ public class DBTableModel extends AbstractTableModel{
 
     public Class getColumnClass(int c) {
         return getValueAt(0, c).getClass();
+    }
+    
+    public UnknownDataSet getDataSet() {
+    	return ds;
     }
     
 	public void dispose() {

@@ -189,7 +189,7 @@ public class Axes {
 	}
 	
 	/*
-	 * Return the width of the x-axis in km, adding enough room so that tick labels are not cut off
+	 * Return the width of the x-axis, adding enough room so that tick labels are not cut off
 	 */
 	public double getXAxisWidth(Graphics2D g, Rectangle2D bounds, Rectangle rect) {
 		Insets ins = getInsets();
@@ -246,6 +246,6 @@ public class Axes {
 		}			
 		double sw = fm.stringWidth(s);
 		double xAxisWidth = (val - resolution + sw/(2. * scale));
-		return Math.max(max,  xAxisWidth);
+		return Math.max(max-min,  xAxisWidth);
 	}
 }

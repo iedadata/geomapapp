@@ -193,6 +193,9 @@ public class Isochrons implements Database,
 	public boolean isLoaded() {
 		return loaded;
 	}
+	public void unloadDB() {
+		loaded = false;
+	}
 	public void disposeDB() {
 		setEnabled( false );
 		map.removeMouseListener( this );

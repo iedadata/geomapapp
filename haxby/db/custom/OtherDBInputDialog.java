@@ -216,7 +216,7 @@ public class OtherDBInputDialog extends 	JDialog
 		JScrollPane sp = new JScrollPane(input);
 		p2.add(sp);
 		p = new JPanel();
-		JButton ok = new JButton("Ok");
+		JButton ok = new JButton("OK");
 		getRootPane().setDefaultButton(ok);
 		ok.addActionListener(this);
 		ok.setActionCommand("ok");

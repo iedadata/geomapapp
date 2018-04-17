@@ -159,6 +159,10 @@ public class Ship implements Database,
 		return loaded;
 	}
 
+	public void unloadDB() {
+		loaded = false;
+	}
+	
 	public void disposeDB() {
 		tracks = new ShipTrack[size];
 		size = 0;

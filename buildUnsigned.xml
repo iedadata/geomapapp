@@ -112,8 +112,8 @@
             displayname="GeoMapApp"
             identifier="org.iedadata.GeoMapApp"
         	icon="resources/org/geomapapp/resources/icons/GeoMapApp.icns"
-        	shortversion="3.6.6"
-        	copyright="GeoMapApp 3.6.6, Copyright © 2017 www.geomapapp.org"
+        	shortversion="3.6.8"
+        	copyright="GeoMapApp 3.6.8, Copyright © 2018 www.geomapapp.org"
         	applicationCategory="Education"
             mainclassname="haxby.map.MapApp">
         	<option value="-Dapple.laf.useScreenMenuBar=false" />

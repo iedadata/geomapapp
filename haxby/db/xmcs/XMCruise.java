@@ -1,12 +1,5 @@
 package haxby.db.xmcs;
 
-import haxby.db.mcs.CDP;
-import haxby.map.MapApp;
-import haxby.map.Overlay;
-import haxby.map.XMap;
-import haxby.util.PathUtil;
-import haxby.util.URLFactory;
-
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -16,6 +9,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.EOFException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -23,6 +17,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.StringTokenizer;
 import java.util.Vector;
+
+import haxby.db.mcs.CDP;
+import haxby.map.MapApp;
+import haxby.map.Overlay;
+import haxby.map.XMap;
+import haxby.util.PathUtil;
+import haxby.util.URLFactory;
 
 public class XMCruise implements Overlay {
 	XMCS mcs;
@@ -152,106 +153,109 @@ public class XMCruise implements Overlay {
 
 	public XMLine[] loadLines(String path) throws IOException {
 		URL url = URLFactory.url( path + id + CHANNEL_CONTROL);
-		DataInputStream in = new DataInputStream(url.openStream());
-		String s;
-
-		// Load lines from MCS/cruiseID/nav/mcs_control
-		while( true ) {
-			try {
-				s = in.readUTF();
-			} catch (EOFException ex) {
-				break;
-			}
-			StringTokenizer st = new StringTokenizer(s);
-			String lineID = st.nextToken();
-			String cruiseId = st.nextToken();
-
-			int nseg = in.readInt();
-			int npt = in.readInt();
-			CDP[] cdp = new CDP[npt];
-			for( int k=0 ; k<npt ; k++ ) {
-				int[] entry = new int[] {
-					in.readInt(),
-					in.readInt(),
-					in.readInt() };
-				cdp[k] = new CDP( entry[2],
-					(double)(entry[0]*1.e-6),
-					(double)(entry[1]*1.e-6),
-					(long)entry[2], false);
-			}
-			if( !cruiseId.equals( id ) )
-				continue;
-
-			XMLine line = new XMLine( map, this, lineID, cdp );
-			addLine( line );
-		}
-		in.close();
-
-		// Load bounds from MCS/cruiseID/nav/bounds
-		URL url2 = URLFactory.url( path + id + CHANNEL_BOUNDS);
-		in = new DataInputStream( url2.openStream() );
-		BufferedReader reader = new BufferedReader(
-				new InputStreamReader( in ));
-
-		XMLine[] lines = getLines();
-		while( (s=reader.readLine()) != null ) {
-			StringTokenizer st = new StringTokenizer(s);
-			String cruiseId = st.nextToken();
-			int index = -1;
-			if (! cruiseId.equals(id))
-				continue;
-
-			index = -1;
-			String lineId = st.nextToken();
-			for( int i=0 ; i<lines.length ; i++) {
-				if( lineId.equals( lines[i].getID() )) {
-					index = i;
+		try {
+			DataInputStream in = new DataInputStream(url.openStream());
+			String s;
+			// Load lines from MCS/cruiseID/nav/mcs_control
+			while( true ) {
+				try {
+					s = in.readUTF();
+				} catch (EOFException ex) {
 					break;
 				}
+				StringTokenizer st = new StringTokenizer(s);
+				String lineID = st.nextToken();
+				String cruiseId = st.nextToken();
+	
+				int nseg = in.readInt();
+				int npt = in.readInt();
+				CDP[] cdp = new CDP[npt];
+				for( int k=0 ; k<npt ; k++ ) {
+					int[] entry = new int[] {
+						in.readInt(),
+						in.readInt(),
+						in.readInt() };
+					cdp[k] = new CDP( entry[2],
+						(double)(entry[0]*1.e-6),
+						(double)(entry[1]*1.e-6),
+						(long)entry[2], false);
+				}
+				if( !cruiseId.equals( id ) )
+					continue;
+	
+				XMLine line = new XMLine( map, this, lineID, cdp );
+				addLine( line );
 			}
-			if( index==-1 ) continue;
-			double[] cdpRange = new double[] {
-					Double.parseDouble( st.nextToken()),
-					Double.parseDouble( st.nextToken()) };
-
-			double[] zRange = new double[] {
-					Double.parseDouble( st.nextToken()),
-					Double.parseDouble( st.nextToken()) };
-//			zRange[1] *= 2;
-			zRange[1] += zRange[0];
-			lines[index].setRanges( cdpRange, zRange );
-		}
-
-		Collections.sort(this.lines, new Comparator<Object>() {
-			public int compare(Object arg0, Object arg1) {
-				String s0 = ((XMLine) arg0).lineID;
-				String s1 = ((XMLine) arg1).lineID;
-				try {
-					String[] ss0 = s0.split("[^\\d\\.]");
-					String[] ss1 = s1.split("[^\\d\\.]");
-					float n0 = Float.parseFloat(ss0[0]);
-					float n1 = Float.parseFloat(ss1[0]);
-					return n0 - n1 < 0 ?  -1 : (n0 - n1 == 0 ? 0 : 1);
-				} catch (NumberFormatException ex) {
-					return s0.compareTo(s1);
+			in.close();
+	
+			// Load bounds from MCS/cruiseID/nav/bounds
+			URL url2 = URLFactory.url( path + id + CHANNEL_BOUNDS);
+			in = new DataInputStream( url2.openStream() );
+			BufferedReader reader = new BufferedReader(
+					new InputStreamReader( in ));
+	
+			XMLine[] lines = getLines();
+			while( (s=reader.readLine()) != null ) {
+				StringTokenizer st = new StringTokenizer(s);
+				String cruiseId = st.nextToken();
+				int index = -1;
+				if (! cruiseId.equals(id))
+					continue;
+	
+				index = -1;
+				String lineId = st.nextToken();
+				for( int i=0 ; i<lines.length ; i++) {
+					if( lineId.equals( lines[i].getID() )) {
+						index = i;
+						break;
+					}
+				}
+				if( index==-1 ) continue;
+				double[] cdpRange = new double[] {
+						Double.parseDouble( st.nextToken()),
+						Double.parseDouble( st.nextToken()) };
+	
+				double[] zRange = new double[] {
+						Double.parseDouble( st.nextToken()),
+						Double.parseDouble( st.nextToken()) };
+	//			zRange[1] *= 2;
+				zRange[1] += zRange[0];
+				lines[index].setRanges( cdpRange, zRange );
+			}
+	
+			Collections.sort(this.lines, new Comparator<Object>() {
+				public int compare(Object arg0, Object arg1) {
+					String s0 = ((XMLine) arg0).lineID;
+					String s1 = ((XMLine) arg1).lineID;
+					try {
+						String[] ss0 = s0.split("[^\\d\\.]");
+						String[] ss1 = s1.split("[^\\d\\.]");
+						float n0 = Float.parseFloat(ss0[0]);
+						float n1 = Float.parseFloat(ss1[0]);
+						return n0 - n1 < 0 ?  -1 : (n0 - n1 == 0 ? 0 : 1);
+					} catch (NumberFormatException ex) {
+						return s0.compareTo(s1);
+					}
+				}
+			});
+	
+			for (int i = 0; i < lines.length; i++)
+				lines[i].setMap(map);
+	
+			// Add crossings to XMLines
+			for( int k=0 ; k<lines.length-1 ; k++) {
+				for( int j=k+1 ; j<lines.length ; j++) {
+					double[] crs = XMLine.cross(lines[k], lines[j]);
+					if(crs==null) continue;
+					lines[k].addCrossing( crs[0], crs[1], lines[j] );
+					lines[j].addCrossing( crs[1], crs[0], lines[k] );
 				}
 			}
-		});
-
-		for (int i = 0; i < lines.length; i++)
-			lines[i].setMap(map);
-
-		// Add crossings to XMLines
-		for( int k=0 ; k<lines.length-1 ; k++) {
-			for( int j=k+1 ; j<lines.length ; j++) {
-				double[] crs = XMLine.cross(lines[k], lines[j]);
-				if(crs==null) continue;
-				lines[k].addCrossing( crs[0], crs[1], lines[j] );
-				lines[j].addCrossing( crs[1], crs[0], lines[k] );
-			}
+			setBounds();
+			return getLines();
+		} catch (FileNotFoundException ex) {
+			return null;
 		}
-		setBounds();
-		return getLines();
 	}
 
 	public void clearLines() {

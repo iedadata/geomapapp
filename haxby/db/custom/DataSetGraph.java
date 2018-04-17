@@ -213,7 +213,7 @@ public class DataSetGraph implements 	XYPoints2,
 						continue;
 					}else if (ds.f!=null&&ds.cst!=null&&ds.cst.isShowing()&&i<ds.f.length){
 						a = ds.cst.getColor(ds.f[i]);
-					}else if (ds.rgbIndex > -1){
+					}else if (ds.rgbIndex > 0){
 						parseRGB(i);
 						a = new Color(rgbValue[0], rgbValue[1], rgbValue[2]);
 					}else{
@@ -273,7 +273,7 @@ public class DataSetGraph implements 	XYPoints2,
 					continue;
 				}else if (ds.f!=null&&ds.cst!=null&&ds.cst.isShowing()&&i<ds.f.length) {
 					a = ds.cst.getColor(ds.f[i]);
-				}else if (ds.rgbIndex > -1) {
+				}else if (ds.rgbIndex > 0) {
 					parseRGB(i);
 					a = new Color(rgbValue[0], rgbValue[1], rgbValue[2]);
 				}else {

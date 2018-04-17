@@ -91,7 +91,7 @@
 		<signjar
 			jar="${src}/VirtualOcean.jar"
 			alias="****"
-			storepass="********"
+			storepass="****"
 			keystore="${src}/keystore.ldeo"/>
 	</target>
 

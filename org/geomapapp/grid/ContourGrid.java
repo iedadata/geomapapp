@@ -1,10 +1,15 @@
 package org.geomapapp.grid;
 
-import org.geomapapp.geom.*;
-
+import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.Stroke;
+import java.awt.geom.GeneralPath;
+import java.awt.geom.Point2D;
 import java.util.Vector;
-import java.awt.geom.*;
-import java.awt.*;
+
+import haxby.map.XMap;
 
 public class ContourGrid {
 	Grid2D grid;
@@ -13,6 +18,7 @@ public class ContourGrid {
 	int nx, ny;
 	Con con;
 	double interval = 0;
+	double bolding_interval = 0;
 	boolean visible;
 	static int[] dx = {0, 1, 1, 0};
 	static int[] dy = {0, 0, 1, 1};
@@ -23,6 +29,7 @@ public class ContourGrid {
 		this.overlay = overlay;
 		setGrid(overlay.getGrid());
 		interval = -1;
+		bolding_interval = -1;
 		visible = false;
 	}
 	public void setGrid(Grid2D grid) {
@@ -50,12 +57,22 @@ public class ContourGrid {
 	}
 	public void draw(Graphics2D g) {
 		if(!visible)return;
-//	System.out.println( contours.size() +" contours");
+		
+		// keep contours visible if plotted, no matter what the opacity
+		XMap map = overlay.getMap();
+		float alpha = map.getAlpha(overlay);
+		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1));
+		Stroke oldStroke = g.getStroke();
+		float line_width = ((BasicStroke) oldStroke).getLineWidth();
 		for( int k=0 ; k<contours.size() ; k++) {
 			Con con = (Con)contours.get(k);
+			if (bolding_interval > 0 && con.z % bolding_interval == 0) {
+				g.setStroke(new BasicStroke(line_width * 2));
+			}
 			g.draw( con.gp );
-//	System.out.println( k +"\t"+ con.n);
+			g.setStroke(oldStroke);
 		}
+		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
 	}
 	double[] getCell( int x, int y ) {
 		double[] cell = new double[] {
@@ -69,9 +86,10 @@ public class ContourGrid {
 	public double getInterval() {
 		return interval;
 	}
-	public void contour(double interval, int[] range) {
+	public void contour(double interval, double bolding_interval, int[] range) {
 		if(grid==null) return;
 		this.interval = interval;
+		this.bolding_interval = bolding_interval;
 		Grid2D.Byte flags = new Grid2D.Byte(
 				grid.getBounds(), 
 				grid.getProjection());

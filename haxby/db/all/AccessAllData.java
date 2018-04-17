@@ -203,7 +203,6 @@ public class AccessAllData implements ActionListener, TreeSelectionListener {
 
 	public void addFocusSites(DefaultMutableTreeNode parent) {
 		Vector data = null;
-//		String xmlurl = "http://www.marine-geo.org/geomapapp/GMA/FocusSites/focussites.xml";
 		String xmlurl = haxby.map.MapApp.TEMP_BASE_URL +"GMA/FocusSites/focussites.xml";
 		try {
 			data = ParseLink.parse(URLFactory.url(xmlurl));

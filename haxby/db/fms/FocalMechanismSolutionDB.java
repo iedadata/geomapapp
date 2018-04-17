@@ -560,7 +560,11 @@ public class FocalMechanismSolutionDB implements Database {
 	public boolean isLoaded() {
 		return all != null && !all.isEmpty();
 	}
-
+	
+	public void unloadDB() {
+		all = null;
+	}
+	
 	public boolean loadDB() {
 		if (isLoaded()) return true;
 

@@ -686,7 +686,7 @@ public class GridDialog implements ItemListener, WindowListener {
 						loadGrid();
 						//When the grid is loaded hide the load dialog
 						if ( grid.lut.contourB.isSelected() )	{
-							grid.contour.contour( grid.interval, grid.cb );
+							grid.contour.contour( grid.interval, grid.bolding_interval, grid.cb );
 							grid.contour.setVisible( true );
 							grid.getMap().repaint();
 						}
@@ -694,6 +694,11 @@ public class GridDialog implements ItemListener, WindowListener {
 					finally {
 						if ( dialog != null ) {
 							dialog.setCursor(Cursor.getDefaultCursor());
+						}
+						
+						// if currently using survey planner, update the elevations.
+						if (app.getCurrentDB() != null && app.getCurrentDB().getClass() == haxby.db.surveyplanner.SurveyPlanner.class) {
+							((haxby.db.surveyplanner.SurveyPlanner)app.getCurrentDB()).spSel.updateSurveyPlanner();
 						}
 					}
 				}
@@ -1156,7 +1161,7 @@ public class GridDialog implements ItemListener, WindowListener {
 								}
 								grid.setGrid( grd, land, hasLand, hasOcean);
 								if (grid.lut.contourB.isSelected()) {
-									grid.contour.contour(grid.interval, grid.cb);
+									grid.contour.contour(grid.interval, grid.bolding_interval, grid.cb);
 									grid.contour.setVisible(true);
 								}
 								switchPanel();
@@ -1198,6 +1203,11 @@ public class GridDialog implements ItemListener, WindowListener {
 						} else {
 							GRID_LOADERS.get(grid.toString()).loadGrid(grid);
 						}
+						if (grid.lut.contourB.isSelected()) {
+							grid.contour.contour(grid.interval, grid.bolding_interval, grid.cb);
+							grid.contour.setVisible(true);
+						}
+						map.repaint();
 					} else {
 						//contributed grids
 						int res=2;
@@ -1229,7 +1239,7 @@ public class GridDialog implements ItemListener, WindowListener {
 							}
 							grid.setGrid( grd, land, hasLand, hasOcean);
 							if (grid.lut.contourB.isSelected()) {
-								grid.contour.contour(grid.interval, grid.cb);
+								grid.contour.contour(grid.interval, grid.bolding_interval, grid.cb);
 								grid.contour.setVisible(true);
 							}
 							switchPanel();

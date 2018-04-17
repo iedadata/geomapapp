@@ -117,7 +117,7 @@ public class XMLJTreeDialog extends JDialog implements ActionListener,
 		editMenu.add(mi);
 
 		JPanel p = new JPanel();
-		JButton b = new JButton("Ok");
+		JButton b = new JButton("OK");
 		b.setActionCommand("ok");
 		b.addActionListener(this);
 		p.add(b);
@@ -420,7 +420,7 @@ public class XMLJTreeDialog extends JDialog implements ActionListener,
 		JScrollPane sp = new JScrollPane(tree);
 		
 		JPanel p = new JPanel();
-		JButton b = new JButton("Ok");
+		JButton b = new JButton("OK");
 		b.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				XMLTreeNode node = (XMLTreeNode) tree.getSelectionPath().getLastPathComponent();

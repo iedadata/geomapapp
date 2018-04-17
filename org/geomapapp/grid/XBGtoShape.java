@@ -193,7 +193,6 @@ public class XBGtoShape {
 
 		File linkFile = new File( dir, fileName+".link");
 		
-	//	String root = "http://www.marine-geo.org/geomapapp/GMA/Layers/Grids/NGDCCoast/";
 		String root;
 		try {
 			root = "file://" + dir.getCanonicalPath();

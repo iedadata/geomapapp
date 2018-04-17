@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -772,6 +773,9 @@ public class XML_Menu {
 					if (sub_layer.command.equals("wms_usgs_quads_cmd")) {
 						sub_layer.isRemote = "true";
 					}
+					if (sub_layer.command.equals("NASA_DEM_CMD")) {
+						sub_layer.isRemote = "true";
+					}
 				}
 				menus.add(sub_layer);
 			}
@@ -1482,6 +1486,19 @@ public class XML_Menu {
 	public static XML_Menu getXML_Menu(JMenuItem mi) {
 		if (menuItemToMenu == null) return null;
 		return menuItemToMenu.get(mi);
+	}
+	
+	/* 
+	 * read in the root layer name - originally created to read in session import files
+	 */
+	public static String getRootName(File f) throws ParserConfigurationException, SAXException, IOException {
+		InputStream in = new BufferedInputStream(new FileInputStream(f));
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setIgnoringComments(true);
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		Document dom = db.parse(in);
+		Node root = dom.getFirstChild();
+		return root.getAttributes().getNamedItem("name").getTextContent();
 	}
 	
 	/*

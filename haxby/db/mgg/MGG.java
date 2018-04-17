@@ -84,6 +84,10 @@ public class MGG implements Database,
 		return loaded;
 	}
 
+	public void unloadDB() {
+		loaded = false;
+	}
+	
 	public void disposeDB() {
 		tracks = new MGGTrack[size];
 		size = 0;

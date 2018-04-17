@@ -137,6 +137,9 @@ public class MBTracks implements Database, Overlay, MouseListener {
 	public boolean isLoaded() {
 		return loaded;
 	}
+	public void unloadDB() {
+		loaded = false;
+	}
 	public void disposeDB() {
 	//	tracks = null;
 		mbSel.cruises.setSelectedItem(null);
@@ -168,6 +171,7 @@ public class MBTracks implements Database, Overlay, MouseListener {
 
 		Map<String, String> hashSha1Map = new HashMap<String, String>();
 		
+		Float versionGMRT = Float.parseFloat(MapApp.versionGMRT);	
 		try {
 			DataInputStream in = null;
 			File inf = null;
@@ -179,9 +183,18 @@ public class MBTracks implements Database, Overlay, MouseListener {
 				try {
 					BufferedReader inFile = new BufferedReader(new InputStreamReader(new URL(hashSha1File).openStream()));
 					String str = null;
-					while ( (str = inFile.readLine()) != null) {
-						String[] splitStr = str.split(":");
-						hashSha1Map.put(splitStr[0], splitStr[1]);
+					// Format of file will change in GMRT release 3.6.
+					// Can remove old code once that has been released. 
+					if (versionGMRT < 3.6 ) {
+						while ( (str = inFile.readLine()) != null) {
+							String[] splitStr = str.split(":");
+							hashSha1Map.put(splitStr[0], splitStr[1]);
+						}
+					} else {
+						while ( (str = inFile.readLine()) != null) {
+							String[] splitStr = str.split("  ");
+							hashSha1Map.put(splitStr[1], splitStr[0]);
+						}
 					}
 					inFile.close();
 				} catch (IOException e) {
@@ -193,22 +206,28 @@ public class MBTracks implements Database, Overlay, MouseListener {
 				switch (mapType) {
 				case MapApp.MERCATOR_MAP:
 				default:
-					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_MERC", "GMRT2/MB_CONTROL_MERC");
+					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_MERC");
 					remoteHash = hashSha1Map.get("MERCATOR");
 					inf = new File(portalCacheFile.getAbsolutePath());
 					break;
 				case MapApp.SOUTH_POLAR_MAP:
-					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_SP", "GMRT2/MB_CONTROL_SP");
+					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_SP");
 					remoteHash = hashSha1Map.get("SP");
 					inf = new File(portalCacheFileS.getAbsolutePath());
 					break;
 				case MapApp.NORTH_POLAR_MAP:
-					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_NP", "GMRT2/MB_CONTROL_NP");
+					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_NP");
 					remoteHash = hashSha1Map.get("NP");
 					inf = new File(portalCacheFileN.getAbsolutePath());
 					break;
 				}
-
+				// Format of file will change in GMRT release 3.6.
+				// Can remove old code once that has been released. 
+				if (versionGMRT >= 3.6 ) {
+					String controlFile = mggControl.substring(mggControl.lastIndexOf("/") + 1);
+					remoteHash = hashSha1Map.get(controlFile);
+				}
+				
 				URL url = URLFactory.url(mggControl);
 
 				// No cache get from server

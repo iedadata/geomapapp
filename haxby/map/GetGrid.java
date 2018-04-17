@@ -56,7 +56,7 @@ public class GetGrid {
      * The base URL from which to pull tile data.
      */
     // Uses Path Util to get path from xml file.
-	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH", "GMRT2/MERCATOR_GRID_TILE_PATH");
+	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
     /**
      * Scale up the bounding box to the desired resolution.
      *

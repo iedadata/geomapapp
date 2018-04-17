@@ -1,10 +1,17 @@
 package org.geomapapp.gis.shape;
 
-import java.awt.geom.*;
-import java.awt.*;
+import java.awt.Graphics2D;
+import java.awt.geom.GeneralPath;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.io.IOException;
+import java.io.OutputStream;
 
-import java.io.*;
 import org.geomapapp.io.LittleIO;
+
+import haxby.map.XMap;
+import haxby.util.GeneralUtils;
 
 public class ESRIPolyLine extends ESRIMultiPoint {
 	public int[] parts;
@@ -26,15 +33,24 @@ public class ESRIPolyLine extends ESRIMultiPoint {
 	public void setPartIndex( int part, int index) {
 		parts[part] = index;
 	}
-	public NearNeighbor select( NearNeighbor n ) {
+	public NearNeighbor select( NearNeighbor n, XMap map ) {
 		Line2D.Double line = new Line2D.Double();
+		Point2D.Double p1 = new Point2D.Double();
+		Point2D.Double p2 = new Point2D.Double();
 		for( int i=0 ; i<nParts() ; i++) {
 			ESRIPoint[] part = getPart(i);
 			for( int k=0 ; k<part.length-1 ; k++) {
-				line.x1 = part[k].getX();
-				line.y1 = part[k].getY();
-				line.x2 = part[k+1].getX();
-				line.y2 = part[k+1].getY();
+				p1.x = part[k].getX();
+				p1.y = part[k].getY();
+				p2.x = part[k+1].getX();
+				p2.y = part[k+1].getY();
+				//take in to account the wrap
+				GeneralUtils.wrapPoints(map, p1, p2);
+				line.setLine(p1, p2);
+				GeneralUtils.wrapPoint(map, (Point2D.Double) n.test);
+				//if a point occurs multiple times on the map, subtract the wrap 
+				//value until we have the first occurrence
+				GeneralUtils.unwrapPoint(map, (Point2D.Double) n.test);
 				double[] rx = ptSegDistSq(line, n.test);
 				if( rx[0]<n.radiusSq ) {
 					n.shape = this;

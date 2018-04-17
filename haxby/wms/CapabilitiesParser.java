@@ -423,7 +423,7 @@ public class CapabilitiesParser {
 
 	public static void main(String[] args) throws Exception {
 		Capabilities cap = 
-			parseCapabilities("http://www.marine-geo.org/services/wms?service=WMS&version=1.1.1&request=GetCapabilities");
+			parseCapabilities("https://www.gmrt.org/services/mapserver/wms_merc?request=GetCapabilities&service=WMS&version=1.0.0");
 		System.out.println(cap);
 		System.out.println(cap.getLayer().supportsSRS("EPSG:4326"));
 	}

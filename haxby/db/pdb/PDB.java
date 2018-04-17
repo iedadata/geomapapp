@@ -979,6 +979,15 @@ public class PDB implements Database,
 	public boolean isLoaded() {
 		return loaded;
 	}
+	public void unloadDB() {
+		loaded = false;
+		PDBExpedition.unload();
+		PDBLocation.unload();
+		PDBStation.unload();
+		PDBSample.unload();
+		PDBMaterial.unload();
+		PDBRockType.unload();
+	}
 	public void disposeDB() {
 		PDBExpedition.unload();
 		PDBLocation.unload();

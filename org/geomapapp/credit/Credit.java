@@ -59,7 +59,7 @@ public class Credit implements haxby.map.Overlay {
 	int mapType;
 	int dx, dy;
 
-	static String CREDIT_PATH = PathUtil.getPath("GMRT_LATEST/CREDIT", "GMRT2/CREDIT");
+	static String CREDIT_PATH = PathUtil.getPath("GMRT_LATEST/CREDIT");
 
 	/**
 	 * Class constructor specifying the map object to create.

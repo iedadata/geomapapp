@@ -1,6 +1,6 @@
 package org.geomapapp.gis.shape;
 
-import java.awt.geom.Point2D;
+import haxby.map.XMap;
 
 public class ESRINull
 			implements ESRIShape {
@@ -11,7 +11,7 @@ public class ESRINull
 	}
 	public void draw(java.awt.Graphics2D g) {
 	}
-	public NearNeighbor select( NearNeighbor n ) {
+	public NearNeighbor select( NearNeighbor n, XMap map ) {
 		return n;
 	}
 	public int writeShape( java.io.OutputStream out ) throws java.io.IOException {

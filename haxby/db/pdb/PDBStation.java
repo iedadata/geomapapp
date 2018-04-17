@@ -145,9 +145,11 @@ public class PDBStation {
 		return size();
 	}
 	static void unload() {
-		for (int i = 0; i < stations.length; i++)
-			stations[i] = null;
-		stations = null;
+		if (stations != null) {
+			for (int i = 0; i < stations.length; i++)
+				stations[i] = null;
+			stations = null;
+		}
 		loaded = false;
 	}
 

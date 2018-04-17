@@ -243,6 +243,10 @@ public class WWFocalMechanismSolutionDB implements
 		return all != null && !all.isEmpty();
 	}
 
+	public void unloadDB() {
+		all = null;
+	}
+	
 	public boolean loadDB() {
 		if (isLoaded() && Earthquakes.isLoaded()) return true;
 

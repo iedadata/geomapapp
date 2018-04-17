@@ -142,6 +142,9 @@ public class Radar implements ActionListener,
 	public boolean isLoaded() {		
 		return initiallized;
 	}
+	public void unloadDB() {
+		initiallized = false;
+	}
 	public String getDBName() {
 		return "Radar Profiles";
 	}

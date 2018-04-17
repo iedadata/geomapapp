@@ -37,6 +37,11 @@ public abstract interface Database extends Overlay {
 	 	@return True if the Database has loaded, false if not.
 	 */
 	public boolean isLoaded();
+	
+	/**
+	 * Set the initialize/loaded parameter to false, requiring the DB to be reloaded
+	 */
+	public void unloadDB();
 
 	/** 
 		Dispose of this Database object, and free up its resources.

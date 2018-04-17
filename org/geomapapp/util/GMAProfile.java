@@ -97,7 +97,7 @@ public class GMAProfile implements Overlay, XYPoints {
 	ArrayList<XYGraph> graphs;
 	MouseInputAdapter mouse;
 	static boolean enabled;
-	JDialog dialog;
+	JFrame dialog;
 	boolean reversed = false;
 	double spacing;
 	Vector savedProfiles;
@@ -397,8 +397,8 @@ public class GMAProfile implements Overlay, XYPoints {
 			if (graphs.size() != gridsToPlot.size()) {
 				gridsToPlot = prevGrids;
 			}
-			
-			dialog = new JDialog( (JFrame)map.getTopLevelAncestor(), "Profile");
+
+			dialog = new JFrame("Profile");
 			dialog.setDefaultCloseOperation( dialog.HIDE_ON_CLOSE);
 			dialog.addWindowListener(new WindowAdapter() {
 				public void windowClosing(WindowEvent e) {

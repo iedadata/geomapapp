@@ -250,34 +250,17 @@ public class MapOverlay implements Overlay {
 		Rectangle2D.Double rect = (Rectangle2D.Double) map.getClipRect2D();
 		if( y0+image.getHeight()*scale < rect.y ) return;
 		if( y0 > rect.y + rect.height ) return;
-		AffineTransform at = g.getTransform();
-		AffineTransform trans = new AffineTransform();
 		AffineTransform transM = new AffineTransform();
 		double wrap = map.getWrap();
 		if(wrap > 0.) {
-			while( x0 > rect.x ) x0-=wrap;
-			while( x0 + image.getWidth()*scale < rect.x ) x0+=wrap;
 			while( x0M > rect.x ) x0M-=wrap;
 			while( x0M + image.getWidth()*scale < rect.x ) x0M+=wrap;
 		}
-		if( x0 > rect.x+rect.width ) return;
-		trans.translate(x0, y0);
-		trans.scale(scale, scale);
+		if( x0M > rect.x+rect.width ) return;
 		transM.translate(x0M, y0M);
 		transM.scale(scaleM, scaleM);
 		g.drawRenderedImage(maskedImage, transM);
-		g.setTransform( at );
-		if( wrap<=0.)return;
-		x0+=wrap;
 		x0M+=wrap;
-		while( x0 < rect.x+rect.width ) {
-			trans.translate(wrap/scale, 0.);
-			transM.translate(wrap/scaleM, 0.);
-			g.drawRenderedImage(maskedImage, transM);
-			g.setTransform( at );
-			x0+=wrap;
-			x0M+=wrap;
-		}
 	}
 
 	/**
@@ -291,33 +274,23 @@ public class MapOverlay implements Overlay {
 		if( y0 > rect.y + rect.height ) return;
 		AffineTransform at = g.getTransform();
 		AffineTransform trans = new AffineTransform();
-		AffineTransform transM = new AffineTransform();
 		double wrap = map.getWrap();
 		if(wrap > 0.) {
 			while( x0 > rect.x ) x0-=wrap;
 			while( x0 + image.getWidth()*scale < rect.x ) x0+=wrap;
-			while( x0M > rect.x ) x0M-=wrap;
-			while( x0M + image.getWidth()*scale < rect.x ) x0M+=wrap;
 		}
 		if( x0 > rect.x+rect.width ) return;
 		trans.translate(x0, y0);
 		trans.scale(scale, scale);
-		transM.translate(x0M, y0M);
-		transM.scale(scaleM, scaleM);
 		g.drawRenderedImage(image, trans);
-		if(maskedImage!=null && mask) g.drawRenderedImage(maskedImage, transM);
 		g.setTransform( at );
 		if( wrap<=0.)return;
 		x0+=wrap;
-		x0M+=wrap;
 		while( x0 < rect.x+rect.width ) {
 			trans.translate(wrap/scale, 0.);
 			g.drawRenderedImage(image, trans);
-			transM.translate(wrap/scaleM, 0.);
-			if(maskedImage!=null && mask) g.drawRenderedImage(maskedImage, transM);
 			g.setTransform( at );
 			x0+=wrap;
-			x0M+=wrap;
 		}
 	}
 }

@@ -1,27 +1,7 @@
 package haxby.db.xmcs;
 
-import haxby.db.scs.SCS;
-import haxby.db.scs.SCSCruise;
-import haxby.db.scs.SCSPanel2;
-import haxby.dig.AnnotationObject;
-import haxby.dig.Digitizer;
-import haxby.dig.LineSegmentsObject;
-import haxby.dig.LineType;
-import haxby.image.Icons;
-import haxby.image.R2;
-import haxby.image.ScalableImage;
-import haxby.map.MapApp;
-import haxby.map.XMap;
-import haxby.map.Zoomable;
-import haxby.map.Zoomer;
-import haxby.util.BrowseURL;
-import haxby.util.PathUtil;
-import haxby.util.Scroller;
-import haxby.util.URLFactory;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FileDialog;
@@ -51,10 +31,7 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -64,7 +41,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.text.NumberFormat;
@@ -93,6 +69,22 @@ import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
+import haxby.dig.AnnotationObject;
+import haxby.dig.Digitizer;
+import haxby.dig.LineSegmentsObject;
+import haxby.dig.LineType;
+import haxby.image.Icons;
+import haxby.image.R2;
+import haxby.image.ScalableImage;
+import haxby.map.MapApp;
+import haxby.map.XMap;
+import haxby.map.Zoomable;
+import haxby.map.Zoomer;
+import haxby.util.BrowseURL;
+import haxby.util.PathUtil;
+import haxby.util.Scroller;
+import haxby.util.URLFactory;
 
 //import com.sun.image.codec.jpeg.JPEGCodec;
 //import com.sun.image.codec.jpeg.JPEGImageDecoder;
@@ -1319,9 +1311,12 @@ public class XMImage extends haxby.util.ScaledComponent
 					while ( (st = in.readLine()) != null ) {
 
 						String[] split = st.split("\\s");
+						// Try and find the UID for he exact line in the lookup table.
+						// If we can't find it, then since we are actually just resolving at the dataset level, all the 
+						// UIDs should be the same anyway
+						if(split.length>=3)
+							selectedDataUID = split[2];
 						if((split[0].equalsIgnoreCase(line.getID()) || split[0].equalsIgnoreCase(line.getCruiseID()+"-"+line.getID())) && split[1].equalsIgnoreCase("segy")){
-							if(split.length>=3)
-								selectedDataUID = split[2];
 							break;
 						}
 					}

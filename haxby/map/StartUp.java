@@ -59,7 +59,7 @@ public class StartUp extends JComponent implements ActionListener {
 		JButton button = new JButton( "Abort" );
 		add( button );
 		button.setLocation( 3, 3);
-		button.setSize( button.getPreferredSize() );
+		button.setSize(120, 30);
 		button.addActionListener( this );
 	//	System.out.println( getComponentCount() + " components" );
 		setBorder( BorderFactory.createLineBorder(Color.black, 2) );
@@ -89,7 +89,7 @@ public class StartUp extends JComponent implements ActionListener {
 		System.exit(0);
 	}
 	public static void main(String[] args) {
-		StartUp s = new StartUp(1);
+		StartUp s = new StartUp(0);
 		JFrame frame = new JFrame("startup");
 		frame.getContentPane().add(s);
 		frame.pack();

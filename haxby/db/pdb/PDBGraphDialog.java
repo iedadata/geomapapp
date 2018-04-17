@@ -81,7 +81,7 @@ public class PDBGraphDialog extends JDialog implements ActionListener {
 		getContentPane().add(p2);
 
 		p = new JPanel();
-		JButton b = new JButton("Ok");
+		JButton b = new JButton("OK");
 		b.addActionListener(this);
 		b.setActionCommand("ok");
 		getRootPane().setDefaultButton(b);

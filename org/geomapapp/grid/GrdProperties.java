@@ -7,7 +7,6 @@ import java.util.Vector;
 
 import org.geomapapp.geom.MapProjection;
 import org.geomapapp.geom.RectangularProjection;
-import org.geomapapp.util.ParseLink;
 
 import ucar.ma2.Array;
 import ucar.ma2.IndexIterator;
@@ -38,11 +37,7 @@ public class GrdProperties {
 		file = fileName;
 		NetcdfFile nc = null;
 		try {
-//			***** GMA 1.6.4: TESTING
-//			nc = new NetcdfFile(fileName);
 			nc = NetcdfFile.open(fileName);
-//			***** GMA 1.6.4
-
 		} catch(java.lang.IllegalArgumentException ex) {
 			IOException e = new IOException("Not a netcdf file");
 			e.fillInStackTrace();
@@ -51,8 +46,6 @@ public class GrdProperties {
 		props = new Vector<Object[]>();
 		Vector<String[]> global = new Vector<String[]>();
 
-//		***** GMA 1.6.4: TESTING
-//		Iterator vi = nc.getGlobalAttributeIterator();
 		// Check to see if the file is COARDS complaint
 		coardsList = nc.getGlobalAttributes();
 		Iterator<?> coardsIterator = coardsList.iterator();
@@ -66,7 +59,6 @@ public class GrdProperties {
 				}
 			}
 		}
-
 		if ( coardsCompliant ) {
 			process(nc);
 			nc.close();
@@ -182,6 +174,14 @@ public class GrdProperties {
 				}
 			}
 		}
+		
+		// if no x,y or z-range, try the coardsCompliant process just in case there was an error in the header
+		if (x_range == null || y_range == null || z_range == null ) {
+			try {
+				process(nc);
+			} catch(Exception ex) {}
+		}
+		
 //		System.out.println("Dimension: " + dimension[0] + " " + dimension[1]);
 //		System.out.println("Spacing: " + spacing[0] + " " + spacing[1]);
 //		System.out.println("x_range[0]: " + x_range[0] + " x_range[1]: " + x_range[1] + " y_range[0]: " + y_range[0] + " y_range[1]: " + y_range[1] + " z_range[0]: " + z_range[0] + " z_range[1]: " + z_range[1]);
@@ -191,15 +191,7 @@ public class GrdProperties {
 //	***** GMA 1.6.4: TESTING
 
 	public void process( NetcdfFile ncfile ) {
-//		public Vector props;
-//		public double[] x_range;
-//		public double[] y_range;
-//		public double[] z_range;
-//		public double[] spacing;
-//		public int[] dimension;
-//		public double scaleFactor=1.;
-//		public double add_offset=0.;
-//		public int node_offset=0;
+
 		x_range = new double[2];
 		y_range = new double[2];
 		z_range = new double[2];
@@ -225,7 +217,6 @@ public class GrdProperties {
 		Iterator<?> variableListIterator = variableList.iterator();
 		while ( variableListIterator.hasNext() ) {
 			Variable v = (Variable)variableListIterator.next();
-//			System.out.println(v.getName());
 			List<?> variableAttributeList = v.getAttributes();
 			Iterator<?> variableAttributeListIterator = variableAttributeList.iterator();
 			while ( variableAttributeListIterator.hasNext() ) {
@@ -329,17 +320,5 @@ public class GrdProperties {
 			else if( b[k]==9 || b[k]==10 ) sb.append((char)b[k]);
 		}
 		return sb.toString();
-	}
-	public static void main(String[] args) {
-		if(args.length != 1) {
-			System.out.println("usage: java GrdProperties filename");
-			System.exit(0);
-		}
-		try {
-			GrdProperties props = new GrdProperties(args[0]);
-			ParseLink.printProperties( props.props, 0);
-		} catch(IOException ex) {
-			ex.printStackTrace();
-		}
 	}
 }

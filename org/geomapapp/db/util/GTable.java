@@ -1,12 +1,5 @@
 package org.geomapapp.db.util;
 
-import haxby.map.MapApp;
-import haxby.map.Overlay;
-import haxby.map.XMap;
-import haxby.util.MyCellRenderer;
-import haxby.util.URLFactory;
-import haxby.util.XBTable;
-
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -36,6 +29,14 @@ import org.geomapapp.gis.shape.ESRIShapefile;
 import org.geomapapp.gis.table.TableDB;
 import org.geomapapp.io.LittleIO;
 import org.geomapapp.util.ColorServer;
+
+import haxby.map.MapApp;
+import haxby.map.Overlay;
+import haxby.map.XMap;
+import haxby.util.MyCellRenderer;
+import haxby.util.URLFactory;
+import haxby.util.XBTable;
+import haxby.util.GeneralUtils;
 
 public class GTable extends TableDB implements Overlay {
 	
@@ -185,6 +186,9 @@ public class GTable extends TableDB implements Overlay {
 //			***** TEST CODE *****
 //			ERROR: THIS BLOCK OF CODE CAUSES SOUTH POLAR TO CRASH
 			
+			//This line handles if the point is displayed more than once
+			//on the map due to the wrap.
+			GeneralUtils.unwrapPoint(map, (Point2D.Double) p);
 			
 			if( xy[0]+offset<p.getX()-radius )continue;
 			double r = p.distanceSq( offset+xy[0], (double)xy[1]);

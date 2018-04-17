@@ -1,11 +1,14 @@
 package org.geomapapp.gis.shape;
 
-import java.awt.geom.Rectangle2D;
 import java.awt.geom.AffineTransform;
-import org.geomapapp.geom.MapProjection;
+import java.awt.geom.Rectangle2D;
+import java.io.IOException;
+import java.io.OutputStream;
 
-import java.io.*;
+import org.geomapapp.geom.MapProjection;
 import org.geomapapp.io.LittleIO;
+
+import haxby.map.XMap;
 
 public class ESRIMultiPoint extends Rectangle2D.Double 
 			implements ESRIShape {
@@ -30,9 +33,9 @@ public class ESRIMultiPoint extends Rectangle2D.Double
 	public int getType() {
 		return 8;
 	}
-	public NearNeighbor select( NearNeighbor n ) {
+	public NearNeighbor select( NearNeighbor n, XMap map ) {
 		for( int k=0 ; k<pts.length ; k++) {
-			if( pts[k].select(n).shape == pts[k]) {
+			if( pts[k].select(n, map).shape == pts[k]) {
 				n.shape = this;
 				n.index = (double)k;
 			}
