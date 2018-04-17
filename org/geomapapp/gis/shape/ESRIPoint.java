@@ -1,12 +1,18 @@
 package org.geomapapp.gis.shape;
 
-import java.awt.geom.*;
-import java.awt.*;
+import java.awt.BasicStroke;
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.io.IOException;
+import java.io.OutputStream;
 
-import java.io.*;
-
-import org.geomapapp.geom.*;
+import org.geomapapp.geom.MapProjection;
 import org.geomapapp.io.LittleIO;
+
+import haxby.map.XMap;
 
 public class ESRIPoint implements ESRIShape {
 		
@@ -117,7 +123,7 @@ public class ESRIPoint implements ESRIShape {
 					Arc2D.CHORD));
 		g.setTransform( at);
 	}
-	public NearNeighbor select( NearNeighbor n ) {
+	public NearNeighbor select( NearNeighbor n, XMap map ) {
 		double test = n.distanceSq( point );
 		if( test<n.radiusSq ) {
 			n.shape = this;

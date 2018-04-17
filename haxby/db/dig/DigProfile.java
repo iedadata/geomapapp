@@ -4,9 +4,10 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Rectangle2D;
-import java.util.Vector;
+import java.util.ArrayList;
 
 import haxby.db.XYPoints;
+import haxby.db.dig.LineSegmentsObject.Point4D;
 import haxby.map.XMap;
 
 public class DigProfile implements XYPoints {
@@ -23,18 +24,18 @@ public class DigProfile implements XYPoints {
 	}
 	public void setLine( LineSegmentsObject line ) {
 		this.line = line;
-		Vector profile = line.profile;
+		ArrayList<Point4D> profile = line.profile;
 		if (profile == null) return;
-		float[] dxz = (float[])profile.get(0);
-		xRange[0] = xRange[1] = (double) dxz[0];
-		yRange[0] = yRange[1] = (double) dxz[2];
+		Point4D p4d = profile.get(0);
+		xRange[0] = xRange[1] = (double) p4d.getD();
+		yRange[0] = yRange[1] = (double) p4d.getZ();
 		for( int k=1 ; k<profile.size() ; k++ ) {
-			dxz = (float[])profile.get(k);
-			if( dxz[0]>xRange[1] ) xRange[1] = dxz[0];
-			else if( dxz[0]<xRange[0] ) xRange[0] = dxz[0];
-			if( dxz[2]>yRange[1] || Double.isNaN(yRange[1])) yRange[1] = dxz[2];
-			if( dxz[2]<yRange[0] || Double.isNaN(yRange[0])) yRange[0] = dxz[2];
-			if( k==1 ) xIncrement = (double)dxz[0];
+			p4d = profile.get(k);
+			if( p4d.getD()>xRange[1] ) xRange[1] = p4d.getD();
+			else if( p4d.getD()<xRange[0] ) xRange[0] = p4d.getD();
+			if( p4d.getZ()>yRange[1] || Double.isNaN(yRange[1])) yRange[1] = p4d.getZ();
+			if( p4d.getZ()<yRange[0] || Double.isNaN(yRange[0])) yRange[0] = p4d.getZ();
+			if( k==1 ) xIncrement = (double)p4d.getD();
 		}
 		double dr = (yRange[1]-yRange[0])/20.;
 		yRange[0] -= dr;
@@ -77,40 +78,35 @@ public class DigProfile implements XYPoints {
 			x2 = x0;
 		}
 	//	setXInterval(x1, x2);
-		Vector profile = line.profile;
+		ArrayList<Point4D> profile = line.profile;
 		int i=0;
 
-		while( i<profile.size() && ((float[])profile.get(i))[0]<x1 ) {
+		while( i<profile.size() && profile.get(i).getD() < x1 ) {
 			i++;
 		}
-		if( i!=0 && !Float.isNaN(((float[])profile.get(i-1))[2] )) i--;
+		if( i!=0 && !Double.isNaN(profile.get(i-1).getZ())) i--;
 		while( i<profile.size() && 
-				((float[])profile.get(i))[0]<x2 && 
-				Float.isNaN( ((float[])profile.get(i))[2] ) ) i++;
-		if( i==profile.size() || ((float[])profile.get(i))[0]>x2 ) {
+				profile.get(i).getD() < x2 && 
+				Double.isNaN(profile.get(i).getZ() ) ) i++;
+		if( i==profile.size() || profile.get(i).getD() > x2 ) {
 			return;
 		}
 	//	currentRange[0] = i;
 		GeneralPath path = new GeneralPath();
 		float sy = (float)yScale;
 		float sx = (float)xScale;
-		float[] dxz = (float[])profile.get(i);
-		path.moveTo( (dxz[0]-x0)*sx, (dxz[2]-y0)*sy);
+		Point4D p4d = profile.get(i);
+		path.moveTo(( p4d.getD()-x0)*sx, (p4d.getZ()-y0)*sy);
 		boolean connect = false;
-		while( i<profile.size() && dxz[0]<=x2 ) {
-			if( Float.isNaN(dxz[1])) {
-				i++;
-				dxz = (float[])profile.get(i);
-				continue;
-			}
+		while( i<profile.size() && p4d.getD() <= x2 ) {
 			if( !connect ) {
-				path.moveTo( (dxz[0]-x0)*sx, (dxz[2]-y0)*sy);
+				path.moveTo( (p4d.getD()-x0)*sx, (p4d.getZ()-y0)*sy);
 				connect = true;
 			} else {
-				path.lineTo( (dxz[0]-x0)*sx, (dxz[2]-y0)*sy);
+				path.lineTo( (p4d.getD()-x0)*sx, (p4d.getZ()-y0)*sy);
 			}
 			i++;
-			if( i<profile.size() )dxz = (float[])profile.get(i);
+			if( i<profile.size() )p4d = profile.get(i);
 		}
 	//	currentRange[1] = i--;
 		g.draw( path );

@@ -89,10 +89,12 @@ public class MultiGrid {
 	if(MapApp.AT_SEA) {
 		grid.setIsImported( !baseURL.startsWith("http://www.geomapapp.org/") &&
 				!baseURL.startsWith("http://www.marine-geo.org/geomapapp/") &&
+				!baseURL.startsWith("https://www.gmrt.org/geomapapp/") &&
 				!baseURL.startsWith(MapApp.BASE_URL));
 	} else {
 		grid.setIsImported( !baseURL.startsWith("http://www.geomapapp.org/") &&
 				!baseURL.startsWith("http://www.marine-geo.org/geomapapp/") &&
+				!baseURL.startsWith("https://www.gmrt.org/geomapapp/") &&
 				!baseURL.startsWith(MapApp.BASE_URL) && 
 				!baseURL.startsWith(PathUtil.getPath("ROOT_PATH")));
 	}

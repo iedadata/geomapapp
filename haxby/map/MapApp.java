@@ -39,6 +39,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Authenticator;
 import java.net.ConnectException;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.PasswordAuthentication;
@@ -121,6 +122,7 @@ import haxby.db.ship.Ship;
 import haxby.db.shore.ShoreLine;
 import haxby.db.shore.ShoreOptionPanel;
 import haxby.db.surveyplanner.SurveyPlanner;
+import haxby.db.velocityvectors.VelocityVectors;
 import haxby.db.xmcs.XMCS;
 import haxby.grid.ContributedGridsOverlay;
 import haxby.layers.image.GeographicImageOverlay;
@@ -146,6 +148,7 @@ import haxby.util.SilentProcessingTask;
 import haxby.util.UIDTracker;
 import haxby.util.URLFactory;
 import haxby.util.WESNPanel;
+import haxby.util.LayerManager.LayerPanel;
 import haxby.wfs.WFSViewServer;
 import haxby.wms.Layer;
 import haxby.wms.WMSViewServer;
@@ -168,7 +171,7 @@ public class MapApp implements ActionListener,
 		SUPPORTED_MAPS.add(new Integer(NORTH_POLAR_MAP));
 	}
 
-	public final static String VERSION = "3.6.6"; // 07/18/2017
+	public final static String VERSION = "3.6.8"; // 04/15/2018
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
@@ -176,8 +179,9 @@ public class MapApp implements ActionListener,
 //	***** GMA 1.6.2: Switch from new.geomapapp.org to www.geomapapp.org.  Add development
 //	server, dev.geomapapp.org.  Add hard-coded password to prevent casual users from using
 //	dev.geomapapp.org.
+	public static final String PRODUCTION_URL = "http://app.geomapapp.org/";
 	public static String DEFAULT_URL = "http://app.geomapapp.org/";
-	public static String DEV_URL = "http://app-dev.geomapapp.org/"; // was new-dev.geomapapp.org
+	public static final String DEV_URL = "http://app-dev.geomapapp.org/"; // was new-dev.geomapapp.org
 	private static String DEV_PASSWORD_PATH = "gma_passwords/dev_server_password";
 	public static String BASE_URL;
 	public static String NEW_BASE_URL;
@@ -713,7 +717,7 @@ public class MapApp implements ActionListener,
 		d.getContentPane().add(p2);
 
 		p = new JPanel();
-		JButton b = new JButton("Ok");
+		JButton b = new JButton("OK");
 		b.addActionListener( new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
@@ -840,6 +844,7 @@ public class MapApp implements ActionListener,
 	}
 
 	protected void SPInit() {
+		sendLogMessage("Launching_In_SP");
 		JWindow startup = new JWindow();
 		startSP = new StartUp(SOUTH_POLAR_MAP);
 		Container c = startup.getContentPane();
@@ -879,6 +884,7 @@ public class MapApp implements ActionListener,
 	}
 
 	protected void SPInit2() {
+		sendLogMessage("Switching_To_SP");
 		JWindow startup = new JWindow();
 		startSP = new StartUp(SOUTH_POLAR_MAP);
 		Container c = startup.getContentPane();
@@ -935,6 +941,10 @@ public class MapApp implements ActionListener,
 
 		CURRENT_PROJECTION = "s";
 		// startSP.setText("Initializing GUI");
+		//unload any loaded databases
+		for (Database database : db) {
+			database.unloadDB();
+		}		
 		initGUI();
 		startup.dispose();
 		startSP = null;
@@ -945,6 +955,7 @@ public class MapApp implements ActionListener,
 	}
 
 	protected void NPInit2() {
+		sendLogMessage("Switching_To_NP");
 		JWindow startup2 = new JWindow();
 		startNP = new StartUp(NORTH_POLAR_MAP);
 		Container c = startup2.getContentPane();
@@ -964,7 +975,7 @@ public class MapApp implements ActionListener,
 				// dispose of all open frames
 				for (Frame thisFrame : Frame.getFrames()) {
 					thisFrame.dispose();
-				}	
+				}
 				whichMap=MapApp.NORTH_POLAR_MAP;
 				System.gc();
 			}
@@ -998,6 +1009,10 @@ public class MapApp implements ActionListener,
 		PoleMapServer.getMaskImage( new Rectangle(0,0,640,640), baseMap, PoleMapServer.NORTH_POLE);
 		map.addOverlay(baseMapName,baseMap,false);
 		CURRENT_PROJECTION = "n";
+		//unload any loaded databases
+		for (Database database : db) {
+			database.unloadDB();
+		}
 		initGUI();
 		//startNP.setText("Initializing GUI");
 		startup2.dispose();
@@ -1005,6 +1020,7 @@ public class MapApp implements ActionListener,
 	}
 
 	protected void NPInit() {
+		sendLogMessage("Launching_In_NP");
 		JWindow startup = new JWindow();
 		startNP = new StartUp(NORTH_POLAR_MAP);
 		Container c = startup.getContentPane();
@@ -1042,6 +1058,7 @@ public class MapApp implements ActionListener,
 	}
 
 	protected void MInit() {
+		sendLogMessage("Launching_In_Mercator");
 		JWindow startup = new JWindow();
 		start = new StartUp();
 		startup.getContentPane().add(start, "Center");
@@ -1081,6 +1098,7 @@ public class MapApp implements ActionListener,
 	}
 
 	protected void MInit2() {
+		sendLogMessage("Switching_To_Mercator");
 		JWindow startup = new JWindow();
 		start = new StartUp();
 		//startup.getContentPane().add(start, "Center");
@@ -1137,6 +1155,10 @@ public class MapApp implements ActionListener,
 		map.addOverlay(baseMapName,baseMap,false);
 
 		CURRENT_PROJECTION = "m";
+		//unload any loaded databases
+		for (Database database : db) {
+			database.unloadDB();
+		}
 		start.setText("Initializing GUI");
 		initGUI();
 		startup.dispose();
@@ -1220,6 +1242,7 @@ public class MapApp implements ActionListener,
 		frame.getContentPane().add(mainPanel, "Center");
 		frame.addWindowListener( new WindowAdapter() {
 			public void windowClosing(WindowEvent evt) {
+				sendLogMessage("Exiting_GMA");
 				System.exit(0);
 			}
 		});
@@ -1261,7 +1284,7 @@ public class MapApp implements ActionListener,
 
 		dialog = new JPanel(new BorderLayout());
 		dialog.add( panel, "North");
-		dialog.setPreferredSize(new Dimension(125, 600));
+		dialog.setPreferredSize(new Dimension(125, 700));
 		dialog.setMinimumSize(new Dimension(125,8));
 		// For vPane Panel to scroll
 		dialogScroll = new JScrollPane(dialog);
@@ -1358,7 +1381,7 @@ public class MapApp implements ActionListener,
 			loadSessionCustomMainMenu();
 		}
 
-		JMenuItem mi = XML_Menu.commandToMenuItemHash.get("map_insert_cmd");
+		JMenuItem mi = XML_Menu.commandToMenuItemHash.get("map_inset_cmd");
 		if ( mi != null ) {
 			((JCheckBoxMenuItem)mi).setSelected(true);
 		}
@@ -1393,6 +1416,9 @@ public class MapApp implements ActionListener,
 		}
 
 		if (whichMap == MERCATOR_MAP) {
+			//first remove any existing location inset
+			li = null;
+			//then add a new one
 			addMapInset();
 		}
 		frame.pack();
@@ -1545,7 +1571,7 @@ public class MapApp implements ActionListener,
 
 		switch (whichMap) {
 		case MapApp.MERCATOR_MAP:
-			int ndb = 11;
+			int ndb = 12;
 
 			db = new Database[ndb];
 			db[0] = (Database) new MGG(map, 2900);
@@ -1564,6 +1590,7 @@ public class MapApp implements ActionListener,
 			db[8] = (Database) new Isochrons( map );
 			db[9] = (Database) new Ship(map , 4000);
 			db[10] = (Database) new SurveyPlanner(map);
+			db[11] = (Database) new VelocityVectors(map);
 
 			break;
 
@@ -1621,12 +1648,12 @@ public class MapApp implements ActionListener,
 	}
 	public void setMask( boolean tf ) {
 		if(tf) {
-			Thread focusMask = null;
+			Thread focusMask = null;		
 			switch (whichMap) {
 				case MapApp.MERCATOR_MAP:
-					focusMask = new Thread("Mask Focus Thread " + System.currentTimeMillis()) {
+					focusMask = new Thread("Mask Thread " + System.currentTimeMillis()) {
 						public void run() {
-							if (!GridComposer.getMask(map.getClipRect2D(), baseMapFocus)) {
+							if (!GridComposer.getMask(map.getClipRect2D(), baseMap)) {
 								System.out.println("mask failed");
 							}
 							map.repaint();
@@ -1634,10 +1661,10 @@ public class MapApp implements ActionListener,
 					};
 				break;
 				case MapApp.NORTH_POLAR_MAP:
-					focusMask = new Thread("Mask Focus Thread " + System.currentTimeMillis()) {
+					focusMask = new Thread("Mask Thread " + System.currentTimeMillis()) {
 						public void run() {
 							if(!PoleMapServer.getMaskImage(map.getClipRect2D(),
-														   baseMapFocus, 
+									baseMap, 
 														   PoleMapServer.NORTH_POLE)) {
 								System.out.println("mask failed");
 							}
@@ -1646,10 +1673,10 @@ public class MapApp implements ActionListener,
 					};
 				break;
 				case MapApp.SOUTH_POLAR_MAP:
-					focusMask = new Thread("Mask Focus Thread " + System.currentTimeMillis()) {
+					focusMask = new Thread("Mask Thread " + System.currentTimeMillis()) {
 						public void run() {
 							if(!PoleMapServer.getMaskImage(map.getClipRect2D(),
-														   baseMapFocus, 
+									baseMap, 
 														   PoleMapServer.SOUTH_POLE)) {
 								System.out.println("mask failed");
 							}
@@ -1658,10 +1685,10 @@ public class MapApp implements ActionListener,
 					};
 				break;
 			}
-			addProcessingTask("Focus Mask", focusMask);
+			addProcessingTask("Mask", focusMask);
 		}
-		baseMap.maskImage( tf );
-		baseMapFocus.maskImage( tf );
+		
+		baseMap.maskImage(tf);
 		// if we're turning the mask on for the first time, we have to load it
 		map.repaint();
 	}
@@ -1693,24 +1720,26 @@ public class MapApp implements ActionListener,
 //		}
 
 		// Basemap Focus:
-		if (isBaseMapVisible() && map.getZoom() > 1.5) {
+		if ((isBaseMapVisible() )) {
 			// Image requests use SilentProcessingTask, since their progress is self-evident
 			// as the tiles are progressively painted
-			SilentProcessingTask focusImage = 
-					new GetImageRequest(map.getClipRect2D(),
-							baseMapFocus, 
-							"Base Map Image Request",
-							whichMap);
-			addSilentProcessingTask(focusImage);
+			if (map.getZoom() > 1.5) {
+				SilentProcessingTask focusImage = 
+						new GetImageRequest(map.getClipRect2D(),
+								baseMapFocus, 
+								"Base Map Image Request",
+								whichMap);
+				addSilentProcessingTask(focusImage);
+			}
 
 			// Mask requests use ProcessingDialog, since they don't progressively repaint screen
-			if (this.baseMap.isMasked()) {
+			if (baseMap.isMasked()) {
 				Thread focusMask = null;
 				switch (whichMap) {
 					case MapApp.MERCATOR_MAP:
 						focusMask = new Thread("Mask Focus Thread " + System.currentTimeMillis()) {
 							public void run() {
-								if (!GridComposer.getMask(map.getClipRect2D(), baseMapFocus)) {
+								if (!GridComposer.getMask(map.getClipRect2D(), baseMap)) {
 									System.out.println("mask failed");
 								}
 								map.repaint();
@@ -1721,7 +1750,7 @@ public class MapApp implements ActionListener,
 						focusMask = new Thread("Mask Focus Thread " + System.currentTimeMillis()) {
 							public void run() {
 								if(!PoleMapServer.getMaskImage(map.getClipRect2D(),
-															   baseMapFocus, 
+										baseMap, 
 															   PoleMapServer.NORTH_POLE)) {
 									System.out.println("mask failed");
 								}
@@ -1733,7 +1762,7 @@ public class MapApp implements ActionListener,
 						focusMask = new Thread("Mask Focus Thread " + System.currentTimeMillis()) {
 							public void run() {
 								if(!PoleMapServer.getMaskImage(map.getClipRect2D(),
-															   baseMapFocus, 
+										baseMap, 
 															   PoleMapServer.SOUTH_POLE)) {
 									System.out.println("mask failed");
 								}
@@ -1747,7 +1776,6 @@ public class MapApp implements ActionListener,
 		} else {
 			map.repaint();
 		}
-
 
 		// Focus Shapes:
 		for (Iterator iter = tools.suite.getShapes().iterator(); iter.hasNext();) {
@@ -1884,6 +1912,7 @@ public class MapApp implements ActionListener,
 	public synchronized void actionPerformed(ActionEvent evt) throws OutOfMemoryError {
 		String name = evt.getActionCommand();
 		System.out.println(name);
+		sendLogMessage(name);
 
 		if (name.equals("ImportWFSCmd")) {
 			invokeWFS();
@@ -1977,7 +2006,7 @@ public class MapApp implements ActionListener,
 		else if (name.equals("PreferencesCmd")) {
 			this.showOps();
 		}
-		else if (name.equals("Ok")) {
+		else if (name.equals("OK")) {
 			this.acceptOps();
 		}
 		else if (name.equals("Preview")) {
@@ -2039,6 +2068,7 @@ public class MapApp implements ActionListener,
 		}
 
 		else if (name.equals("ExitCmd")) {
+			sendLogMessage("Exiting_GMA");
 			System.exit(0);
 			return;
 		}
@@ -2110,10 +2140,14 @@ public class MapApp implements ActionListener,
 					public void run() {
 						// Loads
 						String url = mi.getName();
-						//check to see if the URL iis being redirected
+						//check to see if the URL is being redirected
 						//eg to https version of the page
 						url = URLFactory.checkForRedirect(url);
-	
+						if (!URLFactory.checkWorkingURL(url)) {
+							JOptionPane.showMessageDialog(null, "Error loading layer:\n"+tableLayerName, "Error", JOptionPane.ERROR_MESSAGE);
+							layerManager.missingLayer(menu.index);
+							return;
+						}
 						int i = url.lastIndexOf(".");
 						String uidPath = url.substring(0, i) + ".uid";
 						//System.out.println(uidPath);
@@ -2365,6 +2399,7 @@ public class MapApp implements ActionListener,
 									else {
 										map.addOverlay( database.getDBName(), database );
 									}
+									sendLogMessage("Opening Portal$name="+database.getDBName());
 								}
 							}
 						};
@@ -2430,7 +2465,7 @@ public class MapApp implements ActionListener,
 			}
 		}
 
-		else if (name.equals("map_insert_cmd")) {
+		else if (name.equals("map_inset_cmd")) {
 			if( li==null ) li=new LocationInset(map);
 			if ( evt.getSource() instanceof JCheckBoxMenuItem ) {
 				if( ((JCheckBoxMenuItem)evt.getSource()).isSelected() ) {
@@ -2525,7 +2560,9 @@ public class MapApp implements ActionListener,
 								subLast = (JMenuItem) child;
 								break;
 							}
-						} catch (Exception ex) {};
+						} catch (Exception ex) {
+							System.out.println(ex.getStackTrace());
+						};
 					}
 					
 					//JMenuItem subLast = (JMenuItem) childFirst[0];
@@ -2630,6 +2667,7 @@ public class MapApp implements ActionListener,
 		} else if (name.equals("load_all_session_layers_cmd")) {
 			JMenuItem menuItemLoad = (JMenuItem) evt.getSource();
 			XML_Menu thisXMLItemLoad = XML_Menu.getXML_Menu(menuItemLoad);
+			layerManager.resetMissingLayers();
 
 			loadSession = true;
 			//if this layer isn't applicable to this projection, may need to switch projection
@@ -2671,14 +2709,35 @@ public class MapApp implements ActionListener,
 					// Do nothing
 				} else {
 					XML_Menu sessionLayer = thisXMLItemLoad.parent.child_layers.get(m);
+					if (sessionLayer.name.matches(baseFocusName)) {
+						// attach index number to basemap
+						List<LayerPanel> layerPanels = layerManager.getLayerPanels();
+						for (LayerPanel lp : layerPanels) {
+							if (lp.layerName.matches(baseFocusName) && sessionLayer.index != null){
+								lp.setItem(sessionLayer);
+							}
+						}
+						
+						
+					}
 					XML_Menu.getMenuItem(sessionLayer).doClick();
 				}
 			}
 			//reselect the map insert menu option if needed
-			JMenuItem mi = XML_Menu.commandToMenuItemHash.get("map_insert_cmd");
+			JMenuItem mi = XML_Menu.commandToMenuItemHash.get("map_inset_cmd");
 			if ( mi != null ) {
 				((JCheckBoxMenuItem)mi).setSelected(true);
 			}
+
+			mi = XML_Menu.commandToMenuItemHash.get("bathymetry_credits_cmd");
+			if ( mi != null ) {
+				((JCheckBoxMenuItem)mi).setSelected(true);
+			}
+
+			colorScaleCB = (JCheckBoxMenuItem)
+				XML_Menu.commandToMenuItemHash.get("color_scale_cmd");
+			locs.showLoc = (JCheckBoxMenuItem) XML_Menu.getMenutItem("show_places_cmd");
+			
 		} else if (name.equals("switch_north_cmd")) {
 			System.out.println("Starting North Projection");
 			NPInit2();
@@ -2734,8 +2793,10 @@ public class MapApp implements ActionListener,
 								if (sI != 0)
 									tools.gridDialog.loadGrid();
 								else ;
-							else
+							else {
 								tools.gridDialog.getToggle().doClick();
+								digitizer.setLoadedGMRTForDig(true);
+							}
 						}						
 						while( map.hasOverlay( digitizer ) ) {
 							map.removeOverlay(digitizer);
@@ -2900,7 +2961,7 @@ public class MapApp implements ActionListener,
 		//Buttons
 		JPanel buttons = new JPanel(new FlowLayout());
 
-		JButton ok = new JButton("Ok");
+		JButton ok = new JButton("OK");
 		ok.setToolTipText("Accept current settings");
 		ok.addActionListener(this);
 		buttons.add(ok);
@@ -3036,6 +3097,14 @@ public class MapApp implements ActionListener,
 			serverPanel.add( serverList, BorderLayout.CENTER );
 		}
 		serverOptions.add( serverPanel, BorderLayout.NORTH );
+		
+		inputDevPasswordPanel = new JPanel();
+		inputDevPasswordLabel = new JLabel("Password:");
+		inputDevPasswordText = new JTextField(10);
+		inputDevPasswordPanel.add(inputDevPasswordLabel);
+		inputDevPasswordPanel.add(inputDevPasswordText);
+		inputDevPasswordPanel.setVisible(false);
+		serverPanel.add(inputDevPasswordPanel, BorderLayout.SOUTH );
 
 		// Tab Server Options
 		prefer.addTab( "Server Options", serverOptions);
@@ -3179,9 +3248,7 @@ public class MapApp implements ActionListener,
 	private void acceptOps() {
 		this.previewOps();
 //		***** GMA 1.6.2: Load server and proxy options and make currently selected options the default options so they are loaded when GeoMapApp restarts
-		if ( serverList != null ) {
-			selectedServer = serverList.getSelectedIndex();
-
+		if ( serverList != null && selectedServer != serverList.getSelectedIndex()) {
 			if ( ((String)serverList.getSelectedItem()).equals(DEV_URL) && inputDevPasswordText != null ) {
 				// convert the input password to an sha256 hash and compare with the value on the server
 				String inputPasswordHash = GeneralUtils.stringToSHA256(inputDevPasswordText.getText());
@@ -3202,6 +3269,7 @@ public class MapApp implements ActionListener,
 				TEMP_BASE_URL = (String)serverList.getSelectedItem();
 				JOptionPane.showMessageDialog(option, "Please restart GeoMapApp to switch out of DEV mode.", "Success", JOptionPane.OK_OPTION);
 			}
+			selectedServer = serverList.getSelectedIndex();
 		}
 
 		try {
@@ -3348,7 +3416,6 @@ public class MapApp implements ActionListener,
 
 	public static void findLaunchFile() {
 		// Check for our .gma_launch file
-		//String gmaLocation = "file:/Volumes/geomapapp/" ; //for testing At Sea disk
 		String gmaLocation = MapApp.class.getProtectionDomain().getCodeSource().getLocation().toString();
 		String base = gmaLocation.substring(0, gmaLocation.lastIndexOf("/")+1);
 
@@ -3363,9 +3430,9 @@ public class MapApp implements ActionListener,
 						System.setProperty("geomapapp.paths_location", "htdocs/gma_paths/GMA_paths.xml");
 					}
 					BASE_URL = PathUtil.getPath("ROOT_PATH");
-					
+					String GMRTRootURL = PathUtil.getPath("GMRT2_ROOT_PATH"); 
 					URLFactory.addSubEntry(BASE_URL, "htdocs/");
-					URLFactory.addSubEntry("http://gmrt.marine-geo.org/", "htdocs/gmrt/");
+					URLFactory.addSubEntry(GMRTRootURL, "htdocs/gmrt/");
 					URLFactory.addSubEntry(BASE_URL.replace("http://", ""), base + "htdocs/");
 				}
 			}
@@ -3394,8 +3461,8 @@ public class MapApp implements ActionListener,
 						System.setProperty("geomapapp.paths_location", "htdocs/gma_paths/GMA_paths.xml");
 					}
 					BASE_URL = PathUtil.getPath("ROOT_PATH");
-					
-					URLFactory.addSubEntry("http://gmrt.marine-geo.org/", "htdocs/gmrt/");
+					String GMRTRootURL = PathUtil.getPath("GMRT2_ROOT_PATH"); 
+					URLFactory.addSubEntry(GMRTRootURL, "htdocs/gmrt/");
 					URLFactory.addSubEntry(BASE_URL, "htdocs/");
 					URLFactory.addSubEntry(BASE_URL.replace("http://", ""), base + "htdocs/");
 				}
@@ -3578,6 +3645,11 @@ public class MapApp implements ActionListener,
 		String wfsTitle = wfs_menu.name;
 		String wfsLayer = wfs_menu.wfs_layer_feature;
 		String wfsBbox;
+		if (!URLFactory.checkWorkingURL(wfsURL)) {
+			JOptionPane.showMessageDialog(null, "Error loading layer:\n"+wfsTitle, "Error", JOptionPane.ERROR_MESSAGE);
+			layerManager.missingLayer(wfs_menu.index);
+			return;
+		}
 		if(wfs_menu.wfs_bbox !=null){
 			wfsBbox = wfs_menu.wfs_bbox;
 		}else{
@@ -3607,6 +3679,12 @@ public class MapApp implements ActionListener,
 	}
 
 	public void getWMSLayer(XML_Menu wms_XML_Menu) throws IOException {
+		
+		if (!URLFactory.checkWorkingURL(wms_XML_Menu.layer_url)) {
+			JOptionPane.showMessageDialog(null, "Error loading layer:\n"+wms_XML_Menu.name, "Error", JOptionPane.ERROR_MESSAGE);
+			layerManager.missingLayer(wms_XML_Menu.index);
+			return;
+		}
 		double[] inputWESN = new double[4];
 		if (wms_XML_Menu.wesn != null) {
 			String[] s = wms_XML_Menu.wesn.split(",");
@@ -3692,6 +3770,11 @@ public class MapApp implements ActionListener,
 
 	public void addShapeFile(String layerURL, XML_Menu inputXML_Menu) {
 		try {
+			if (!URLFactory.checkWorkingURL(layerURL)) {
+				JOptionPane.showMessageDialog(null, "Error loading layer:\n"+inputXML_Menu, "Error", JOptionPane.ERROR_MESSAGE);
+				layerManager.missingLayer(inputXML_Menu.index);
+				return;
+			}
 			tools.suite.addShapeFile(layerURL, inputXML_Menu);			
 			if ("true".equals(inputXML_Menu.multipleshapes)) {
 
@@ -4055,13 +4138,7 @@ public class MapApp implements ActionListener,
 	}
 
 	public void addDevPasswordField() {
-		inputDevPasswordPanel = new JPanel();
-		inputDevPasswordLabel = new JLabel("Password:");
-		inputDevPasswordText = new JTextField(10);
-		inputDevPasswordPanel.add(inputDevPasswordLabel);
-		inputDevPasswordPanel.add(inputDevPasswordText);
-		serverPanel.add(inputDevPasswordPanel, BorderLayout.SOUTH );
-		inputDevPasswordPanel.repaint();
+		inputDevPasswordPanel.setVisible(true);
 		serverPanel.repaint();
 		option.pack();
 		option.show();
@@ -4069,7 +4146,8 @@ public class MapApp implements ActionListener,
 
 	public void removeDevPasswordField() {
 		if ( inputDevPasswordPanel != null ) {
-			serverPanel.remove(inputDevPasswordPanel);
+			inputDevPasswordText.setText("");
+			inputDevPasswordPanel.setVisible(false);
 			serverPanel.repaint();
 			option.pack();
 			option.show();
@@ -4113,6 +4191,7 @@ public class MapApp implements ActionListener,
 			servers.add(DEV_URL);
 		}
 		serverList = new JComboBox(servers);
+		
 	}
 
 	public void getProxies() throws IOException {
@@ -4285,12 +4364,18 @@ public class MapApp implements ActionListener,
 	public boolean getMenusCache() {
 		
 		//First check GMA version number - if we have a new version, delete the MenusCache 
-		//so we can make sure we have the most up-to-date version
+		//so we can make sure we have the most up-to-date version.
+		//Also delete the layerSessionDir directory since old session formats might
+		//not be compatible with the latest release
 		String historyVersion = getHistoryVersion();
 		if (!historyVersion.equals(VERSION)) {
 			//delete MenusCache
 			if (menusCacheDir.exists()) {
 				GeneralUtils.deleteFolder(menusCacheDir);
+			}
+			//delete layerSessionDir
+			if (layerSessionDir.exists()) {
+				GeneralUtils.deleteFolder(layerSessionDir);
 			}
 			
 			// add history directory if none.
@@ -4554,9 +4639,11 @@ public class MapApp implements ActionListener,
 					tools.profileB.doClick();
 				}
 			}
-			if (tools.digitizeB.isSelected()) {
-				tools.digitizeB.setSelected(false);
+			if (digitizer.getLoadedGMRTForDig() && tools.gridDialog.getToggle().isSelected()) {
+				digitizer.setLoadedGMRTForDig(false);
+				tools.gridDialog.getToggle().doClick();
 			}
+			tools.digitizeB.setSelected(false);
 		}
 //
 		hPane.setRightComponent( null );
@@ -4706,10 +4793,17 @@ public class MapApp implements ActionListener,
 	}
 
 	/*
-	 * The name of the session file we are importing, without the path or extension
+	 * The layer name of the session file we are importing
 	 */
 	public static void setSessionImport(File xmlFile) {
-		sessionImport = xmlFile.getName().replace(".xml", "");
+
+		try {
+			sessionImport = XML_Menu.getRootName(xmlFile);
+			return;
+		} catch (Exception e) {
+			sessionImport = xmlFile.getName().replace(".xml", "");
+		}
+		//sessionImport = xmlFile.getName().replace(".xml", "");
 	}
 	
 	/*
@@ -4763,6 +4857,24 @@ public class MapApp implements ActionListener,
 		return DEFAULT_GRID_IMPORTS_LOGS_DIR;
 	}
 	
+	public ProcessingDialog getProcessingDialog() {
+		return this.processingDialog;
+	}
+
+	public static void sendLogMessage(String message) {
+		if (AT_SEA) return;
+		message = message.replace(" ", "_");
+		String logURL = PathUtil.getPath("LOG_PATH", "http://app.geomapapp.org/gma_logs/gma_logs") + "?log=" + message 
+				+ "&proj=" + CURRENT_PROJECTION;
+		try {
+			HttpURLConnection con = (HttpURLConnection) new URL( logURL ).openConnection();
+			con.getResponseCode();
+		} catch (Exception e) {
+			System.out.println("message NOT logged: " + message);
+			e.printStackTrace();
+		}
+	}
+	
 	public static HashSet<String> supported_commands = new HashSet<String>();
 	static {
 		supported_commands.add("add_bookmark_cmd");
@@ -4799,7 +4911,7 @@ public class MapApp implements ActionListener,
 		supported_commands.add("ImportWMSCmd");
 		supported_commands.add("layer_manager_cmd");				//30
 		supported_commands.add("load_all_session_layers_cmd");
-		supported_commands.add("map_insert_cmd");
+		supported_commands.add("map_inset_cmd");
 		supported_commands.add("map_place_cmd");
 		supported_commands.add("open_browser_cmd");
 		supported_commands.add("open_search_tree");

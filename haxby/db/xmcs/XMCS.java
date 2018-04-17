@@ -1,26 +1,16 @@
 package haxby.db.xmcs;
 
-import haxby.db.Database;
-import haxby.dig.Digitizer;
-import haxby.map.MapApp;
-import haxby.map.XMap;
-import haxby.util.PathUtil;
-import haxby.util.URLFactory;
-
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -43,6 +33,13 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
 
+import haxby.db.Database;
+import haxby.dig.Digitizer;
+import haxby.map.MapApp;
+import haxby.map.XMap;
+import haxby.util.PathUtil;
+import haxby.util.URLFactory;
+
 /***
  * XMCS loads a list of XMCruises available from MCS/expedition_list
  *
@@ -52,6 +49,9 @@ import javax.swing.JSplitPane;
  * 	1 == MERCATOR
  * 	2 == SOUTH_POLAR
  * 	3 == MERCATOR && SOUTH_POLAR
+ *  4 == NORTH POLAR
+ *  5 == MERCATOR && NORTH_POLAR
+ *  7 == MERCATOR && SOUTH POLAR && NORTH POLAR
  * and West East South North defines the cruise bounding box
  *
  * All directories relative to MapApp.BASE_URL
@@ -126,6 +126,8 @@ import javax.swing.JSplitPane;
  * 				1 == MERCATOR
  * 				2 == SOUTH_POLAR
  * 				3 == MERCATOR && SOUTH_POLAR
+ *  			5 == MERCATOR && NORTH_POLAR
+ *  			7 == MERCATOR && SOUTH POLAR && NORTH POLAR
  * 			and West East South North defines the cruise bounding box
  * 			obtained from the XMControl command (step 9)
  */
@@ -135,6 +137,7 @@ public class XMCS implements ActionListener,
 							Database {
 	public static final int MERCATOR_MAP = 1;
 	public static final int SOUTH_POLAR_MAP = 2;
+	public static final int NORTH_POLAR_MAP = 4;
 	public static JRadioButton[] mcsDataSelect;
 	protected static XMCruise[] cruises;
 	protected static boolean initiallized = false;
@@ -216,6 +219,13 @@ public class XMCS implements ActionListener,
 		imageAlt.disposeImage();
 		imagePane.setLeftComponent( image.panel );
 		imagePane.setRightComponent( imageAlt.panel );
+		image.line = null;
+		imageAlt.line = null;
+		currentCruise = null;
+		currentLine = null;
+		panel = null;
+		cruises = null;
+		unloadDB();
 	}
 	public boolean loadDB() {
 //		MapApp app = (MapApp)map.getApp();
@@ -232,6 +242,9 @@ public class XMCS implements ActionListener,
 	}
 	public boolean isLoaded() {
 		return initiallized;
+	}
+	public void unloadDB() {
+		initiallized = false;
 	}
 	public String getDBName() {
 		return "Digital Seismic Reflection Profiles (MCS & SCS)";
@@ -287,6 +300,13 @@ public class XMCS implements ActionListener,
 				}*/
 		} catch (Exception e) {
 		}
+		
+		// check if each list contains cruises for the current projection
+		mcsDataSelect[0].setEnabled(checkListForProjection(MULTI_CHANNEL_EXP_LIST));
+		mcsDataSelect[1].setEnabled(checkListForProjection(USGS_MULTI_CHANNEL_EXP_LIST));
+		mcsDataSelect[2].setEnabled(checkListForProjection(USGS_SINGLE_CHANNEL_EXP_LIST));
+		mcsDataSelect[3].setEnabled(checkListForProjection(ANTARCTIC_SDLS_EXP_LIST));
+		
 		// If GMA is at sea all gray out
 		if(MapApp.AT_SEA == true) {
 			mcsDataSelect[1].setEnabled(false);
@@ -354,6 +374,49 @@ public class XMCS implements ActionListener,
 		return panel;
 	}
 
+	/*
+	 * check the cruise list to see if it contains cruises for the current 
+	 * map projection
+	 */
+	private boolean checkListForProjection(String listPath) {
+		URL url;
+		try {
+			url = URLFactory.url(listPath);
+			BufferedReader in = new BufferedReader( new InputStreamReader(url.openStream()));
+	
+			String inStr;
+			while ((inStr = in.readLine()) != null) {
+				String[] split = inStr.split("\t");
+				if (split.length != 6) continue; // improper entry
+	
+				int mapType = MapApp.MERCATOR_MAP;
+				if (map.getApp() instanceof MapApp)
+					mapType =((MapApp) map.getApp()).getMapType();
+	
+				try {
+					int cruiseType = Integer.parseInt(split[1]);
+					switch (mapType) {
+						case MapApp.MERCATOR_MAP:
+							if ((cruiseType & MERCATOR_MAP) != 0) return true;
+							break;
+						case MapApp.SOUTH_POLAR_MAP:
+							if ((cruiseType & SOUTH_POLAR_MAP) != 0) return true;
+							break;
+						case MapApp.NORTH_POLAR_MAP:
+							if ((cruiseType & NORTH_POLAR_MAP) != 0) return true;
+							break;
+					}
+	
+				} catch (NumberFormatException ex) {
+					return false;
+				}
+			}
+		} catch (Exception e) {
+			return false;
+		}	
+		return false;
+	}
+	
 	public void draw(Graphics2D g) {
 		if(map==null || cruises.length==0)return;
 		int k, k0;
@@ -411,11 +474,11 @@ public class XMCS implements ActionListener,
 				}
 			}
 		}
-		if( image.line != null) {
+		if(image != null && image.line != null) {
 			int[] cdp = image.getVisibleSeg();
 			image.line.drawSeg( cdp[0], cdp[1], g);
 		}
-		if( imageAlt.line != null) {
+		if(imageAlt != null && imageAlt.line != null) {
 			int[] cdp = imageAlt.getVisibleSeg();
 			imageAlt.line.drawSeg( cdp[0], cdp[1], g);
 		}
@@ -779,6 +842,9 @@ public class XMCS implements ActionListener,
 				case MapApp.SOUTH_POLAR_MAP:
 					if ((cruiseType & XMCS.SOUTH_POLAR_MAP) == 0) continue;
 					break;
+				case MapApp.NORTH_POLAR_MAP:
+					if ((cruiseType & XMCS.NORTH_POLAR_MAP) == 0) continue;
+					break;
 				default:
 					break;
 				}
@@ -805,7 +871,7 @@ public class XMCS implements ActionListener,
 			boolean polarProblems = (((MapApp) map.getApp()).getMapType()==MapApp.SOUTH_POLAR_MAP) || (((MapApp) map.getApp()).getMapType()==MapApp.NORTH_POLAR_MAP); 
 			if(dateLineCheck || check2){
 				try {
-						cruises[i].loadLines(path);
+					cruises[i].loadLines(path);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

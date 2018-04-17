@@ -86,7 +86,7 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 			in.close();
 			//replace $VERSION in path names with current GMRT version number
 			PathUtil.replacePlaceHolder("$GMRT_VERSION", versionNum);
-			base = PathUtil.getPath("GMRT_LATEST/MERCATOR_TILE_PATH", "GMRT2/MERCATOR_TILE_PATH");
+			base = PathUtil.getPath("GMRT_LATEST/MERCATOR_TILE_PATH");
 
 		} catch (Exception e) {
 			System.err.println("Not able to find GMRT Version");

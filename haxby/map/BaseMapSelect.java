@@ -91,8 +91,8 @@ public class BaseMapSelect implements ActionListener {
 
 		JPanel southPanel1 = new JPanel( new GridLayout(0,1) );
 
-		infoLabel = new JLabel("<html>Created By: William F. Haxby <font size=2>('03-'06)</font>, William B.F. Ryan <font size=2>('03-present)</font></font>" +
-				"<br>Developers: Neville Shane <font size=2>('16-present)</font>, Justin Coplan <font size=2>('04-'11)</font>, Sze-Man(Samantha) Chan <font size=2>('09-'15)</font>, Andrew K. Melkonian <font size=2>('06-'09)</font>,<br>&#09; Donald E. Pomeroy <font size=2>('11-'12)</font>" +
+		infoLabel = new JLabel("<html>Created By: William F. Haxby <font size=2>('03-'06)</font>, William B.F. Ryan <font size=2>('03-'12)</font></font>" +
+				"<br>Development and Design: Suzanne Carbotte <font size=2>('03-present)</font>, Andrew Goodwillie <font size=2>('06-present)</font>, Neville Shane <font size=2>('16-present)</font>, <br>&#09;Justin Coplan <font size=2>('04-'11)</font>, Sze-Man(Samantha) Chan <font size=2>('09-'15)</font>, Andrew K. Melkonian <font size=2>('06-'09)</font>, <br>&#09;Donald E. Pomeroy <font size=2>('11-'12)</font>" +
 				"<br>Funded By: National Science Foundation & Trustees of Columbia University" +
 				"<br><br><center><font color=#CC3333>The Displayed Maps, Images, Data Tables are not to be used for Navigation Purposes.</font></center></html>");
 		southPanel1.add(infoLabel);
@@ -158,14 +158,5 @@ public class BaseMapSelect implements ActionListener {
 			if (mapsTB[i].isSelected())
 				selected.setText(NAMES.get(new Integer(maps[i])).toString() + " Selected");
 		}
-	}
-
-	public static void main(String[] args) {
-		BaseMapSelect sel = new BaseMapSelect();
-		int ok = sel.getBaseMap();
-		while( ok!=-1 ) {
-			ok = sel.getBaseMap();
-		}
-		System.exit(0);
 	}
 }

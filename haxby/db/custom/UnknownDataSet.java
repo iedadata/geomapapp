@@ -69,18 +69,20 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
 
-import org.apache.poi.ss.usermodel.CreationHelper;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.streaming.SXSSFRow;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.geomapapp.grid.Grid2DOverlay;
 import org.geomapapp.image.ColorScaleTool;
 import org.geomapapp.io.GMARoot;
 import org.geomapapp.util.SymbolScaleTool;
 import org.geomapapp.util.XML_Menu;
 
 import haxby.db.XYGraph;
+import haxby.db.custom.UnknownDataSet.UnknownDataSceneEntry;
+import haxby.map.GridOverlay;
+import haxby.map.MapApp;
 import haxby.map.XMap;
-import haxby.proj.Projection;
 import haxby.util.BrowseURL;
 import haxby.util.GeneralUtils;
 import haxby.util.SceneGraph;
@@ -108,6 +110,8 @@ public class UnknownDataSet implements MouseListener,
 	public CustomDB db;
 
 	public Vector<UnknownData> data;
+	private Vector<Boolean> newTrack;
+	private int numTracks = 1;
 	public Vector<String> header;
 	public Vector<Vector<Object>> rowData, origData;
 	public Vector<DBGraph> graphs=new Vector<DBGraph>();
@@ -166,7 +170,7 @@ public class UnknownDataSet implements MouseListener,
 	protected int scaleColumnIndex = 0;
 	protected int scaleNumericalColumnIndex = 0;
 	protected int selRows[];
-	protected SceneGraph scene;
+	public SceneGraph scene;
 	protected int totalSize, displaySize;
 
 	private Color color = Color.GRAY;
@@ -184,6 +188,66 @@ public class UnknownDataSet implements MouseListener,
 		this(desc, input, delim, db, false, null);
 	}
 
+	// cut down version of constructor used by Survey Planner import and the Velocity Vectors portal
+	public UnknownDataSet(DBDescription desc, String input, String delim, XMap map){
+		this.map = map;
+		this.desc = desc;
+		this.db = null;
+		this.scene = new SceneGraph(this.map, 4);
+		this.xml_menu = null;
+
+		input=input.trim();
+
+		BufferedReader in = new BufferedReader(new StringReader(input));
+		try {
+			header=new Vector<String>();
+			String s;
+			StringTokenizer st;
+			data = new Vector<UnknownData>();
+			while ((s = in.readLine())!=null){
+				// Only process lines that don't start with the comment symbol #
+				if(!s.startsWith("#")) {
+					if (header.size() == 0) {
+						st = new StringTokenizer(s,delim);
+						while (st.hasMoreTokens()) header.add(st.nextToken().trim());
+						header.trimToSize();
+						continue;
+					}
+
+					st = new StringTokenizer(s,delim, true);
+					Vector<Object> data2 = new Vector<Object>(header.size());
+					while (true) {
+						try {
+							String s2 = st.nextToken();
+							if (delim.indexOf(s2)>=0) {
+								data2.add("");
+							} else {
+								data2.add(s2.trim());
+								st.nextToken();
+							}
+						} catch (NoSuchElementException ex){
+							break;
+						}
+					}
+					for (int i = data2.size(); i < header.size(); i++)
+						data2.add("");
+					data.add( new UnknownData(data2) );
+				}
+			}
+			data.trimToSize();
+			initData();
+			tm = new DBTableModel(this, false);
+			initTable();
+			config(true, true);
+
+			selected=new boolean[data.size()];
+			in.close();
+
+		} catch (IOException ex){
+			ex.printStackTrace();
+		}
+	}
+	
 	public UnknownDataSet(DBDescription desc, String input, String delim, CustomDB db, boolean skipPrompts, XML_Menu xml_menu){
 		this.map = db.map;
 		this.desc = desc;
@@ -197,18 +261,31 @@ public class UnknownDataSet implements MouseListener,
 		BufferedReader in = new BufferedReader(new StringReader(input));
 		try {
 			header=new Vector<String>();
-			String s = in.readLine();
-			// String delim = "\t";
-
-			StringTokenizer st = new StringTokenizer(s,delim);
-			while (st.hasMoreTokens()) header.add(st.nextToken().trim());
-			header.trimToSize();
+			String s;
+			StringTokenizer st;
 			data = new Vector<UnknownData>();
-
+			newTrack = new Vector<Boolean>();
+			numTracks = 1;
 			while ((s = in.readLine())!=null){
 				// Only process lines that don't start with the comment symbol #
 				if(!s.startsWith("#")) {
-					st = new StringTokenizer(s,delim,true);
+					if (header.size() == 0) {
+						st = new StringTokenizer(s,delim);
+						while (st.hasMoreTokens()) header.add(st.nextToken().trim());
+						header.trimToSize();
+						continue;
+					}
+					// if a line starts with a >, we want to lift the pen and start 
+					// a new line when drawing tracks
+					if (s.startsWith(">")) {
+						newTrack.add(true);
+						numTracks++;
+						s = s.substring(1);
+						if (s.length() == 0) {
+							s = in.readLine();
+						}
+					} else newTrack.add(false);
+					st = new StringTokenizer(s,delim, true);
 					Vector<Object> data2 = new Vector<Object>(header.size());
 					while (true) {
 						try {
@@ -311,7 +388,7 @@ public class UnknownDataSet implements MouseListener,
 		}
 		rowData.trimToSize();
 	}
-
+		
 	public void initTable(){
 		dataP.removeAll();
 		// JOC Removed extra instannsiation and streamlined renderer
@@ -351,7 +428,45 @@ public class UnknownDataSet implements MouseListener,
 		dataT.getTableHeader().addMouseListener(this);
 		dataT.getTableHeader().addMouseMotionListener(this);
 	}
+	
+	public void updateDataSet() {
+		initData();
+		scene.clearScene();
 
+		float[] wesn = new float[] {Float.MAX_VALUE, -Float.MAX_VALUE, 
+				Float.MAX_VALUE, -Float.MAX_VALUE}; 
+		polylines.clear();
+
+		int index = 0;
+		for (UnknownData d : data) {
+			float[] lonLat = d.getPointLonLat(lonIndex, latIndex);
+			if(lonLat != null) {
+				wesn[0] = Math.min(lonLat[0], wesn[0]);
+				wesn[1] = Math.max(lonLat[0], wesn[1]);
+				wesn[2] = Math.min(lonLat[1], wesn[2]);
+				wesn[3] = Math.max(lonLat[1], wesn[3]);
+			}
+			d.updateXY(map,lonIndex,latIndex);
+			d.updatePolyline(map, polylineIndex);
+			if (d.polyline != null) {
+				float[] polylineWESN = d.getPolylineWESN(polylineIndex);
+				wesn[0] = Math.min(wesn[0], polylineWESN[0]);
+				wesn[1] = Math.max(wesn[1], polylineWESN[1]);
+				wesn[2] = Math.min(wesn[2], polylineWESN[2]);
+				wesn[3] = Math.max(wesn[3], polylineWESN[3]);
+				
+				polylines.add(index);
+			}
+
+			d.updateRGB(rgbIndex);
+			if (!Float.isNaN(d.x) &&
+						!Float.isNaN(d.y)) {
+					scene.addEntry(new UnknownDataSceneEntry(index));
+			}
+			index++;
+		}
+	}
+	
 	private KeyListener getCopyListener() {
 		if (copyListener == null) {
 			copyListener = new KeyAdapter() {
@@ -404,7 +519,11 @@ public class UnknownDataSet implements MouseListener,
 		config(false);
 	}
 
-	public void config(boolean skipPrompts){
+	public void config(boolean skipPrompts) {
+		config(skipPrompts, false);
+	}
+	
+	public void config(boolean skipPrompts, boolean sp){
 		//System.out.println(skipPrompts);
 		final DBConfigDialog config = 
 			new DBConfigDialog((Frame)map.getTopLevelAncestor(),this);
@@ -425,14 +544,16 @@ public class UnknownDataSet implements MouseListener,
 		}else{
 			config.toBack();
 			config.setSize(0, 0);
-			config.setVisible(true);
+			if (!sp) config.setVisible(true);
 			config.setVisible(false);
 		}
 
 		config.dispose();
-
-		db.map.requestFocus();
-		db.repaintMap();
+		
+		if (db != null){
+			db.map.requestFocus();
+			db.repaintMap();
+		}
 	}
 
 	//Return only columns that contain numerical data
@@ -640,7 +761,7 @@ public class UnknownDataSet implements MouseListener,
 	public void draw( Graphics2D g) {
 		if( map==null) return;
 		if (!plot) return;
-		db.plotAllB.setSelected(areAllPlottable());
+		if (db != null) db.plotAllB.setSelected(areAllPlottable());
 		if (lonIndex==-1||latIndex==-1) return;
 		lastSelected=0;
 
@@ -728,7 +849,7 @@ public class UnknownDataSet implements MouseListener,
 			}
 			// decimated or allowed, total in map view, total for the set
 			//System.out.println(kount + "\t" + tm.displayToDataIndex.size() + "\t" + data.size());
-			if (this.enabled)
+			if (this.enabled && db != null)
 				updateTotalDataSize(kount, data.size());
 
 			// Draw the selected items
@@ -784,158 +905,178 @@ public class UnknownDataSet implements MouseListener,
 				drawPolyline(g, at, d, xMin, xMax, yMin, yMax, wrap, fill);
 			}
 		} else {
-			boolean start = true;
-			float x = 0f;
-			GeneralPath shape = new GeneralPath();
-			for (int i=0; i<data.size(); i++) {
-				UnknownData d = data.get(i);
-				UnknownData prev = (i > 0) ? data.get(i-1) : null;
-				UnknownData next = (i < data.size() - 1) ? data.get(i+1) : null;
-				
-				//don't plot if Plot column is not checked
-				Boolean plottable = (Boolean) d.data.get(dataT.getPlotColumnIndex());
-				if (!plottable) continue;
-				if (Float.isNaN(d.x) || Float.isNaN(d.y)) continue;
 
-				//some fiddling around to make sure all points are in the correct wrap segment
-				if (wrap>0f){
-
-					if (d.x < xMin && d.x + wrap < xMax) {
-						d.x += wrap;
-					} else if (d.x > xMax && d.x - wrap > xMin) {
-						d.x -= wrap;
-					}
-				
-					if( prev != null) {
-						while( d.x-prev.x < wrap/2f ){d.x+=wrap;}
-						while( d.x-prev.x > wrap/2f ){d.x-=wrap;}
-					} 
-							
-					if ( next != null) {
-						if (next.x < xMin && next.x + wrap < xMax) {
-							next.x += wrap;
-						} else if (next.x > xMax && next.x - wrap > xMin) {
-							next.x -= wrap;
-						}
-					}
-				}
-				
-				//only draw tracks if a station is in the visible map, or if the track 
-				//intersects the map
-				if (rect.contains(d.x, d.y) ||
-				   (prev != null && rect.intersectsLine(prev.x, prev.y, d.x, d.y)) ||
-				   (next != null && rect.intersectsLine(d.x, d.y, next.x, next.y))) {
-					if (start){
-						shape.moveTo(d.x, d.y);
-						start = false;
-						x=d.x;
+			// if the input table has been split in to multiple tracks (using the > symbol at the start of the line)
+			// we want to darw each track separately so that we have to option to color each track differently
+			int startTrack = 0;
+			int endTrack = 0;
+			for (int t=0; t<numTracks; t++) {
+				boolean start = true;
+				float x = 0f;
+				GeneralPath shape = new GeneralPath();
+		
+				for (int i=startTrack; i<data.size(); i++) {
+					endTrack = i;
+					UnknownData d = data.get(i);
+					UnknownData prev = (i > 0) ? data.get(i-1) : null;
+					UnknownData next = (i < data.size() - 1) ? data.get(i+1) : null;
+					
+					//don't plot if Plot column is not checked
+					Boolean plottable = (Boolean) d.data.get(dataT.getPlotColumnIndex());
+					if (!plottable || Float.isNaN(d.x) || Float.isNaN(d.y)) {
+						// if this is the end of the track, exit loop and draw it
+						if (i < data.size() - 2 && newTrack.get(i+1)) break;
 						continue;
 					}
-					
-					shape.lineTo(d.x, d.y);
-					//if this point and next point aren't in the visible map, pick up the pen
-					//and stop drawing.
-					if (!rect.contains(d.x, d.y) && (next != null && !rect.contains(next.x, next.y)) ) start = true;
-				}
-				x=d.x;
-			}
-			g.setColor(color);
-//			if (!enabled) g.setColor(Color.GRAY);
-			
-			//set up the linestyle for displaying the track
-			float[] linestyle = null;
-			switch (lineStyleString) {
-				case "solid": 
-					linestyle = null;
-					break;
-				case "dashed":
-					linestyle = new float[dashed.length];
-					System.arraycopy(dashed, 0, linestyle, 0, dashed.length);
-					break;
-				case "dotted":
-					linestyle = new float[dotted.length];
-					System.arraycopy(dotted, 0, linestyle, 0, dotted.length);
-					break;
-				case "dash-dotted":
-					linestyle = new float[dotdashed.length];
-					System.arraycopy(dotdashed, 0, linestyle, 0, dotdashed.length);
-					break;
-			}
-			//scale for the zoom level
-			if (linestyle != null) {
-				for (int i=0; i<linestyle.length; i++) {
-					linestyle[i] /= mapZoom;
-				}
-			}
-			
-			//set the stroke with the selected linestyle and thickness
-			try {
-				g.setStroke( new BasicStroke( lineThick/(float)mapZoom, BasicStroke.CAP_BUTT,
-				        BasicStroke.JOIN_BEVEL, 0, linestyle, 0.0f) );
-			} catch (Exception ex) {
-				g.setStroke( new BasicStroke( 1f/(float)mapZoom) );
-			}
-						
-			g.draw(shape);
-			path=shape;
-
-			if(wrap>0) {
-				float offset = 0;
-				while( xMin+(double)offset < xMax ) {
-					g.translate( wrap, 0.d );
-					g.draw(shape);
-					offset += wrap;
-				}
-				g.setTransform( at );
-			}
-
-			if (!enabled) return;
-
-			if (dataT.getSelectedRowCount()>1) {
-				for (int i = 0; i < data.size(); i++) {
-					start = true;
-					x = 0f;
-					shape = new GeneralPath();
-					int n = 0;
-					while (i < data.size() && dataT.isRowSelected(i)) {
-						n++;
-						UnknownData d = data.get(i);
-						if (Float.isNaN(d.x) || Float.isNaN(d.y)){
-							i++;
-							n--;
-							continue;
+	
+					//some fiddling around to make sure all points are in the correct wrap segment
+					if (wrap>0f){
+	
+						if (d.x < xMin && d.x + wrap < xMax) {
+							d.x += wrap;
+						} else if (d.x > xMax && d.x - wrap > xMin) {
+							d.x -= wrap;
 						}
+					
+						if( prev != null) {
+							while( d.x-prev.x < wrap/2f ){d.x+=wrap;}
+							while( d.x-prev.x > wrap/2f ){d.x-=wrap;}
+						} 
+								
+						if ( next != null) {
+							if (next.x < xMin && next.x + wrap < xMax) {
+								next.x += wrap;
+							} else if (next.x > xMax && next.x - wrap > xMin) {
+								next.x -= wrap;
+							}
+						}
+					}
+
+					//only draw tracks if a station is in the visible map, or if the track 
+					//intersects the map
+					if (rect.contains(d.x, d.y) ||
+					   (prev != null && rect.intersectsLine(prev.x, prev.y, d.x, d.y)) ||
+					   (next != null && rect.intersectsLine(d.x, d.y, next.x, next.y))) {
 						if (start){
 							shape.moveTo(d.x, d.y);
 							start = false;
 							x=d.x;
+							// if this is the end of the track, exit loop and draw it
+							if (i < data.size() - 2 && newTrack.get(i+1)) break;
 							continue;
 						}
-						if (wrap>0f){
-							while (d.x>x+wrap/2) d.x-=wrap;
-							while (d.x<x-wrap/2) d.x+=wrap;
-						}
+						
 						shape.lineTo(d.x, d.y);
-						x=d.x;
-						i++;
+						//if this point and next point aren't in the visible map, pick up the pen
+						//and stop drawing.
+						if (!rect.contains(d.x, d.y) && (next != null && !rect.contains(next.x, next.y)) ) start = true;
 					}
-					if (enabled) g.setColor(Color.white);
-					else g.setColor(color);
-					g.draw(shape);
+					x=d.x;
+					// if this is the end of the track, exit loop and draw it
+					if (i < data.size() - 2 && newTrack.get(i+1)) break;
+				}
+				
+				// determine if track colors have been included in the table
+				UnknownData startPoint = data.get(startTrack);
+				if (startPoint.rgb != null) {
+					g.setColor(new Color(startPoint.rgb[0], startPoint.rgb[1], startPoint.rgb[2]));
+				} else {
+					g.setColor(color);
+				}
+				startTrack = endTrack + 1;
 
-					float offset = -wrap;
-					if(wrap>0) {
-						offset += wrap;
-						while( xMin+(double)offset < xMax ) {
-							g.translate( wrap, 0.d );
-							g.draw(shape);
-							offset += wrap;
-						}
-						g.setTransform( at );
+				//set up the linestyle for displaying the track
+				float[] linestyle = null;
+				switch (lineStyleString) {
+					case "solid": 
+						linestyle = null;
+						break;
+					case "dashed":
+						linestyle = new float[dashed.length];
+						System.arraycopy(dashed, 0, linestyle, 0, dashed.length);
+						break;
+					case "dotted":
+						linestyle = new float[dotted.length];
+						System.arraycopy(dotted, 0, linestyle, 0, dotted.length);
+						break;
+					case "dash-dotted":
+						linestyle = new float[dotdashed.length];
+						System.arraycopy(dotdashed, 0, linestyle, 0, dotdashed.length);
+						break;
+				}
+				//scale for the zoom level
+				if (linestyle != null) {
+					for (int i=0; i<linestyle.length; i++) {
+						linestyle[i] /= mapZoom;
 					}
 				}
+				
+				//set the stroke with the selected linestyle and thickness
+				try {
+					g.setStroke( new BasicStroke( lineThick/(float)mapZoom, BasicStroke.CAP_BUTT,
+					        BasicStroke.JOIN_BEVEL, 0, linestyle, 0.0f) );
+				} catch (Exception ex) {
+					g.setStroke( new BasicStroke( 1f/(float)mapZoom) );
+				}
+							
+				g.draw(shape);
+				path=shape;
+	
+				if(wrap>0) {
+					float offset = 0;
+					while( xMin+(double)offset < xMax ) {
+						g.translate( wrap, 0.d );					
+						g.draw(shape);
+						offset += wrap;
+					}
+					g.setTransform( at );
+				}
+				
+				if (!enabled) return;
+	
+				if (dataT.getSelectedRowCount()>1) {
+					for (int i = 0; i < data.size(); i++) {
+						start = true;
+						x = 0f;
+						shape = new GeneralPath();
+						while (i < data.size() && dataT.isRowSelected(i)) {
+							UnknownData d = data.get(i);
+							if (Float.isNaN(d.x) || Float.isNaN(d.y)){
+								i++;
+								continue;
+							}
+							if (start){
+								shape.moveTo(d.x, d.y);
+								start = false;
+								x=d.x;
+								continue;
+							}
+							if (wrap>0f){
+								while (d.x>x+wrap/2) d.x-=wrap;
+								while (d.x<x-wrap/2) d.x+=wrap;
+							}
+							shape.lineTo(d.x, d.y);
+							x=d.x;
+							i++;
+						}
+						if (enabled) g.setColor(Color.white);
+						else g.setColor(color);
+						g.draw(shape);
+	
+						float offset = -wrap;
+						if(wrap>0) {
+							offset += wrap;
+							while( xMin+(double)offset < xMax ) {
+								g.translate( wrap, 0.d );
+								g.draw(shape);
+								offset += wrap;
+							}
+							g.setTransform( at );
+						}
+					}
+				}
+				g.setStroke( new BasicStroke(1f) ); //reset the stroke linestyle and thickness
 			}
-			g.setStroke( new BasicStroke(1f) ); //reset the stroke linestyle and thickness
 		}
 
 		for (DBGraph graph : graphs) {
@@ -1325,6 +1466,7 @@ public class UnknownDataSet implements MouseListener,
 				} if (Double.isNaN(distN)) continue;
 
 				if (f!=null&&i<f.length&&Float.isNaN(f[i])) continue;
+				if (i >= tm.displayToDataIndex.size()) continue;
 				UnknownData d = data.get(tm.displayToDataIndex.get(i));
 				if( Float.isNaN(d.x) || Float.isNaN(d.y) ) continue;
 
@@ -1411,7 +1553,7 @@ public class UnknownDataSet implements MouseListener,
 		if (e.isControlDown()) return;
 		if (e.isConsumed()||!map.isSelectable()) return;
 
-		if (db.panTB.isSelected()) return;
+		if (db == null || db.panTB.isSelected()) return;
 		if (e.isShiftDown()) {
 			p1=e.getPoint();
 			p2=new Point(p1.x+1,p1.y+1);
@@ -1424,7 +1566,7 @@ public class UnknownDataSet implements MouseListener,
 	}
 	public void mouseReleased(MouseEvent e) {
 
-		if (db.panTB.isSelected() || e.getModifiers()==4 || !db.lassoTB.isSelected()) return;
+		if (db == null || db.panTB.isSelected() || e.getModifiers()==4 || !db.lassoTB.isSelected()) return;
 
 		if (poly!=null) {
 			poly.addPoint(poly.xpoints[0], poly.ypoints[0]);
@@ -1459,7 +1601,7 @@ public class UnknownDataSet implements MouseListener,
 			}
 		}
 		
-		if (db.panTB.isSelected() || e.getModifiers()==4 || !db.lassoTB.isSelected()) return;
+		if (db == null || db.panTB.isSelected() || e.getModifiers()==4 || !db.lassoTB.isSelected()) return;
 
 		if (poly!=null){
 			if (Math.abs(poly.xpoints[poly.npoints-1]-e.getX())<=1
@@ -1533,7 +1675,7 @@ public class UnknownDataSet implements MouseListener,
 		}
 
 		if (!enabled) return;
-
+		if (db == null) return;
 		synchronized (map.getTreeLock()) {
 			Graphics2D g = map.getGraphics2D();
 			if (station && plot) {
@@ -1705,7 +1847,9 @@ public class UnknownDataSet implements MouseListener,
 		if (!exportChecks(saveOption)) return;
 		
 		JFileChooser jfc = new JFileChooser(System.getProperty("user.home"));
-		File f=new File(desc.name.replace(":", "")+".txt");
+		String defaultName = desc.name.replace(":", "").replace(",", "") + ".txt";
+		defaultName = defaultName.replace("Data Table ", "").replace(" ", "_");
+		File f=new File(defaultName);
 		jfc.setSelectedFile(f);
 		do {
 			int c = jfc.showSaveDialog(null);
@@ -1717,36 +1861,45 @@ public class UnknownDataSet implements MouseListener,
 				if (c==JOptionPane.CANCEL_OPTION) return;
 			}
 		} while (f.exists());
+		
+		final File saveTo = f;
+		MapApp app = ((MapApp) map.getApp());
+		app.addProcessingTask("Saving Data Table...", new Runnable() {
+			public void run() {
 
-		try {
-			BufferedWriter out = new BufferedWriter(new FileWriter(f));
-			//don't include Plot column
-			for (int i=1;i<dataT.getColumnCount();i++)
-				out.write(dataT.getColumnName(i)+"\t");
-			out.write("\n");
-			
-			int[] ind;
-			if (saveOption.equals("selection")) {
-				ind = dataT.getSelectedRows();
-			} else if (saveOption.equals("plottable")) {
-				ind = getPlottableRows();
-			} else {
-				ind = new int[dataT.getRowCount()];
-				for (int i=0; i<dataT.getRowCount(); i++) ind[i] = i;
-			}
-				
-			for (int i=0;i<ind.length;i++) {
-				for (int j=1; j<dataT.getColumnCount();j++) {
-					Object o = dataT.getValueAt(ind[i], j);
-					if (o instanceof String && ((String)o).equals("NaN")) o = "";
-					out.write(o+"\t");
+				try {
+					BufferedWriter out = new BufferedWriter(new FileWriter(saveTo));
+					//don't include Plot column
+					for (int i=1;i<dataT.getColumnCount();i++)
+						out.write(dataT.getColumnName(i)+"\t");
+					out.write("\n");
+					
+					int[] ind;
+					if (saveOption.equals("selection")) {
+						ind = dataT.getSelectedRows();
+					} else if (saveOption.equals("plottable")) {
+						ind = getPlottableRows();
+					} else {
+						ind = new int[dataT.getRowCount()];
+						for (int i=0; i<dataT.getRowCount(); i++) ind[i] = i;
+					}
+						
+					for (int i=0;i<ind.length;i++) {
+						for (int j=1; j<dataT.getColumnCount();j++) {
+							Object o = dataT.getValueAt(ind[i], j);
+							if (o instanceof String && ((String)o).equals("NaN")) o = "";
+							out.write(o+"\t");
+						}
+						out.write("\n");
+					}
+					out.close();
+				} catch(Exception ex) {
+					JOptionPane.showMessageDialog(map.getTopLevelAncestor(),
+							"an error occurred during this operation:\t"
+							+ " "+ ex.getMessage());
 				}
-				out.write("\n");
 			}
-			out.close();
-		} catch (IOException ex){
-
-		}
+		});
 	}
 
 	// Exports viewable items in the data table to excel format file .xls
@@ -1757,7 +1910,9 @@ public class UnknownDataSet implements MouseListener,
 		JFileChooser jfc = new JFileChooser(System.getProperty("user.home"));
 		ExcelFileFilter eff = new ExcelFileFilter();
 		jfc.setFileFilter(eff);
-		File f=new File(desc.name.replace(":", "")+".xls");
+		String defaultName = desc.name.replace(":", "").replace(",", "") + ".xls";
+		defaultName = defaultName.replace("Data Table ", "").replace(" ", "_");
+		File f=new File(defaultName);
 		jfc.setSelectedFile(f);
 		do {
 			int c = jfc.showSaveDialog(null);
@@ -1770,35 +1925,43 @@ public class UnknownDataSet implements MouseListener,
 			}
 		} while (f.exists());
 
-		try { 
-			WritableWorkbook wb = Workbook.createWorkbook(f);
-			WritableSheet sheet = wb.createSheet("First Sheet", 0);
-			//don't include Plot column
-			for (int i=1;i<dataT.getColumnCount();i++)
-				sheet.addCell( new Label(i-1,0,dataT.getColumnName(i)) );
-			
-			int[] ind;
-			if (saveOption.equals("selection")) {
-				ind = dataT.getSelectedRows();
-			} else if (saveOption.equals("plottable")) {
-				ind = getPlottableRows();
-			} else {
-				ind = new int[dataT.getRowCount()];
-				for (int i=0; i<dataT.getRowCount(); i++) ind[i] = i;
-			}
-				
-			for (int i=0;i<ind.length;i++) {
-				for (int j=1; j<dataT.getColumnCount();j++) {
-					Object o = dataT.getValueAt(ind[i], j);
-					if (o instanceof String && ((String)o).equals("NaN")) o = "";
-					sheet.addCell( new Label(j-1,i+1,o.toString()) );
+		final File saveTo = f;
+		MapApp app = ((MapApp) map.getApp());
+		app.addProcessingTask("Saving Data Table...", new Runnable() {
+			public void run() {
+				try { 
+					WritableWorkbook wb = Workbook.createWorkbook(saveTo);
+					WritableSheet sheet = wb.createSheet("First Sheet", 0);
+					//don't include Plot column
+					for (int i=1;i<dataT.getColumnCount();i++)
+						sheet.addCell( new Label(i-1,0,dataT.getColumnName(i)) );
+					
+					int[] ind;
+					if (saveOption.equals("selection")) {
+						ind = dataT.getSelectedRows();
+					} else if (saveOption.equals("plottable")) {
+						ind = getPlottableRows();
+					} else {
+						ind = new int[dataT.getRowCount()];
+						for (int i=0; i<dataT.getRowCount(); i++) ind[i] = i;
+					}
+						
+					for (int i=0;i<ind.length;i++) {
+						for (int j=1; j<dataT.getColumnCount();j++) {
+							Object o = dataT.getValueAt(ind[i], j);
+							if (o instanceof String && ((String)o).equals("NaN")) o = "";
+							sheet.addCell( new Label(j-1,i+1,o.toString()) );
+						}
+					}
+					wb.write();
+					wb.close();
+				} catch(Exception ex) {
+					JOptionPane.showMessageDialog(map.getTopLevelAncestor(),
+							"an error occurred during this operation:\t"
+							+ " "+ ex.getMessage());
 				}
 			}
-			wb.write();
-			wb.close();
-		} catch (Exception ex){
-			ex.printStackTrace();
-		}
+		});
 	}
 
 
@@ -1810,12 +1973,8 @@ public class UnknownDataSet implements MouseListener,
 		JFileChooser jfc = new JFileChooser(System.getProperty("user.home"));
 		ExcelFileFilter eff = new ExcelFileFilter();
 		jfc.setFileFilter(eff);
-		String defaultName = desc.name.replace(":", "") + ".xlsx";
-
-		if(defaultName.contains("Data Table ")){
-			defaultName = defaultName.replace("Data Table ", "");
-		}
-
+		String defaultName = desc.name.replace(":", "").replace(",", "") + ".xlsx";
+		defaultName = defaultName.replace("Data Table ", "").replace(" ", "_");
 		File f=new File(defaultName);
 		jfc.setSelectedFile(f);
 		do {
@@ -1828,55 +1987,62 @@ public class UnknownDataSet implements MouseListener,
 				if (c==JOptionPane.CANCEL_OPTION) return;
 			}
 		} while (f.exists());
-
-		try {
-			if (!f.getName().endsWith(".xlsx")){
-				System.out.println(f.getName());
-				JOptionPane.showMessageDialog(null, "Save did not complete. Must end in .xlsx. Try again.");
-			}else{
-				XSSFWorkbook xlsxWB = new XSSFWorkbook();
-				CreationHelper createHelper = xlsxWB.getCreationHelper();
-				XSSFSheet xlsxSheet1 = xlsxWB.createSheet("First Sheet");
-				Row row = null;
-				
-				int[] ind;
-				if (saveOption.equals("selection")) {
-					ind = dataT.getSelectedRows();
-				} else if (saveOption.equals("plottable")) {
-					ind = getPlottableRows();
-				} else {
-					ind = new int[dataT.getRowCount()];
-					for (int i=0; i<dataT.getRowCount(); i++) ind[i] = i;
-				}
-				int xlsxCol = dataT.getColumnCount();
-				row = xlsxSheet1.createRow((0));
-				//don't include Plot column
-				for (int c=1; c<xlsxCol; c++){
-					String columnName = dataT.getColumnName(c);
-					row.createCell(c-1).setCellValue(columnName);
-				}
-
-				for (int r=1; r<=ind.length; r++){
-					row = xlsxSheet1.createRow((r));
-					for (int c=1; c<xlsxCol; c++){
-						Object o = dataT.getValueAt(ind[r-1], c);
-						String input1 = null;
-						if(o instanceof String && ((String)o).equals("NaN")){
-							o = "";
-							input1 = o.toString();
-							row.createCell(c-1).setCellValue(input1);
-						}else if(o instanceof String){
-							row.createCell(c-1).setCellValue((String)o);
+		
+		final File saveTo = f;
+		MapApp app = ((MapApp) map.getApp());
+		app.addProcessingTask("Saving Data Table...", new Runnable() {
+			public void run() {
+				try {
+					if (!saveTo.getName().endsWith(".xlsx")){
+						System.out.println(saveTo.getName());
+						JOptionPane.showMessageDialog(null, "Save did not complete. Must end in .xlsx. Try again.");
+					}else{
+						SXSSFWorkbook xlsxWB = new SXSSFWorkbook();
+						SXSSFSheet xlsxSheet1 = xlsxWB.createSheet("First Sheet");
+						SXSSFRow row = null;
+						
+						int[] ind;
+						if (saveOption.equals("selection")) {
+							ind = dataT.getSelectedRows();
+						} else if (saveOption.equals("plottable")) {
+							ind = getPlottableRows();
+						} else {
+							ind = new int[dataT.getRowCount()];
+							for (int i=0; i<dataT.getRowCount(); i++) ind[i] = i;
 						}
+						int xlsxCol = dataT.getColumnCount();
+						row = xlsxSheet1.createRow((0));
+						//don't include Plot column
+						for (int c=1; c<xlsxCol; c++){
+							String columnName = dataT.getColumnName(c);
+							row.createCell(c-1).setCellValue(columnName);
+						}
+						
+						Object o = null;
+						for (int r=1; r<=ind.length; r++){
+							row = xlsxSheet1.createRow((r));
+							for (int c=1; c<xlsxCol; c++){
+								o = dataT.getValueAt(ind[r-1], c);
+								if(!(o instanceof String)) continue;
+								if (((String)o).equals("NaN")){
+									o = "";
+								}
+								row.createCell(c-1).setCellValue((String)o);
+							}
+						}
+						FileOutputStream xlsxOut = new FileOutputStream(saveTo);
+						xlsxWB.write(xlsxOut);
+						xlsxOut.close();
+						xlsxWB.close();
 					}
+				} catch(Exception ex) {
+					JOptionPane.showMessageDialog(map.getTopLevelAncestor(),
+							"an error occurred during this operation:\t"
+							+ " "+ ex.getMessage());
 				}
-				FileOutputStream xlsxOut = new FileOutputStream(f);
-				xlsxWB.write(xlsxOut);
-				xlsxOut.close();
 			}
-		} catch (Exception ex){
-			ex.printStackTrace();
-		}
+		});
+
 	}
 
 	public void exportKML(String saveOption) {
@@ -1942,6 +2108,7 @@ public class UnknownDataSet implements MouseListener,
 			ObjectInputStream in = new ObjectInputStream(new FileInputStream(f));
 			Object o;
 			while ((o=in.readObject())!=null) v.add((DBDescription) o);
+			in.close();
 		} catch (Exception ex) { }
 		return v;
 	}
@@ -2172,7 +2339,7 @@ public class UnknownDataSet implements MouseListener,
 		}
 	}
 	
-	protected class UnknownDataSceneEntry implements SceneGraphEntry {
+	public class UnknownDataSceneEntry implements SceneGraphEntry {
 		private int index;
 		private UnknownData ud;
 		public UnknownDataSceneEntry(int index)
@@ -2193,6 +2360,10 @@ public class UnknownDataSet implements MouseListener,
 			return ud.y;
 		}
 
+		public UnknownData getData() {
+			return ud;
+		}
+		
 		public boolean isVisible() {
 			Integer displayIndex = tm.rowToDisplayIndex.get(index);
 
@@ -2245,7 +2416,8 @@ public class UnknownDataSet implements MouseListener,
 	public Boolean isPlottable(int row) {
 		//find plot column
 		int plotColumn = dataT.getPlotColumnIndex();
-
+		if (plotColumn == -1) return true;
+		
 		int plotRow = tm.displayToDataIndex.get(row);
 		//get the PLOT value for the row
 		return (Boolean) data.get(plotRow).data.get(plotColumn);
@@ -2305,8 +2477,8 @@ public class UnknownDataSet implements MouseListener,
 		//find plot column
 		int plotColumn = dataT.getPlotColumnIndex();
 		ArrayList<Integer> plottableRows = new ArrayList<Integer>();
-		for (int i=0; i<data.size(); i++) {
-			UnknownData d = data.get(i);	
+		for (int i=0; i<tm.displayToDataIndex.size(); i++) {
+			UnknownData d = data.get(tm.displayToDataIndex.get(i));	
 			if ((boolean) d.data.get(plotColumn)) plottableRows.add(i);
 		}
 		return GeneralUtils.arrayList2ints(plottableRows);
@@ -2356,5 +2528,19 @@ public class UnknownDataSet implements MouseListener,
 	
 	public int getColorNumericalColumnIndex() {
 		return colorNumericalColumnIndex;
+	}
+	
+	public void addData(UnknownData d) {
+		if (d == null) return;
+		data.add(d);
+		initData();
+		initTable();
+	}
+	
+	public void removeData(int row) {
+		if (row == -1) return;
+		data.remove(row);
+		initData();
+		initTable();
 	}
 }

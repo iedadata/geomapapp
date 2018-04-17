@@ -57,6 +57,7 @@ public class Grid2DOverlay extends MapOverlay {
 	public ContourGrid contour;
 	public RenderingTools lut;
 	public double interval = -1;
+	public double bolding_interval = -1;
 	public int [] cb = new int[2];
 
 	public Grid2DOverlay( XMap map ) {
@@ -87,7 +88,7 @@ public class Grid2DOverlay extends MapOverlay {
 		background = argb;
 		if(lut!=null) lut.setBackground( argb );
 	}
-	int[] reviseContours(int[] c, double interval) {
+	int[] reviseContours(int[] c, double interval, double bolding_interval) {
 		NumberFormat fmt = NumberFormat.getInstance();
 		fmt.setMaximumFractionDigits(0);
 		fmt.setGroupingUsed(false);
@@ -95,12 +96,18 @@ public class Grid2DOverlay extends MapOverlay {
 		JTextField c1 = new JTextField(fmt.format(c[0]*interval));
 		JTextField c2 = new JTextField(fmt.format(c[1]*interval));
 		JTextField con = new JTextField(fmt.format(interval));
+		JTextField bolding = new JTextField(fmt.format(bolding_interval));
 		JLabel label = new JLabel("Modify contour interval and/or range?");
 		panel.add(label);
 		JPanel p1 = new JPanel( new GridLayout(1,0));
 		label = new JLabel("Interval", label.CENTER);
 		p1.add( label );
 		p1.add( con );
+		panel.add(p1);
+		p1 = new JPanel( new GridLayout(1,0));
+		label = new JLabel("Bolding interval", label.CENTER);
+		p1.add( label );
+		p1.add( bolding );
 		panel.add(p1);
 		p1 = new JPanel( new GridLayout(1,0));
 		label = new JLabel("Minimum", label.CENTER);
@@ -137,11 +144,14 @@ public class Grid2DOverlay extends MapOverlay {
 			try {
 				double val = Double.parseDouble(con.getText());
 				if( val <=0.) return c;
+				double bolding_val = Double.parseDouble(bolding.getText());
+				if( bolding_val < 0.) return c;
 				double min = Double.parseDouble(c1.getText());
 				double max = Double.parseDouble(c2.getText());
 				c[0] = (int)Math.ceil(min/val);
 				c[1] = (int)Math.ceil(max/val);
 				this.interval = val;
+				this.bolding_interval = bolding_val;
 				return c;
 			} catch(Exception ex) {
 			}
@@ -153,6 +163,7 @@ public class Grid2DOverlay extends MapOverlay {
 		}
 		double[] range = grid.getRange();
 		double interval = this.interval;
+		double bolding_interval = this.bolding_interval;
 		if (interval <= 0) {
 			interval = (range[1] - range[0]) / 10;
 			int i = 0;
@@ -168,14 +179,16 @@ public class Grid2DOverlay extends MapOverlay {
 				else 
 					interval = Math.pow(10, i - 1);
 			}
-		} else
+			bolding_interval = 5 * interval;
+		} else {
 			interval = this.interval;
-
+			bolding_interval = this.bolding_interval;
+		}
 		int[] c = new int[] {
 			(int)Math.floor(range[0]/interval),
 			(int)Math.ceil(range[1]/interval)
 		};
-		c = reviseContours(c, interval);
+		c = reviseContours(c, interval, bolding_interval);
 		cb = c;
 		interval = this.interval;
 		if( interval <= 0 ) {
@@ -195,7 +208,7 @@ public class Grid2DOverlay extends MapOverlay {
 //							map.getTopLevelAncestor().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 //							map.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		//				***** Changed by A.K.M. 06/28/06 *****
-						contour.contour( Grid2DOverlay.this.interval, cb );
+						contour.contour( Grid2DOverlay.this.interval, Grid2DOverlay.this.bolding_interval, cb );
 		//			}
 					contour.setVisible( true );
 					map.repaint();
@@ -305,11 +318,11 @@ public class Grid2DOverlay extends MapOverlay {
 			while( x>r.x+r.width ) x-=wrap;
 			pt.setLocation( x, pt.getY() );
 		}
-		float z = (float)grid.valueAt( (int)pt.getX(), (int)pt.getY());
+		float z = (float)grid.valueAt( pt.getX(), pt.getY());
 //	System.out.println( pt.getX() +"\t"+ pt.getY() 
 //			+"\t"+ grid.contains( (int)pt.getX(), (int)pt.getY())+"\t"+ z);
 		return z;
-	}
+	}	
 	public double valueAt( Point2D lonlat ) {
 		if( grid==null ) return Float.NaN;
 		double wrap = map.getWrap();

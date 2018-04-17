@@ -54,7 +54,7 @@ import haxby.grid.ContributedGridsOverlay;
 import haxby.proj.Mercator;
 import haxby.util.BrowseURL;
 
-public class MapTools implements ActionListener, MouseListener, MouseMotionListener {
+public class MapTools implements ActionListener {
 	protected MapApp app = null;
 	protected XMap map;
 	public JToggleButton[] tb;
@@ -67,9 +67,8 @@ public class MapTools implements ActionListener, MouseListener, MouseMotionListe
 	public JButton focus, grid, save, zoomPrevious, layerManagerB, contribute;
 	JPanel panelTop = new JPanel(new BorderLayout());
 
-//	***** GMA 1.6.4: Add pan toggle button and map inset toggle button, and grid to save
+//	***** GMA 1.6.4: Add pan toggle button and grid to save
 	public JToggleButton panB;
-	public JButton mapInsetB;
 	boolean noButton = true;
 	public Grid2DOverlay gridToSave = null;
 //	***** GMA 1.6.4
@@ -205,13 +204,11 @@ public class MapTools implements ActionListener, MouseListener, MouseMotionListe
 
 		// Lat, Lon, Depth Icon
 		digitizeB = new JToggleButton(Icons.getIcon(Icons.DIGITIZE_ICON,false));
-		digitizeB.setPressedIcon(Icons.getIcon(Icons.DIGITIZE_ICON,true));
-		//digitizeB.setSelectedIcon(haxby.image.Icons.getIcon(haxby.image.Icons.DIGITIZE,true));
+		digitizeB.setSelectedIcon(Icons.getIcon(Icons.DIGITIZE_ICON,true));
 		digitizeB.setBorder(BorderFactory.createEmptyBorder());
 		digitizeB.setEnabled(true);
 		digitizeB.addActionListener(this);
 		digitizeB.setToolTipText("Digitize Latitude, Longitude and Depth");
-		bg.add(digitizeB);
 		box.add(digitizeB);
 		box.add(Box.createHorizontalStrut(1)); // space
 
@@ -360,10 +357,6 @@ public class MapTools implements ActionListener, MouseListener, MouseMotionListe
 			box2.add(contribute);
 			box2.add(Box.createHorizontalStrut(3)); // space
 		}
-
-//		***** GMA 1.6.4: Add listeners for dragging map inset to toolbar
-		box.addMouseListener(this);
-		box.addMouseMotionListener(this);
 
 		panelTop.add(box, "West");
 		panelTop.add(box2, "East");
@@ -943,8 +936,8 @@ public class MapTools implements ActionListener, MouseListener, MouseMotionListe
 				west = west - 360;
 			}
 
-			//String url = "http://gmrt.marine-geo.org/cgi-bin/getmap_page?west="+topLeft.getX()+"&east="+bottomRight.getX()+"&south="+bottomRight.getY()+"&north="+ topLeft.getY();
-			String url = "http://gmrt.marine-geo.org/cgi-bin/getmap_page?west="+west+"&east="+east+"&south="+south+"&north="+ north;
+//			String url = "https://gmrt.marine-geo.org/cgi-bin/getmap_page?west="+west+"&east="+east+"&south="+south+"&north="+ north;
+			String url = "https://www.gmrt.org/services/cmg_results.php?west="+west+"&east="+east+"&south="+south+"&north="+ north;
 
 			try{
 				BrowseURL.browseURL(url);
@@ -1249,27 +1242,6 @@ public class MapTools implements ActionListener, MouseListener, MouseMotionListe
 			disableProfileTools();
 		}
 
-//		***** GMA 1.6.4: Restore map inset when user clicks on the map inset toggle button
-/*
-		else if ( evt.getSource() == mapInsetB ) {
-			noButton = true;
-			box.remove(mapInsetB);
-			box.repaint();
-			box.setVisible(true);
-			app.frame.getContentPane().repaint();
-			app.frame.setVisible(true);
-			mapInsetB.removeActionListener(this);
-			mapInsetB = null;
-			app.cbmi.setState(true);
-			if( app.li == null ) {
-				app.li = new LocationInset(map);
-			}
-			map.addMapInset( app.li );
-			map.addMouseListener( app.li );
-			map.addMouseMotionListener( app.li );
-		}
-*/
-//		***** GMA 1.6.4
 		else if (evt.getSource()==focus ) {
 			if(app!=null) {
 				app.mapFocus();
@@ -1681,84 +1653,6 @@ public class MapTools implements ActionListener, MouseListener, MouseMotionListe
 			}
 	}
 
-	public void mouseDragged(MouseEvent e) {}
-
-	public void mouseMoved(MouseEvent e) {
-//		***** GMA 1.6.4: Perform appropriate actions when map inset is dragged to toolbar (add button, etc.)
-/*
-		if ( mapInsetB != null && noButton ) {
-			noButton = false;
-			app.cbmi.setState(false);
-			app.mapScaleCB.setState(false);
-			app.actionPerformed( new ActionEvent( app.mapScaleCB, ActionEvent.ACTION_PERFORMED, app.mapScaleCB.getActionCommand() ) );
-			app.colorScaleCB.setState(false);
-			app.actionPerformed( new ActionEvent( app.colorScaleCB, ActionEvent.ACTION_PERFORMED, app.colorScaleCB.getActionCommand() ) );
-			map.removeMapInset( app.li );
-			map.removeMouseListener( app.li );
-			map.removeMouseMotionListener( app.li );
-			map.repaint();
-		}
-*/
-//		***** GMA 1.6.4
-	}
-
-	public void mouseClicked(MouseEvent e) {
-	}
-
-	public void mouseEntered(MouseEvent e) {
-//		***** GMA 1.6.4: Perform appropriate actions when map inset is dragged to toolbar (add button, etc.)
-/*
-		if ( app.li != null ) {
-			if ( app.li.dragWindow && mapInsetB == null ) {
-				mapInsetB = new JButton(Icons.getIcon(Icons.SAVE,false));
-				mapInsetB.setPressedIcon(Icons.getIcon(Icons.SAVE,true));
-				mapInsetB.setBorder( BorderFactory.createRaisedBevelBorder() );
-				mapInsetB.setEnabled( true );
-				mapInsetB.setToolTipText("Click to Restore Map Inset");
-				mapInsetB.addActionListener(this);
-				box.setVisible(true);
-				box.remove(info);
-				box.add(mapInsetB);
-				box.add(info);
-				box.repaint();
-				app.frame.getContentPane().repaint();
-				app.frame.setVisible(true);
-			}
-		}
-*/
-//		***** GMA 1.6.4
-	}
-
-	public void mouseExited(MouseEvent e) {
-//		***** GMA 1.6.4: Perform appropriate actions when map inset is dragged to toolbar (add button, etc.)
-/*
-		if ( app.li != null ) {
-			if ( app.li.dragWindow && mapInsetB != null && noButton ) {	
-				box.remove(mapInsetB);
-				box.repaint();
-				box.setVisible(true);
-				app.frame.getContentPane().repaint();
-				app.frame.setVisible(true);
-				mapInsetB.removeActionListener(this);
-				mapInsetB = null;
-			}
-		}
-*/
-//		***** GMA 1.6.4
-	}
-
-	public void mousePressed(MouseEvent e) {}
-
-	public void mouseReleased(MouseEvent e) {
-/*	// ***** GMA 1.6.4: Perform appropriate actions when map inset is dragged to toolbar (add button, etc.)
-		if ( mapInsetB != null ) {
-			noButton = false;
-			app.mapScaleCB.setState(false);
-			app.colorScaleCB.setState(false);
-		}
-	//		***** GMA 1.6.4
-*/
-	}
 
 	public class TIFFFilter extends javax.swing.filechooser.FileFilter {
 		//Accept all directories and all tiff files.

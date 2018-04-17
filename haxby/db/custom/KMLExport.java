@@ -88,13 +88,16 @@ public class KMLExport {
 
 			int imgI = guessImage(ds, hc.visibleV, select);
 			fc = new KMLExportConfigDialog((JFrame) ds.map.getTopLevelAncestor(), 
-					ds.desc.name.replace(":", ""), hc.visibleV, imgI);
+					ds.desc.name.replace(":", "").replace(",", ""), hc.visibleV, imgI);
 		} while (!fc.export);
 		hc.dispose();
 
 		// Get the save file
 		JFileChooser jfc = new JFileChooser(System.getProperty("user.home"));
-		File f = new File(ds.desc.name.split("\\s")[0] + ".kmz");
+		
+		String defaultName = ds.desc.name.replace(":", "").replace(",", "") + ".kmz";
+		defaultName = defaultName.replace("Data Table ", "").replace(" ", "_");
+		File f=new File(defaultName);
 		jfc.setSelectedFile(f);
 
 		do {

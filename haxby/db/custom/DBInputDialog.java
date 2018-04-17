@@ -5,7 +5,10 @@ import java.awt.Color;
 import java.awt.Dialog;
 import java.awt.Font;
 import java.awt.Frame;
-import java.awt.GridLayout;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -48,11 +51,6 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.text.PlainDocument;
 
-import jxl.CellType;
-import jxl.NumberCell;
-import jxl.Sheet;
-import jxl.Workbook;
-
 import org.apache.poi.hssf.OldExcelFormatException;
 import org.apache.poi.hssf.usermodel.HSSFFormulaEvaluator;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
@@ -68,10 +66,15 @@ import haxby.map.MapApp;
 import haxby.util.BrowseURL;
 import haxby.util.PathUtil;
 import haxby.util.URLFactory;
+import jxl.CellType;
+import jxl.NumberCell;
+import jxl.Sheet;
+import jxl.Workbook;
 
 public class DBInputDialog extends JDialog implements ActionListener,
 												WindowListener{
 
+	public static String IMPORT_UNKNOWN_TEXT_FILE = "Import unknown text file"; // used by Survey Planner
 	public static String IMPORT_PIPE_TEXT_FILE = "Import from Pipe URL...";
 	public static String IMPORT_EXCEL_URL = "Import from Excel URL...";
 	public static String IMPORT_ASCII_URL = "Import from ASCII URL...";
@@ -79,6 +82,10 @@ public class DBInputDialog extends JDialog implements ActionListener,
 	public static String IMPORT_COMMA_TEXT_FILE = "Import from comma-delimited ASCII (text) file...";
 	public static String IMPORT_CLIPBOARD = "Import from Clipboard (paste)...";
 	public static String IMPORT_TAB_TEXT_FILE = "Import from tab-delimited ASCII (text) file...";
+	public static int TAB_DELIMITER_INDEX = 0;
+	public static int COMMA_DELIMITER_INDEX = 1;
+	public static int PIPE_DELIMITER_INDEX = 2;
+	
 
 	//GMA 1.4.8: Add window listener so appropriate command from the main
 	//File menu can be called when the input dialog window is opened
@@ -101,7 +108,7 @@ public class DBInputDialog extends JDialog implements ActionListener,
 	int type=-1;
 	String path;
 	JMenu bmM;
-	protected JButton oDialog = new JButton("Ok");
+	protected JButton oDialog = new JButton("OK");
 	protected JButton cDialog = new JButton("Cancel");
 	protected JButton rDialog = new JButton("Refresh");
 	protected int omitCount = 0;	// count the number of omitted commented out lines starts with #
@@ -246,6 +253,33 @@ public class DBInputDialog extends JDialog implements ActionListener,
 		delim.addItem("Tab");
 		delim.addItem("Comma");
 		delim.addItem("Pipe");
+		
+		if ( loadOption == IMPORT_TAB_TEXT_FILE ) {
+			delim.setSelectedItem("Tab");
+		} else if (loadOption == IMPORT_PIPE_TEXT_FILE) {
+			delim.setSelectedItem("Pipe");
+		} else if (loadOption == IMPORT_CLIPBOARD) {
+			Clipboard c = Toolkit.getDefaultToolkit().getSystemClipboard();
+			try {
+				String text = (String) c.getData(DataFlavor.stringFlavor);
+				// if pasted from clipboard, try and work out delimiter from first line
+				if (text != null && text.indexOf("|") != -1) {
+					delim.setSelectedItem("Pipe");
+				} else if ( text != null && text.indexOf("\t") != -1 ) {
+					delim.setSelectedItem("Tab"); 
+				} else {
+					delim.setSelectedItem("Comma");
+				}
+			
+			} catch (UnsupportedFlavorException e1) {
+				delim.setSelectedItem("Tab");
+			} catch (IOException e1) {
+				delim.setSelectedItem("Tab");
+			}	
+		} else {
+			delim.setSelectedItem("Comma");
+		}
+		
 		separatePanel.add(delim,BorderLayout.EAST);
 		p.add(separatePanel, BorderLayout.CENTER);
 		p2.add(p, BorderLayout.NORTH);
@@ -330,8 +364,8 @@ public class DBInputDialog extends JDialog implements ActionListener,
 
 	public String getDelimeter() {
 		int i = delim.getSelectedIndex();
-		if (i == 0) return "\t";
-		else if (i == 1) return ",";
+		if (i == TAB_DELIMITER_INDEX) return "\t";
+		else if (i == COMMA_DELIMITER_INDEX) return ",";
 		else return "|";
 	}
 
@@ -449,10 +483,12 @@ public class DBInputDialog extends JDialog implements ActionListener,
 
 	public void loadFile(File f){
 		final File f1 = f;
+		final String lo = loadOption; 
 		new Thread(){
 			File f = f1;
+			String loadOption = lo;
 			public void run(){
-		int length = (int) f.length();
+			int length = (int) f.length();
 			// Create a JProgressBar + JDialog
 			JDialog d = new JDialog((Frame)null, "Loading File");
 			JPanel p = new JPanel(new BorderLayout());
@@ -471,27 +507,39 @@ public class DBInputDialog extends JDialog implements ActionListener,
 			StringBuffer strBuff = new StringBuffer();
 			String i = in.readLine();
 			String fileName;
-
-//			GMA 1.4.8: Test for '\t' in first line of input to set proper delimiting
-			if ( i != null && i.indexOf("\t") != -1 ) {
-				delim.setSelectedItem("Tab");
-			} else if (i != null && i.indexOf("|") != -1) {
-				delim.setSelectedItem("Pipe");
-			} else {
-				delim.setSelectedItem("Comma");
-			}
-
+			boolean delimFound = false;
+			if (loadOption == IMPORT_TAB_TEXT_FILE || 
+					loadOption == IMPORT_PIPE_TEXT_FILE ||
+					loadOption == IMPORT_COMMA_TEXT_FILE) delimFound = true;
+			
 			while (i!=null) {
 				pb.setValue(pb.getValue() + (2*i.length()+38));
 				pb.repaint();
 				if(i.startsWith("#")) {
 					omitCount ++;	// Get comment count
+				} else { 
+					// if delimeter is not specified on the menu selection
+					// then try and work it out from first line
+					if (!delimFound) {
+						if (i != null && i.indexOf("|") != -1) {
+							delim.setSelectedItem("Pipe");
+							delimFound = true;
+						} else if ( i != null && i.indexOf("\t") != -1 ) {
+							delim.setSelectedItem("Tab"); 
+							delimFound = true;
+						} else if ( i != null && i.indexOf(",") != -1 ){
+							delim.setSelectedItem("Comma");
+							delimFound = true;
+						}
+					}
 				}
+				
 				strBuff.append(i+"\n");
 				i=in.readLine();
 			}
-			System.out.println("Detected " + omitCount + " commented row(s). Commented data rows will not be plotted.");
-			detectMessage.setText("<html>Detected <b>" + omitCount + " </b> commented row(s).<br>Commented data rows <b>will not</b> be plotted.<br>Click Refresh to view updated count.</html>");
+			if (!delimFound) delim.setSelectedItem("Comma");
+			
+			detectMessage.setText("<html>Detected <b>" + omitCount + " </b> commented row(s).<br>Commented data rows (beginning with #) <b>will not</b> be plotted.<br>Click Refresh to view updated count.</html>");
 			pack();
 			// Catch if doesn't have file type ending.
 			try {
@@ -503,6 +551,7 @@ public class DBInputDialog extends JDialog implements ActionListener,
 			in.close();
 			d.dispose();
 			input.setText(strBuff.toString());
+			MapApp.sendLogMessage("Imported_ASCII_Table&name="+name.getText());
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(null, "Error loading file:\n"+e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -594,6 +643,7 @@ public class DBInputDialog extends JDialog implements ActionListener,
 				}
 				name.setText(f.getName().substring(0, f.getName().lastIndexOf('.')));
 				input.setText(sb2.toString());
+				MapApp.sendLogMessage("Imported_Excel_Table&name="+name.getText());
 				System.out.println("Detected " + omitCount + " commented row(s). Commented data rows will not be plotted.");
 				detectMessage.setText("<html>Detected <b>" + omitCount + " </b> commented row(s).<br>Commented data rows <b>will not</b> be plotted.<br>Click Refresh to view updated count.</html>");
 				pack();
@@ -683,6 +733,7 @@ public class DBInputDialog extends JDialog implements ActionListener,
 			name.setText(f.getName().substring(0, f.getName().lastIndexOf('.')));
 			//System.out.println(sb2.toString());
 			input.setText(sb2.toString());
+			MapApp.sendLogMessage("Imported_ExcelXLSX_Table&name="+name.getText());
 			System.out.println("Detected " + omitCount + " commented row(s). Commented data rows will not be plotted.");
 			detectMessage.setText("<html>Detected <b>" + omitCount + " </b> commented row(s).<br>Commented data rows <b>will not</b> be plotted.<br>Click Refresh to view updated count.</html>");
 			pack();
@@ -722,7 +773,9 @@ public class DBInputDialog extends JDialog implements ActionListener,
 			String i = i1;
 			public void run(){
 			try {
-				URL url = URLFactory.url(i);
+				//check to see if the URL is being redirected
+				//eg to https version of the page
+				URL url = URLFactory.url(URLFactory.checkForRedirect(i));
 				String urlFileName;
 	
 				d.setLocationRelativeTo(null);
@@ -745,21 +798,26 @@ public class DBInputDialog extends JDialog implements ActionListener,
 				//d.pack();
 				d.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 				d.setVisible(true); 
-				d.setAlwaysOnTop(true);
+				d.setAlwaysOnTop(true);				
 				BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
 				//StringBuffer strBuff = new StringBuffer();
-				i = in.readLine();
-	
-	//			GMA 1.4.8: Test for '\t' in first line of input to set proper delimiting
-				if ( i != null && i.indexOf("\t") != -1 ) {
-					delim.setSelectedItem("Tab");
-				} else if (i != null && i.indexOf("|") != -1) {
+				while ((i = in.readLine())!=null){
+					if (i.startsWith("#")) {
+						diag.input.append(i+"\n");
+						omitCount++;
+						continue;
+					}
+					break;
+				}	
+
+				if (i != null && i.indexOf("|") != -1) {
 					delim.setSelectedItem("Pipe");
-				}
-				else {
+				} else if ( i != null && i.indexOf("\t") != -1 ) {
+					delim.setSelectedItem("Tab"); 
+				} else {
 					delim.setSelectedItem("Comma");
 				}
-
+				
 				/*  Some comma separated file from an outside URL might have String quotes and
 				 * commas within them such as time and date.
 				 * Prepare each comma separated line from URL file to append into GMA.
@@ -781,6 +839,7 @@ public class DBInputDialog extends JDialog implements ActionListener,
 					//strBuff.append(i+"\n");
 					diag.input.append(i+"\n");
 					i=in.readLine();
+					if (i != null && i.startsWith("#")) omitCount++;
 			
 					if(stopImport) {
 						i.equals(null);
@@ -818,6 +877,9 @@ public class DBInputDialog extends JDialog implements ActionListener,
 					urlFileName = url.getFile();
 				}
 				name.setText(urlFileName);
+				MapApp.sendLogMessage("Imported_ASCII_URL_Table&name="+name.getText());
+				detectMessage.setText("<html>Detected <b>" + omitCount + " </b> commented row(s).<br>Commented data rows <b>will not</b> be plotted.<br>Click Refresh to view updated count.</html>");
+				pack();
 				in.close();
 				d.dispose();
 
@@ -881,6 +943,7 @@ public class DBInputDialog extends JDialog implements ActionListener,
 			}
 			name.setText(url.getFile().substring(url.getFile().lastIndexOf('/')+1, url.getFile().lastIndexOf('.')));
 			input.setText(sb.toString());
+			MapApp.sendLogMessage("Imported_Excel_URL_Table&name="+name.getText());
 			wb.close();
 			d.dispose();
 		} catch (Exception e) {
@@ -1020,6 +1083,9 @@ public class DBInputDialog extends JDialog implements ActionListener,
 				delim.setSelectedItem("Comma");
 				loadFile();
 			}
+			else if ( loadOption ==  IMPORT_UNKNOWN_TEXT_FILE) {
+				loadFile();
+			}
 			else if ( loadOption == IMPORT_EXCEL_FILE ) {
 				delim.setSelectedItem("Tab");
 				loadExcelFile();
@@ -1049,5 +1115,14 @@ public class DBInputDialog extends JDialog implements ActionListener,
 			final List<?> list = (List<?>) field.get(null);
 			list.remove(this);
 		} catch (final Exception ex) {}
+	}
+	
+	public String getPath() {
+		return path;
+	}
+	
+	public String getFilename() {
+		File f = new File(path);
+		return f.getName();
 	}
 }

@@ -8,7 +8,6 @@ import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -22,6 +21,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 public class ProcessingDialog extends JDialog {
 
@@ -30,12 +30,18 @@ public class ProcessingDialog extends JDialog {
 	private JPanel tasksPanel;
 	private JComponent map;
 	private Window stolenFocus;
-
+	
 	public ProcessingDialog(JFrame owner, JComponent map) {
 		super((JFrame) null, "Processing...", false);
 		this.owner = owner;
 		this.map = map;
 
+		// shutteling progress bar for macs
+		if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+			UIManager.put("ProgressBar.foreground", new Color(70, 180, 252));
+			UIManager.put("ProgressBarUI","javax.swing.plaf.metal.MetalProgressBarUI" );
+		}
+		
 		tasksPanel = new JPanel();
 		tasksPanel.setLayout( new BoxLayout(tasksPanel, BoxLayout.Y_AXIS));	
 		tasksPanel.setBorder(BorderFactory.createEmptyBorder(3,3,3,3));
@@ -118,10 +124,10 @@ public class ProcessingDialog extends JDialog {
 		
 		public TaskPanel(String name, Thread task) {
 			super( new BorderLayout() );
-
+	
 			this.name = name;
 			this.task = task;
-
+	
 			JLabel nameL = new JLabel(name);
 			nameL.setBorder(BorderFactory.createEmptyBorder(1, 2, 1, 1));
 			add(nameL, BorderLayout.NORTH);
@@ -195,26 +201,4 @@ public class ProcessingDialog extends JDialog {
 		}
 	}
 	
-	public static void main(String[] args) {
-		ProcessingDialog ld = new ProcessingDialog(new JFrame(), new JLabel());
-		ld.addTask("task1", new Thread( new Runnable() {
-
-			public void run() {
-				try {
-					Thread.sleep(10000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				System.out.println("done");
-			}
-		}));
-		ld.addTask("task2", new Thread());
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		ld.addTask("task1", new Thread());
-	}
 }

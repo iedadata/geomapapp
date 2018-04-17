@@ -535,6 +535,7 @@ public class ImportGrid implements Runnable {
 		int res = 2;
 		while (25600 / res > dxMin) res *= 2;
 		tileGrids(name, files, grids, res);
+		MapApp.sendLogMessage("Imported_PolarASC_Grid&name="+name+"&WESN="+wesn[0]+","+wesn[1]+","+wesn[2]+","+wesn[3]);
 	}
 
 	void openNETCDF(File[] files ) throws IOException {		
@@ -611,6 +612,17 @@ public class ImportGrid implements Runnable {
 			GrdProperties gridP = new GrdProperties(files[k].getPath());
 			
 			// Get the WESN
+			double[] emptyRange = new double[2];
+			if (gridP.x_range == null || gridP.y_range == null || gridP.z_range == null ||
+					Arrays.equals(gridP.x_range, emptyRange) || Arrays.equals(gridP.y_range, emptyRange) || Arrays.equals(gridP.z_range, emptyRange)){
+				String msg = "Unable to open " + files[k].getName() + 
+						".<br>The netCDF grid file cannot be read properly." +
+						"<br>Check that it is a standard 2-D netCDF file (example: Use \"grdinfo\").";
+				//create an EditorPane to handle any html
+			    JEditorPane ep = GeneralUtils.makeEditorPane(msg);
+				JOptionPane.showMessageDialog(frame,ep , "Import Error", JOptionPane.ERROR_MESSAGE);
+				return;
+			}			
 			double gridWESN[] = new double[] { gridP.x_range[0], gridP.x_range[1], gridP.y_range[0], gridP.y_range[1] };
 			pd.setInitialZScale(Double.toString(gridP.scaleFactor));
 			pd.setOffset(Double.toString(gridP.add_offset));
@@ -652,14 +664,14 @@ public class ImportGrid implements Runnable {
 			wesn[3] = Math.max(wesnGrid[3], wesn[3]);
 
 			// If zMin changed use edited value otherwise use original
-			if(gridP.z_range[0] != pd.getMinEdit()) {
+			if(Double.parseDouble(GeneralUtils.formatToSignificant(gridP.z_range[0],5)) != pd.getMinEdit()) {
 				zMin = pd.getMinEdit();
 			}else {
 				zMin = Math.min(zScale[k] * (gridP.z_range[0] + add_offset[k]), zMin);
 			}
 
 			// If zMax changed use edited value otherwise use original
-			if(gridP.z_range[1] != pd.getMaxEdit()){
+			if(Double.parseDouble(GeneralUtils.formatToSignificant(gridP.z_range[1],5))  != pd.getMaxEdit()){
 				zMax = pd.getMaxEdit();
 			} else{
 				zMax =  Math.max(zScale[k] * (gridP.z_range[1] + add_offset[k]), zMax);
@@ -683,6 +695,7 @@ public class ImportGrid implements Runnable {
 		}
 		
 		tileGrids(name, files, grids, 360. / 640);
+		MapApp.sendLogMessage("Imported_NetCDF_Grid&name="+name+"&WESN="+wesn[0]+","+wesn[1]+","+wesn[2]+","+wesn[3]);
 	}
 
 	void openESRI_ASCII( File[] files ) throws IOException {
@@ -776,6 +789,7 @@ public class ImportGrid implements Runnable {
 			currentIndex++;
 		}
 		tileGrids(name, files, grids, 360. / 640);
+		MapApp.sendLogMessage("Imported_ESRI_ASCII_Grid&name="+name+"&WESN="+wesn[0]+","+wesn[1]+","+wesn[2]+","+wesn[3]);
 	}
 
 	void openESRI_Binary( File[] files ) throws IOException {
@@ -869,6 +883,7 @@ public class ImportGrid implements Runnable {
 		dyMin = dxMin;
 //		getGridsBounds(grids);
 		tileGrids(name, files, grids, 360. / 640);
+		MapApp.sendLogMessage("Imported_ESRI_Binary_Grid&name="+name+"&WESN="+wesn[0]+","+wesn[1]+","+wesn[2]+","+wesn[3]);
 	}
 
 	// Process the .GRD98 grid file type
@@ -1002,6 +1017,8 @@ public class ImportGrid implements Runnable {
 		} else {
 			tileGrids(name, files, grids, 360. / 640);
 		} */
+		
+		MapApp.sendLogMessage("Imported_GRD98_Grid&name="+name+"&WESN="+wesn[0]+","+wesn[1]+","+wesn[2]+","+wesn[3]);
 	}
 
 	void tile(Grid2D grd, TileIO.Short tileIO, MapProjection mapProj, double scale, double offset, double zScale, double add_offset, int res) throws IOException {
@@ -1155,16 +1172,6 @@ public class ImportGrid implements Runnable {
 			}
 		}
 		waiting = false;
-	}
-
-	public static void main(String[] args) {
-		int mapType = MapApp.MERCATOR_MAP;
-		if (args.length != 0)
-			mapType = Integer.parseInt(args[0]);
-
-		JFrame frame = new JFrame("Import Grids");
-		frame.setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
-		new ImportGrid(frame, null, mapType);
 	}
 
 	public static double[] getGridWESN(MapProjection projection, Rectangle bounds) {

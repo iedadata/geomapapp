@@ -46,13 +46,9 @@ public class PoleMapServer {
 	static ClassLoader loader = null;
 	static boolean loaded = true;
 
-//	static String base = haxby.map.MapApp.TEMP_BASE_URL + "antarctic/SP_320_50/";
-//	static String base = "http://www.marine-geo.org/geomapapp/MapApp/tmp/SP_320_50/";
-//	static String base = "http://ocean-ridge.ldeo.columbia.edu/antarctic/SP_320_50/";
-
 	static String base[] = {
-		PathUtil.getPath("GMRT_LATEST/SP_TILE_PATH", "GMRT2/SP_TILE_PATH"),
-		PathUtil.getPath("GMRT_LATEST/NP_TILE_PATH", "GMRT2/NP_TILE_PATH"),
+		PathUtil.getPath("GMRT_LATEST/SP_TILE_PATH"),
+		PathUtil.getPath("GMRT_LATEST/NP_TILE_PATH"),
 	};
 
 	static int baseRes[] = {

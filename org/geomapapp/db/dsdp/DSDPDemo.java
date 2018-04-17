@@ -525,6 +525,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 //		***** GMA 1.6.8
 
 		table.getSelectionModel().setSelectionInterval( i, i);
+		map.repaint();
 	}
 
 	void openJANUSURL() {

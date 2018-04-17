@@ -8,7 +8,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -19,42 +19,86 @@ import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
+import haxby.db.custom.UnknownData;
+import haxby.db.custom.UnknownDataSet;
+import haxby.db.dig.Digitizer;
 import haxby.map.XMap;
 
 
 public class SurveyPlannerDataDisplay implements ActionListener{
 
 	private SurveyPlanner sp;
-	private JTable table;
+	JTable table;
 	private JScrollPane tableSP;
 	private JPanel panel;
 	private SurveyPlannerTableModel tm;
-	private ArrayList<SurveyLine> surveyLines;
 	private JButton addRowB, deleteRowB, saveB;
 	private int slCol = 999;
 	private XMap map;
+	private Digitizer dig;
 	
-	public SurveyPlannerDataDisplay( SurveyPlanner sp) {
+	public SurveyPlannerDataDisplay(SurveyPlanner sp, Digitizer dig) {
 		this.sp = sp;
+		this.dig = dig;
 		map = sp.getMap();
-		surveyLines = sp.getSurveyLines();
 		initDisplay();
 	}
 	void initDisplay() {
+		if (panel == null) {
+			panel = new JPanel( new BorderLayout() ); // bottom panel
+		} else panel.removeAll();
+		
+		if (!sp.waypoints) {
+			if (tm == null) {
+				tm = new SurveyPlannerTableModel (sp);
+				table = new JTable(tm);
+				table.addMouseListener(sp);
+				//use the surveyLine column to keep track of the 
+				//surveyLine object associated with that row,
+				//but keep the column hidden
+				TableColumnModel tcm = table.getColumnModel();
+				slCol = tm.getSurveyLineColumn();
+				if (slCol != 999) {
+					tcm.removeColumn(tcm.getColumn(slCol));
+				}
+				
+				tableSP = new JScrollPane(table);
+			}
+			panel.add( tableSP, "Center" );
+			
+			JPanel buttons = new JPanel( new GridLayout(0, 1) );
+			addRowB = new JButton("Add Row To Table");
+			addRowB.setActionCommand("add");
+			addRowB.addActionListener( this );
+			buttons.add( addRowB );
+			
+			deleteRowB = new JButton("Delete Row(s)");
+			deleteRowB.setActionCommand("delete");
+			deleteRowB.addActionListener( this );
+			buttons.add( deleteRowB );
 	
-		tm = new SurveyPlannerTableModel (new Object[]{ "Line Number",
-												 "Start Latitude",
-										         "Start Longitude",
-										         "Start Depth",
-											     "End Latitude",
-											     "End Longitude",
-											     "End Depth",
-											     "Km Cumulative Distance",
-											     "Hrs Duration",
-											     "surveyLine"}, surveyLines.size(), sp);
-		
+			saveB = new JButton("Save");
+			saveB.addActionListener(this);
+			buttons.add(saveB);
+			
+			panel.add( buttons, "East" );
+		} else {
+			// use the Digitizer data display
+			panel.add( dig.tableSP, "Center" );
+			panel.add( dig.buttons, "East" );
+		}
+		panel.validate();
+		panel.repaint();
+	}
+	
+	public DefaultTableModel getTableModel() {
+		return tm;
+	}
+	
+	public void setTableModel(SurveyPlannerTableModel tm) {
+		this.tm = tm;
 		table = new JTable(tm);
-		
+		table.addMouseListener(sp);
 		//use the surveyLine column to keep track of the 
 		//surveyLine object associated with that row,
 		//but keep the column hidden
@@ -65,38 +109,16 @@ public class SurveyPlannerDataDisplay implements ActionListener{
 		}
 		
 		tableSP = new JScrollPane(table);
-
-		panel = new JPanel( new BorderLayout() ); // bottom panel
-		panel.add( tableSP, "Center" );
-		
-		JPanel buttons = new JPanel( new GridLayout(0, 1) );
-		addRowB = new JButton("Add Row");
-		addRowB.setActionCommand("add");
-		addRowB.addActionListener( this );
-		buttons.add( addRowB );
-		
-		deleteRowB = new JButton("Delete Row(s)");
-		deleteRowB.setActionCommand("delete");
-		deleteRowB.addActionListener( this );
-		buttons.add( deleteRowB );
-
-		saveB = new JButton("Save");
-		saveB.addActionListener(this);
-		buttons.add(saveB);
-		
-		panel.add( buttons, "East" );
-
-	}
-	
-	public DefaultTableModel getTableModel() {
-		return tm;
+		initDisplay();
 	}
 	
 	public JPanel getPanel() {
 		return panel;
 	}
+	
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		sp.moveLayerToTop();
 		String cmd = e.getActionCommand();
 		if (cmd.equals("add")) {
 			//create a new survey line
@@ -107,11 +129,11 @@ public class SurveyPlannerDataDisplay implements ActionListener{
 		}
 		if (cmd.equals("delete")) {
 			//delete the selected rows and remove survey lines from the list
-			int selRow = table.getSelectedRow();
-			while (selRow != -1) {
+			int[] selRows = table.getSelectedRows();
+			for (int i = 0; i < selRows.length; i++){
+				int selRow = selRows[i] - i;
 				sp.deleteLine((SurveyLine) tm.getValueAt(selRow, slCol));
-				tm.removeRow(selRow);
-				selRow = table.getSelectedRow();
+				removeRowFromTable(selRow);
 			}
 			//recalculate cumulative distances and durations
 			tm.recalculateRows();
@@ -128,7 +150,22 @@ public class SurveyPlannerDataDisplay implements ActionListener{
 		return slCol;
 	}
 	
-
+	protected void addRowToTable(Vector<Object> rowData) {
+		UnknownDataSet ds = tm.getDataSet();
+		ds.addData(new UnknownData(rowData));
+		tm = new SurveyPlannerTableModel (ds, sp);
+		setTableModel((SurveyPlannerTableModel) tm);
+		sp.tm = tm;
+	}
+	
+	protected void removeRowFromTable(int row) {
+		UnknownDataSet ds = tm.getDataSet();
+		ds.removeData(row);
+		tm = new SurveyPlannerTableModel (ds, sp);
+		setTableModel((SurveyPlannerTableModel) tm);
+		sp.tm = tm;
+	}
+	
 	/*
 	 * save the survey lines to a text file
 	 */
@@ -152,7 +189,7 @@ public class SurveyPlannerDataDisplay implements ActionListener{
 			BufferedWriter out = new BufferedWriter(new FileWriter(f));
 			
 			//add disclaimer at the top of the output file
-			out.write("NOT TO BE USED FOR NAVIGATION PURPOSES\n");
+			out.write("#NOT TO BE USED FOR NAVIGATION PURPOSES\n");
 			boolean firstCol = true;
 			for (int i=0;i<tm.getColumnCount();i++) {
 				if (i == sp.getSurveyLineColumn()) continue;
@@ -160,7 +197,7 @@ public class SurveyPlannerDataDisplay implements ActionListener{
 					out.write(tm.getColumnName(i));
 					firstCol = false;
 				} else {
-					out.write("," + tm.getColumnName(i));
+					out.write("\t" + tm.getColumnName(i));
 				}
 			}
 			out.write("\n");
@@ -179,7 +216,7 @@ public class SurveyPlannerDataDisplay implements ActionListener{
 						out.write(o.toString());
 						firstCol = false;
 					} else {
-						out.write(","+ o);
+						out.write("\t"+ o);
 					}
 				}
 				out.write("\n");
@@ -188,6 +225,6 @@ public class SurveyPlannerDataDisplay implements ActionListener{
 		} catch (IOException e){
 			JOptionPane.showMessageDialog(panel, "Unable to save file", "Save Error", JOptionPane.ERROR_MESSAGE);
 			System.out.println(e);
-		}
+		}		
 	}
 }

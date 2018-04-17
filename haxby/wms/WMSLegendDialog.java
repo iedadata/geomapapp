@@ -41,6 +41,7 @@ public class WMSLegendDialog {
 				System.out.println("get legend: " + legendURL);
 				legendURL = legendURL.replaceAll(" ", "%20"); // filter out spaces
 				legends[i] = ImageIO.read( URLFactory.url(legendURL) );
+				if (legends[i] == null) return;
 				maxWidth =  Math.max(legends[i].getWidth(), maxWidth);
 				sumHeight += legends[i].getHeight();
 			} catch (MalformedURLException e) {

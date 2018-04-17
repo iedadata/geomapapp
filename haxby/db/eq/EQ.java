@@ -139,6 +139,9 @@ public class EQ implements Database, ActionListener {
 	public boolean isLoaded() {
 		return loaded;
 	}
+	public void unloadDB() {
+		loaded = false;
+	}
 	public void disposeDB() {
 		earthquakes.clear();
 		current.clear();

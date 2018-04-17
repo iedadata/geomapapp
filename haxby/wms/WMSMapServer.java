@@ -1,5 +1,6 @@
 package haxby.wms;
 
+import haxby.map.MapApp;
 import haxby.map.MapOverlay;
 import haxby.proj.Projection;
 import haxby.util.ConnectionWrapper;
@@ -87,6 +88,7 @@ public class WMSMapServer {
 
 		// WMS url
 		System.out.println("wms: " + requestURL.toString());
+		MapApp.sendLogMessage("Imported_WMS&URL="+requestURL.toString());
 
 		BufferedImage image = getWMSTile(requestURL.toString(), width, height, wrapper);
 
@@ -213,7 +215,7 @@ public class WMSMapServer {
 			String url = baseURL + bbox + widthStr + heightStr;
 //			Special consideration given to USGS WMS, must have specific order
 			System.out.println(url);
-
+			MapApp.sendLogMessage("Imported_WMS&URL="+url);
 			BufferedImage tile = getWMSTile(url, ortho_width - xOffset,
 					ortho_height, wrapper);
 			orthoImage.createGraphics().drawImage(tile, 0, 0, null);
@@ -254,6 +256,7 @@ public class WMSMapServer {
 		String url = baseURL + bbox + widthStr + heightStr;
 		// WMS url
 		System.out.println("wms: " + url);
+		MapApp.sendLogMessage("Imported_WMS&URL="+url);
 
 		BufferedImage tile = getWMSTile(url, ortho_width - xOffset,
 				ortho_height, wrapper);

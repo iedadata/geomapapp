@@ -7,9 +7,11 @@ import java.io.OutputStream;
 import java.io.IOException;
 import org.geomapapp.geom.MapProjection;
 
+import haxby.map.XMap;
+
 public abstract interface ESRIShape extends haxby.map.Overlay {
 	public int getType();
-	public NearNeighbor select( NearNeighbor neighbor );
+	public NearNeighbor select( NearNeighbor neighbor, XMap map);
 	public int writeShape( OutputStream out ) throws java.io.IOException;
 	public double[][] inverse( MapProjection proj, double[][] bounds);
 	public boolean canView( Rectangle2D r, double wrap);

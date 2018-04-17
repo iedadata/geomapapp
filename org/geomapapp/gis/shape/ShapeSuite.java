@@ -152,6 +152,7 @@ public class ShapeSuite extends AbstractTableModel {
 			map.repaint();
 		}
 		fireTableStructureChanged();
+		MapApp.sendLogMessage("Shape_File_Imported_URL&name="+name);
 		return true;
 	}
 
@@ -332,6 +333,7 @@ public class ShapeSuite extends AbstractTableModel {
 		File[] sel = chooser.getSelectedFiles();
 		for( int k=0 ; k<sel.length ; k++) {
 			addShapeFile(sel[k]);
+			MapApp.sendLogMessage("Shape_File_Imported&name="+sel[k].getName());
 		}
 		chooser.setMultiSelectionEnabled(multi);
 		chooser.removeChoosableFileFilter(shapeF);

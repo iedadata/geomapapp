@@ -262,6 +262,10 @@ public class PMEL implements Database, ActionListener {
 		return loaded;
 	}
 
+	public void unloadDB() {
+		loaded = false;
+	}
+	
 	public void disposeDB() {
 		earthquakes = new Vector<PMELEvent>();
 		dataset = -1;

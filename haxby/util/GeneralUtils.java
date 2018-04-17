@@ -1,6 +1,7 @@
 package haxby.util;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -8,17 +9,25 @@ import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.File;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Vector;
 
+import javax.swing.AbstractButton;
+import javax.swing.ComboBoxModel;
+import javax.swing.JComboBox;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.event.HyperlinkEvent;
@@ -187,6 +196,7 @@ public class GeneralUtils {
 			XYZ r1 = XYZ.LonLat_to_XYZ(pts[0]);
 			XYZ r2 = XYZ.LonLat_to_XYZ(pts[pts.length-1]);
 			double angle = Math.acos( r1.dot(r2) );
+			if (Double.isNaN(angle)) return 0;
 			if (longWay) angle = 2*Math.PI - angle; // going the long way round
 			return Projection.major[0]*angle/1000.;
 		} catch (Exception e) {
@@ -215,7 +225,7 @@ public class GeneralUtils {
 	
 	
 	/**
-	 * Find the bearing of a line defined by an array of points
+	 * Find the initial bearing of a line defined by an array of points
 	 * (see http://www.movable-type.co.uk/scripts/latlong.html)
 	 * @param pts
 	 * @return
@@ -230,6 +240,38 @@ public class GeneralUtils {
 		double x = Math.cos(f1)*Math.sin(f2) -
 		        Math.sin(f1)*Math.cos(f2)*Math.cos(l2-l1);
 		double brng = Math.atan2(y, x);
+		return Math.toDegrees(brng);
+	}
+	
+	/**
+	 * Find the final bearing of a line defined by an array of points
+	 * (see http://www.movable-type.co.uk/scripts/latlong.html)
+	 * @param pts
+	 * @return
+	 */
+	public static double finalBearing(Point2D[] pts) {
+		double f2 = Math.toRadians(pts[0].getY());
+		double f1 = Math.toRadians(pts[pts.length-1].getY());
+		double l2 = Math.toRadians(pts[0].getX());
+		double l1 = Math.toRadians(pts[pts.length-1].getX());
+		
+		double y = Math.sin(l2-l1) * Math.cos(f2);
+		double x = Math.cos(f1)*Math.sin(f2) -
+		        Math.sin(f1)*Math.cos(f2)*Math.cos(l2-l1);
+		double brng = (Math.atan2(y, x) + Math.PI) % (Math.PI * 2.);
+		return Math.toDegrees(brng);
+	}
+	
+	/**
+	 * Find the bearing of a line defined by two points
+	 * on a flat Earth (ie not using great circles)
+	 * @param pts
+	 * @return
+	 */
+	public static double flatEarthBearing(Point2D[] pts) {
+		double y = pts[1].getX() - pts[0].getX();
+		double x = pts[0].getY() - pts[1].getY();
+		double brng = Math.atan2(y, x);	
 		return Math.toDegrees(brng);
 	}
 	
@@ -268,7 +310,7 @@ public class GeneralUtils {
 	public static Point2D[] parallelLine(Point2D[] pts, double distance, byte dir) {
 	
 		if (dir != 1 && dir != -1) return null;
-		double brng = Math.toRadians(bearing(pts) + 90 * dir);
+		double brng = Math.toRadians(finalBearing(pts) + 90 * dir);
 		Point2D start = pointFromDistAndBearing(pts[0], distance, brng);
 		Point2D end = pointFromDistAndBearing(pts[pts.length-1], distance, brng);
 		Point2D[] newPts = {start, end};
@@ -328,6 +370,24 @@ public class GeneralUtils {
 		}
 	}
 	
+	/**
+	 * If a point occurs multiple times on the map, subtract the wrap 
+	 * value until we have the first occurrence
+	 * @param map
+	 * @param p
+	 */
+	public static void unwrapPoint(XMap map, Point2D.Double p) {
+		double wrap = map.getWrap();
+		
+		//get the limits of the displayed map
+		Rectangle2D rect = map.getClipRect2D();
+		double xmin = rect.getMinX();
+		//get the first occurrence
+		if (wrap > 0f) {
+			while (p.x - wrap >= xmin) {p.x -= wrap;}
+		}
+	}
+		
 	/**
 	 * Create a JEditorPane that will convert the text into html with working hyperlinks.
 	 * This can be included in a messageDialog with, e.g.
@@ -511,7 +571,7 @@ public class GeneralUtils {
 	 * @param zoom
 	 * @return
 	 */
-	public static NumberFormat getNumberFormat(double zoom) {
+	public static NumberFormat getZoomNumberFormat(double zoom) {
 		NumberFormat fmt = NumberFormat.getInstance();
 		if ( zoom < 16 ) {
 			fmt.setMaximumFractionDigits(2);
@@ -534,6 +594,19 @@ public class GeneralUtils {
 			fmt.setMinimumFractionDigits(6);
 		}
 		return fmt;
+	}
+	
+	/**
+	 * Format a double to a given number of significant figures.
+	 * From: http://helpdesk.objects.com.au/java/how-to-format-a-number-to-a-certain-number-of-significant-figures-as-opposed-to-decimal-places
+	 * @param value
+	 * @param significant
+	 * @return
+	 */
+	public static String formatToSignificant(double value,int significant) {
+		MathContext mathContext = new MathContext(significant,RoundingMode.DOWN);
+		BigDecimal bigDecimal = new BigDecimal(value,mathContext);
+		return bigDecimal.toPlainString();
 	}
 	
 	/**
@@ -560,4 +633,62 @@ public class GeneralUtils {
 		}
 		return null;
 	}
+	
+	/**
+	 * Select a button from a button group using the buttons actionCommand. Usage:
+	 * setButtonGroup(yourValue, yourButtonGroup.getElements());
+	 * @param rdValue
+	 * @param elements
+	 */
+	public static void setButtonGroup(String rdValue, Enumeration<AbstractButton> elements ){
+	    while (elements.hasMoreElements()){
+	        AbstractButton button = (AbstractButton)elements.nextElement();
+	        if(button.getActionCommand().equals(rdValue)){
+	            button.setSelected(true);
+	        }
+	    }
+	}
+	
+	/**
+	 * Create a JComboBox where the width of the popup list is wider than the width of the combo box
+	 * see https://stackoverflow.com/questions/956003/how-can-i-change-the-width-of-a-jcombobox-dropdown-list
+	 * This is needed for the Windows GUI
+	 */
+	public static class WideComboBox extends JComboBox{ 
+
+		private static final long serialVersionUID = 1L;
+
+		public WideComboBox() { 
+        } 
+
+        public WideComboBox(final Object items[]){ 
+            super(items); 
+        } 
+
+        public WideComboBox(Vector items) { 
+            super(items); 
+        } 
+
+            public WideComboBox(ComboBoxModel aModel) { 
+            super(aModel); 
+        } 
+
+        private boolean layingOut = false; 
+
+        public void doLayout(){ 
+            try{ 
+                layingOut = true; 
+                    super.doLayout(); 
+            }finally{ 
+                layingOut = false; 
+            } 
+        } 
+
+        public Dimension getSize(){ 
+            Dimension dim = super.getSize(); 
+            if(!layingOut) 
+                dim.width = Math.max(dim.width, getPreferredSize().width)+100; 
+            return dim; 
+        } 
+    }
 }

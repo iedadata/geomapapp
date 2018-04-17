@@ -576,7 +576,10 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 											new InputStreamReader( dataDirURL.openStream() ));
 									while ( ( sDataDir = inDataDir.readLine() ) != null ) {
 										if ( sDataDir.indexOf( leg ) != -1 ) {
-											sDataFile = sDataDir.substring( sDataDir.indexOf( "a href=\"" ) + 8, sDataDir.indexOf( "\">", sDataDir.indexOf( "a href=\"" ) ) );
+											 // online version contain html markup, AT SEA is just a list of files.  Need to remove the markup.
+											if (sDataDir.contains("a href=")) {
+												sDataFile = sDataDir.substring( sDataDir.indexOf( "a href=\"" ) + 8, sDataDir.indexOf( "\">", sDataDir.indexOf( "a href=\"" ) ) );
+											} else sDataFile = sDataDir;
 											dataFileURL = URLFactory.url(MGGurl + dirName + "data/" + sDataFile);
 											inDataFile = new BufferedReader(
 													new InputStreamReader( dataFileURL.openStream() ) );

@@ -263,9 +263,13 @@ public class CustomDB implements Database,
 	}
 
 	public boolean isLoaded() {
-	return isLoaded;
+		return isLoaded;
 	}
-
+	
+	public void unloadDB() {
+		isLoaded = false;
+	}
+	
 	public void disposeDB() {
 		while ((dataSets!=null)&&(dataSets.size()>0)) {
 			UnknownDataSet d = dataSets.get(0);

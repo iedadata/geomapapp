@@ -24,7 +24,7 @@ public class BrowseURL {
 	}
 
 	public static void browseURL(String urlStr, boolean showErrorDialog) {
-		if (urlStr == null) return;
+		if (urlStr == null || urlStr.length() == 0) return;
 		try {
 			URL url = URLFactory.url(urlStr);
 

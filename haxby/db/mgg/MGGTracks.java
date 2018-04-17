@@ -50,6 +50,9 @@ public class MGGTracks implements Database,
 	public boolean isLoaded() {
 		return loaded;
 	}
+	public void unloadDB() {
+		loaded = false;
+	}
 	public void disposeDB() {
 		tracks = null;
 		loaded = false;

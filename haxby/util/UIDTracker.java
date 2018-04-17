@@ -57,7 +57,8 @@ public class UIDTracker {
 			}
 			
 			System.out.println("Log URL: " + logString);
-
+			
+			if (logString == null) return;
 			trackURL = URLFactory.url(logString);
 			InputStream sendStat = trackURL.openStream();
 			sendStat.close();

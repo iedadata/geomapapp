@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -14,52 +15,70 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.GeneralPath;
-import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Vector;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
+import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
-import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 
+import org.geomapapp.geom.XYZ;
 import org.geomapapp.grid.Grid2DOverlay;
 
+import haxby.db.custom.DBDescription;
+import haxby.db.custom.DBTableModel;
+import haxby.db.custom.UnknownData;
 import haxby.db.custom.UnknownDataSet;
 import haxby.map.XMap;
 import haxby.proj.Projection;
 import haxby.util.GeneralUtils;
 
-public class LineSegmentsObject extends AbstractTableModel
+
+public class LineSegmentsObject extends DBTableModel
 				implements DigitizerObject,
 					MouseListener,
 					MouseMotionListener,
 					KeyListener
 					{
+
+	private static final long serialVersionUID = 2694953748880636811L;
+	public static final String LAT_COL = "Latitude";
+	public static final String LON_COL = "Longitude";
+	public static final String Z_COL = "Elevation (m)";
+	public static String Z_GRIDNAME = Z_COL;
+	public static final String DISTANCE_COL = "Distance between points (km)";
+	public static final String CUMULATIVE_COL = "Cumulative distance (km)";
+	public static final String DURATION_COL = "Duration (hrs)";
+	static final String COLUMN_NAMES =  LON_COL+","+LAT_COL+","+Z_COL+","+CUMULATIVE_COL+","+DISTANCE_COL+","+DURATION_COL;
 	XMap map;
 	Digitizer dig;
-	Vector points;
+	public Vector points;
+	ArrayList<Point2D> currentPath;
+	ArrayList<Point2D> currentSegPath;
 	boolean visible;
 	double wrap;
-	Line2D.Double currentSeg;
 	String name;
 	float lineWidth;
 	Color color;
 	Color fill;
 	Color lastColor, lastFill;
 	BasicStroke stroke;
+	boolean drawing = false;
 	boolean selected;
 	long when;
 	int currentPoint;
 	double currentOffset = 0.;
-	GeneralPath editShape;
+	boolean editShape;
 	boolean active;
-	Vector profile = null;
+	ArrayList<Point4D> profile = null;
 	int table;
 	Grid2DOverlay grid;
 	static ImageIcon icon = Digitizer.SEGMENTS(false);
@@ -67,20 +86,26 @@ public class LineSegmentsObject extends AbstractTableModel
 	static Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
 	JPopupMenu rightClickMenu;
 
-	public LineSegmentsObject( XMap map, Digitizer dig ) {
+	public LineSegmentsObject(XMap map, Digitizer dig) {
+		this(new UnknownDataSet(new DBDescription("Digitizer",0,""), COLUMN_NAMES, ",", map), map, dig);
+	}
+	
+	public LineSegmentsObject(UnknownDataSet d, XMap map, Digitizer dig) {
+		super(d, false);
+		
 		this.map = map;
 		wrap = map.getWrap();
 		this.dig = dig;
 		points = new Vector();
 		visible = true;
-		currentSeg = null;
 		name = null;
 		selected = false;
+		drawing = false;
 		lineWidth = 1f;
 		color = Color.black;
 		when = 0L;
 		currentPoint = -1;
-		editShape = null;
+		editShape = false;
 		active = false;
 		setColor( dig.options.color );
 		setFill( dig.options.fill );
@@ -88,7 +113,6 @@ public class LineSegmentsObject extends AbstractTableModel
 		lastColor = color;
 		lastFill = Color.white;
 		table = 0;
-		
 		rightClickMenu = new JPopupMenu("Popup");
 		JMenuItem deleteItem = new JMenuItem("Delete Point");
 		deleteItem.setToolTipText("Click to delete");
@@ -261,15 +285,22 @@ public class LineSegmentsObject extends AbstractTableModel
 		return invisibleIcon;
 	}
 	public void draw( java.awt.Graphics2D g ) {
-		currentSeg=null;
+		drawing = false;
 		if( !visible || points.size()<=0 ) return;
 		lineWidth = stroke.getLineWidth();
 		g.setStroke( new BasicStroke( 2f/(float)map.getZoom() ));
-		GeneralPath path = new GeneralPath();
+		GeneralPath path = getGeneralPath(currentPath);
+
 		double[] xyz = (double[])points.get(0);
-		double min = xyz[0];
-		double max = xyz[1];
-		path.moveTo( (float)xyz[0], (float)xyz[1] );
+		double min, max;
+		if (path != null) {
+			Rectangle pathBounds = path.getBounds();
+			min = pathBounds.getMinX();
+			max = pathBounds.getMaxX();
+		} else {
+			min = xyz[0];
+			max = xyz[1];
+		}
 		GeneralPath path1 = new GeneralPath();
 		double dx = 2./map.getZoom();
 		if( selected || active) 
@@ -278,11 +309,10 @@ public class LineSegmentsObject extends AbstractTableModel
 			xyz = (double[])points.get(i);
 			if( xyz[0]>max ) max=xyz[0];
 			else if( xyz[0]<min ) min=xyz[0];
-			path.lineTo( (float)xyz[0], (float)xyz[1] );
 			if( selected || active ) 
 				path1.append( new Rectangle2D.Double( xyz[0]-dx, xyz[1]-dx, 2*dx, 2*dx), false);
 		}
-		
+
 		// Draw a star at the coords in a selected table row
 		ArrayList<Shape> stars = new ArrayList<Shape>();
 		int[] rows = dig.table.getSelectedRows();
@@ -320,12 +350,12 @@ public class LineSegmentsObject extends AbstractTableModel
 			while( min+offset < rect.getX()+rect.getWidth() ) {
 				if( fill != null ) {
 					g.setColor(fill);
-					g.fill( path );
+					if (path != null) g.fill( path );
 				}
 				if( color!=null ) {
 					g.setColor(color);
-					g.draw( path );
 					g.draw(path1);
+					if (path != null )g.draw(path);
 				}
 				offset += wrap;
 				g.translate( wrap, 0.);
@@ -334,12 +364,12 @@ public class LineSegmentsObject extends AbstractTableModel
 		} else {
 			if( fill != null ) {
 				g.setColor(fill);
-				g.fill( path );
+				if (path != null) g.fill(path);
 			}
 			if( color!=null ) {
 				g.setColor(color);
-				g.draw( path );
 				g.draw(path1);
+				if (path != null )g.draw(path);
 			}
 		}
 		if( !selected ) return;
@@ -354,8 +384,8 @@ public class LineSegmentsObject extends AbstractTableModel
 			while( max+offset< rect.getX() ) offset += wrap;
 			g.translate( offset, 0.);
 			while( min+offset < rect.getX()+rect.getWidth() ) {
-				g.draw( path );
 				g.draw( path1 );
+				if (path != null )g.draw(path);
 				if (stars.size() > 0) {
 					Color col = g.getColor();
 					g.setPaintMode();
@@ -373,8 +403,8 @@ public class LineSegmentsObject extends AbstractTableModel
 			}
 			g.setTransform( at);
 		} else {
-			g.draw( path );
 			g.draw( path1 );
+			if (path != null )g.draw(path);
 			if (stars.size() > 0) {
 				Color col = g.getColor();
 				g.setPaintMode();
@@ -395,7 +425,7 @@ public class LineSegmentsObject extends AbstractTableModel
 	}
 	public void mouseExited( MouseEvent evt ) {
 		drawSeg();
-		currentSeg = null;
+		drawing = false;
 	}
 	public void mousePressed( MouseEvent evt ) {
 		//finish drawing segment on double click
@@ -451,12 +481,12 @@ public class LineSegmentsObject extends AbstractTableModel
 		currentPoint = -1;
 	}
 	public void mouseReleased( MouseEvent evt ) {
-		if( editShape==null ) {
+		if( !editShape ) {
 			currentPoint = -1;
 			return;
 		}
-		drawEdit();
-		editShape = null;
+		//drawEdit();
+		editShape = false;
 		if( evt.isControlDown() || evt.getWhen()-when<500L ) {
 			currentPoint = -1;
 			return;
@@ -482,130 +512,102 @@ public class LineSegmentsObject extends AbstractTableModel
 		double z = getZ( p );
 		double[] xyz = new double[] { p.x, p.y, z};
 		points.add( xyz );
+		Vector<Object> newData = new Vector<Object>(Arrays.asList(p.x, p.y));
+		getDataSet().addData(new UnknownData(newData));
+		displayToDataIndex.add(getDataSet().data.size()-1);
 		fireTableStructureChanged();
 		// update the interpolated points and profile every time a new point is added
 		dig.makeProfile();
 		redraw();
 	}
+	
+	//update z-values for points
+	protected void updatePoints() {
+		for (Object point : points) {
+			double[] xyz = (double[])point;
+			Point2D.Double p = new Point2D.Double(xyz[0], xyz[1]);
+			xyz[2] = getZ(p);
+		}
+	}
+	
 	public double getZ(Point2D p) {
 		if( map.getFocus()==null )return Double.NaN;
 		return map.getFocus().getZ(map.getProjection().getRefXY(p));
 	}
-		
-	void getProfile() {
+	
+	private GeneralPath getGeneralPath(ArrayList<Point2D> pointsList) {
+		if (pointsList == null) return null;
+		Projection proj = map.getProjection();
+		GeneralPath path = new GeneralPath();
+		float[] lastP = null;
+		float wrap = (float)map.getWrap()/2f;
+
+		for( int k=0 ; k<pointsList.size() ; k++) {
+			Point2D p = proj.getMapXY( pointsList.get(k) );
+			float x = (float)p.getX();
+			float y = (float)p.getY();
+
+			if( lastP!=null && wrap>0f ) {
+				while( x-lastP[0] <-wrap ){x+=wrap*2f;}
+				while( x-lastP[0] > wrap ){x-=wrap*2f;}
+			}
+			lastP = new float[] {x, y};
+			if( k==0 ) path.moveTo( x, y );
+			else path.lineTo( x, y );
+		}
+		return path;
+	}
+	
+	protected void getProfile() {
 		if( points.size()<1 ) return;
 		if (points.size() == 1) {
 			//need this if deleting and down to one point
-			profile = new Vector();
-			double z = ((double[])points.get(0))[2];
-			profile.add( new float[] { 0f, 0f,(float) z});	
+			currentPath = null;
 			return;
 		}
 		grid = map.getFocus();
-		if( grid == null || grid.getGrid() == null) return;
-		Projection proj = map.getProjection();
-		profile = new Vector();
-		double x = 0.;
-		double[] xyz = (double[])points.get(0);
-		Point2D.Double p0 = new Point2D.Double( xyz[0], xyz[1] );
-		Point2D.Double p1;
-		// sum up the distance between points (in pixels?) in a flat mercator projection 
-		for( int k=1 ; k<points.size() ; k++ ) {
-			xyz = (double[])points.get(k);
-			p1 = new Point2D.Double( xyz[0], xyz[1] );
-			//take into account crossing the wrap boundary
-			GeneralUtils.wrapPoints(map, p0, p1);
-			x += Math.sqrt( Math.pow(p1.x-p0.x,2) + Math.pow(p1.y-p0.y,2) );
-			p0 = p1;
-		}
-		// number of interpolated points - at least 100
-		int n = (int)Math.ceil( x+1. );
-		if (n < 100) n = 100;
-		// distance between interpolated points
-		double dx = x/n;
-		x = 0.;
-		xyz = (double[])points.get(0);
-		// start point in lat/lon
-		p0 = new Point2D.Double( xyz[0], xyz[1] );
-		Point2D.Double point0 = (Point2D.Double)proj.getRefXY(p0);
-		// end of first segment in lat/lon
-		xyz = (double[])points.get(1);
-		p1 = new Point2D.Double( xyz[0], xyz[1] );
-		Point2D.Double point1 = (Point2D.Double)proj.getRefXY(p1);
-
 		
-		//need copy of original map coords as when we correct for wrap boundary, we can no longer
-		//convert back to latlon
-		Point2D.Double p0_orig = new Point2D.Double(p0.x, p0.y);
-		Point2D.Double p1_orig = new Point2D.Double(p1.x, p1.y);
-		
-		//take into account crossing the wrap boundary
-		GeneralUtils.wrapPoints(map, p0, p1);
-		
-		int kk = 1;
-		double[] xx = new double[] {0., Math.sqrt( Math.pow(p1.x-p0.x,2) + Math.pow(p1.y-p0.y,2) )};
+		profile = new ArrayList<Point4D>();
+		ArrayList<Point2D> path = new ArrayList<Point2D>();
+		ArrayList<Point2D> segment = new ArrayList<Point2D>();
 		double distance = 0.;
-		for( int k=0 ; k<=n ; k++) {
-			x = k*dx;
-			// work out which segment we are in
-			if( x>xx[1] && kk<points.size()-1) {
-				p0 = p1;
-				p0_orig.setLocation(p1_orig);
-				kk++;
-				xx[0] = xx[1];
-				xyz = (double[])points.get(kk);
-				p1 = new Point2D.Double( xyz[0], xyz[1] );
-				p1_orig.setLocation(p1);
-				//take into account crossing the wrap boundary
-				GeneralUtils.wrapPoints(map, p0, p1);
-				xx[1] += Math.sqrt( Math.pow(p1.x-p0.x,2) + Math.pow(p1.y-p0.y,2) );
-			}
-			// fractional distance along the segment 
-			double d = (x-xx[0])/(xx[1]-xx[0]);
-			// get the coords for the point at that fractional distance
-			Point2D.Double pt = new Point2D.Double( 
-					p0_orig.x + (p1.x-p0.x)*d,
-					p0_orig.y + (p1.y-p0.y)*d );
-			// convert to lat/lon
-			point1 = (Point2D.Double)proj.getRefXY( pt );
-			if( k!=0 ) {
+		float z;
+		double[] xyz;
+		Point2D.Double p1, p2;
+		//generate the interpolated points, convert to lat/lon and add to the path
+		for (int i=1; i<points.size(); i++) {
+			xyz = (double[])points.get(i-1);
+			// start point in lat/lon
+			p1 = new Point2D.Double( xyz[0], xyz[1] );
+			// end of segment in lat/lon
+			xyz = (double[])points.get(i);
+			p2 = new Point2D.Double( xyz[0], xyz[1] );
+			segment = getPath(p1,p2);
+			if (i==1)
+				path.addAll(segment);
+			else
+				path.addAll(segment.subList(1, segment.size()));
+		}
+		//add points, with cumulative distance and z-values to profile
+		for (int j=0; j<path.size(); j++) {
+			Point2D thisPt = path.get(j);
+			if (j != 0) {
 				// add to the distance summation
-				Point2D[] pts = {(Point2D)point0, (Point2D)point1};
-				distance += GeneralUtils.distance(pts);
+				Point2D prevPt = path.get(j-1);
+				Point2D[] thesepts =  {thisPt, prevPt};
+				distance += GeneralUtils.distance(thesepts);
 			}
-			point0 = point1;
 			// get the z value at the point
-			float z = map.getFocus().getZ(point1);
-			profile.add( new float[] { (float)distance, 
-						(float)(kk-1+d), 
-						z});
+			if (grid == null) {
+				z = Float.NaN;
+			} else {
+				z = grid.getZ(thisPt);
+			}
+			profile.add(new Point4D(thisPt, distance, z));
 		}
+		currentPath = path;
 	}
-	
-	public double[] locationAtDist( float dist ) {
-		if( profile==null ) return null;
-		int k=0;
-		float[] point = (float[])profile.get(0);
-		float[] lastP = point;
-		for( k=1 ; k<profile.size() ; k++) {
-			point = (float[])profile.get(k);
-			if( point[0]>dist || k==profile.size()-1 ) break;
-			lastP = point;
-		}
-		float dx = lastP[1] + (point[1]-lastP[1]) * (dist-lastP[0]) / (point[0]-lastP[0]);
-		double x = (double)dx;
-		k = (int)Math.floor(x);
-		x -= k;
-		if( k>= points.size() ) {
-			k = points.size()-2;
-			x = 1.;
-		}
-		double[] p1 = (double[])points.get(k);
-		double[] p2 = (double[])points.get(k+1);
-		double[] xy = new double[] {
-			p1[0]+x*(p2[0]-p1[0]), p1[1]+x*(p2[1]-p1[1]) };
-		return xy;
-	}
+
 	public boolean isActive() {
 		return active;
 	}
@@ -621,48 +623,83 @@ public class LineSegmentsObject extends AbstractTableModel
 		drawSeg();
 		double[] xyz = (double[])points.get(points.size()-1);
 		Point2D.Double pt = new Point2D.Double(xyz[0], xyz[1]);
-		currentSeg = new Line2D.Double( pt,
-				map.getScaledPoint( evt.getPoint() ) );
+		currentSegPath = getPath(pt, map.getScaledPoint( evt.getPoint() ));
+		drawing = true;
 		drawSeg();
 	}
+	
+	// get either a straight line or a great circle list of points
+	public ArrayList<Point2D> getPath(Point2D p1, Point2D p2) {
+		ArrayList<Point2D> path = new ArrayList<Point2D>();
+		double dist = map.getZoom()*Math.sqrt(
+				Math.pow( p1.getX()-p2.getX(),2 ) +
+				Math.pow( p1.getY()-p2.getY(),2 )); 
+		int npt = (int)Math.ceil(dist);
+		if (npt < 100) npt = 100;
+		Projection proj = map.getProjection();
+		
+		if( dig.isStraightLine() ) {
+			double dx = (p2.getX()-p1.getX())/(npt-1.);
+			double dy = (p2.getY()-p1.getY())/(npt-1.);
+			Point2D thisP;
+			//generate the interpolated points, convert to lat/lon and add to the path
+			for(int k=0 ; k<npt ; k++) {
+				thisP = new Point2D.Double(
+					p1.getX() + k*dx,
+					p1.getY() + k*dy);
+				path.add(proj.getRefXY(thisP));
+			}
+		} else {	//great circle
+			Point2D q1 = proj.getRefXY(p1);
+			Point2D q2 = proj.getRefXY(p2);
+			XYZ r1 = XYZ.LonLat_to_XYZ(q1);
+			XYZ r2 = XYZ.LonLat_to_XYZ(q2);
+			double angle;
+			//check if we are going the long way round and adjust the increment angle accordingly
+			if (Math.abs((p2.getX() - p1.getX())) > wrap/2.) {
+				//long way
+				angle = -(Math.PI * 2 - Math.acos( r1.dot(r2) ))/(npt-1.);
+			} else {
+				angle = Math.acos( r1.dot(r2) )/(npt-1.);
+			}
+	
+			r2 = r1.cross(r2).cross(r1).normalize();
+			double s, c;
+			XYZ r;
+			for(int k=0 ; k<npt ; k++) {
+				s = Math.sin(k*angle);
+				c = Math.cos(k*angle);
+				r = r1.times(c).plus( r2.times(s) );
+				path.add(r.getLonLat());
+			}
+		}
+		return path;
+	}
+	
+	
 	public void mouseDragged( MouseEvent evt ) {
 		if( currentPoint < 0)return;
-		drawEdit();
 		if( evt.isControlDown() ) {
 			currentPoint=-1;
 			return;
-		}		
-		editShape = new GeneralPath();
+		}
+		editShape = true;
 		Point2D.Double p0 = (Point2D.Double)map.getScaledPoint( evt.getPoint() );
-		if( currentPoint!=0 ) {
-			double[] xyz = (double[])points.get(currentPoint-1);
-			editShape.append(new Line2D.Double( p0, 
-					new Point2D.Double(xyz[0]+currentOffset, xyz[1])), false);
-		}
-		if( currentPoint!=points.size()-1 ){
-			double[] xyz = (double[])points.get(currentPoint+1);
-			editShape.append(new Line2D.Double( p0, 
-					new Point2D.Double(xyz[0]+currentOffset, xyz[1])), false);
-		}
-		double r = 2.5/map.getZoom();
-		editShape.append( new Rectangle2D.Double( p0.x-r, p0.y-r, 2.*r, 2.*r ), false);
-		drawEdit();	
-
 		// show dragged lat/lon on table
 		points.set(currentPoint,  new double[]{p0.x, p0.y, getZ(p0)});
 		fireTableDataChanged();
 		updateAll();
 	}
 	public void drawSeg() {
-		if( currentSeg==null ) return;
+		if(!drawing || currentSegPath == null || currentSegPath.size() < 2) return;
 		synchronized( map.getTreeLock() ) {
+			GeneralPath path = getGeneralPath(currentSegPath);
 			Graphics2D g = map.getGraphics2D();
 			g.setStroke( new BasicStroke( 2f/(float)map.getZoom() ));
 			g.setXORMode( Color.white);
-			double max = currentSeg.x1;
-			double min = currentSeg.x1;
-			if( currentSeg.x2>max ) max=currentSeg.x2;
-			else min=currentSeg.x2;
+			double min = path.getBounds().getMinX();
+			double max = path.getBounds().getMaxX();
+			
 			if( wrap>0. ) {
 				Rectangle2D rect = map.getClipRect2D();
 				double offset = 0.;
@@ -670,45 +707,21 @@ public class LineSegmentsObject extends AbstractTableModel
 				while( max+offset< rect.getX() ) offset += wrap;
 				g.translate( offset, 0.);
 				while( min+offset < rect.getX()+rect.getWidth() ) {
-					g.draw( currentSeg );
+					g.draw( path );
 					offset += wrap;
 					g.translate( wrap, 0.);
 				}
 			} else {
-				g.draw( currentSeg );
+				g.draw( path );
 			}
 		}
 	}
-	public void drawEdit() {
-		if( editShape==null ) return;
-		synchronized( map.getTreeLock() ) {
-			Graphics2D g = map.getGraphics2D();
-			g.setStroke( new BasicStroke( 1f/(float)map.getZoom() ));
-			g.setXORMode( Color.white);
-			Rectangle2D bounds = editShape.getBounds2D();
-			double min = bounds.getX();
-			double max = min + bounds.getWidth();
-			if( wrap>0. ) {
-				Rectangle2D rect = map.getClipRect2D();
-				double offset = 0.;
-				while( min+offset>rect.getX() ) offset -= wrap;
-				while( max+offset< rect.getX() ) offset += wrap;
-				g.translate( offset, 0.);
-				while( min+offset < rect.getX()+rect.getWidth() ) {
-					g.draw( editShape );
-					offset += wrap;
-					g.translate( wrap, 0.);
-				}
-			} else {
-				g.draw( editShape );
-			}
-		}
-	}
+
 	public void keyPressed( KeyEvent evt ) {
 	}
 	public void keyReleased( KeyEvent evt ) {
-		if( evt.getKeyCode() == evt.VK_ENTER ) dig.finish();
-		if( evt.getKeyCode() == evt.VK_BACK_SPACE) {
+		if( evt.getKeyCode() == KeyEvent.VK_ENTER ) dig.finish();
+		if( evt.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
 			if( points.size()>0 ) {
 				points.remove( points.size()-1 );
 				fireTableStructureChanged();
@@ -724,63 +737,110 @@ public class LineSegmentsObject extends AbstractTableModel
 		fireTableStructureChanged();
 	}
 	public String getColumnName(int col) {
-		if (col == 0) return "Longitude";
-		else if (col == 1) return "Latitude";
-//		else if (col == 3) return "Distance between points (km)";
-//		else if (col == 4) return "Cumulative distance (km)";
 		if (grid == null) grid = map.getFocus();
-		if (grid != null && grid.getUnits() != null && grid.getUnits() != "") return grid.getDataType() + " (" + grid.getUnits() + ")";
-		return null;
+		if (grid != null && grid.getUnits() != null && grid.getUnits() != "") {
+			Z_GRIDNAME = grid.getDataType() + " (" + grid.getUnits() + ")";
+			if (super.getColumnName(col).equals(Z_COL)) return Z_GRIDNAME;
+		}
+		return super.getColumnName(col);
 	}	
 	public int getRowCount() {
 		if ( points == null && profile == null) return 0;
-		if( table==0 ) return points.size();
+		if( table == 0 ) return points.size();
 		return profile.size();
 	}
 	public int getColumnCount() {
-		return 3;
+		//enable duration column for Survey Planner
+		if (dig.isSurveyPlanner()) {
+			if (table == 1) return COLUMN_NAMES.split(",").length;
+			// if importing, may have extra columns
+			return getDataSet().header.size(); 
+		}
+		return 5;
+	}
+	
+	public int getColumnIndex(String colName) {
+		for (int i=0; i< getColumnCount(); i++) {
+			if (getColumnName(i).equals(colName) || 
+					(colName.equals(Z_COL) && getColumnName(i).equals(Z_GRIDNAME))) {
+				return i;
+			}
+		}
+		
+		return 999;
+	}
+	
+	public void reorderColumn(int newCol, String colName) {
+		int oldCol = getDataSet().header.indexOf(colName);
+		indexH.removeElement(oldCol);
+		indexH.add(newCol, oldCol);
 	}
 	
 	public Object getValueAt(int row, int column) {
-		return getValueAt(row, column, table);
+		return getValueAt(row, column, table, false);
 	}
 	
-	public Object getValueAt(int row, int column, int whichTable) {
+	public Object getValueAt(int row, int column, int whichTable, boolean save) {
+		
+		//make sure columns are all left-aligned
+		DefaultTableCellRenderer leftRenderer = new DefaultTableCellRenderer();
+		leftRenderer.setHorizontalAlignment(JLabel.LEFT);
+		for (int col=0; col < dig.table.getColumnModel().getColumnCount(); col++) {
+			dig.table.getColumnModel().getColumn(col).setCellRenderer(leftRenderer);
+		}
+		
 		// determine number of decimal places based on the zoom level
 		double zoom = map.getZoom();
-		double xmin = map.getClipRect2D().getMinX();
-		NumberFormat fmt = GeneralUtils.getNumberFormat(zoom);
-
+		NumberFormat fmt = GeneralUtils.getZoomNumberFormat(zoom);
+		int dp = fmt.getMaximumFractionDigits();
+		if (save) {
+			fmt.setMaximumFractionDigits(dp+1);
+			fmt.setMinimumFractionDigits(dp+1);
+		}
+		NumberFormat fmt1 = NumberFormat.getInstance();
+		fmt1.setMaximumFractionDigits(1);
+		fmt1.setMinimumFractionDigits(1);
+		
+		NumberFormat fmt2 = NumberFormat.getInstance();
+		fmt2.setMaximumFractionDigits(dp-2);
+		fmt2.setMinimumFractionDigits(dp-2);
+		
+		if (column == getColumnIndex(DURATION_COL)) {
+			double cumDist = Double.parseDouble((getValueAt(row, getColumnIndex(CUMULATIVE_COL), whichTable, save).toString().replace(",", "")));
+			return dig.calculateDuration((int)Math.round(cumDist));
+		}
+		
 		if( whichTable==1 ) {
-			float[] dxz = (float[])profile.get(row);
-			if( column==2 ) {
-				if (Float.isNaN((float)dxz[2])) return "-";
-				return new Float(dxz[2]);
+			Point4D p4d = profile.get(row);
+			if( column==getColumnIndex(Z_GRIDNAME) ) {
+				if (Float.isNaN((float)p4d.getZ())) return "-";
+				return fmt1.format(p4d.getZ());
 			}
-			if (column == 4) return (int) dxz[0];
-			Point2D.Double pt = interpolatePoint(row);
-			if (column == 0) return fmt.format(pt.getX());
-			if (column == 1) return fmt.format(pt.getY());
-			if (column == 3) {
+			if (column == getColumnIndex(CUMULATIVE_COL)) return fmt2.format(p4d.getD());
+			Point2D.Double pt = (Point2D.Double) p4d.getPoint();
+			if (column == getColumnIndex(LON_COL)) return fmt.format(pt.getX());
+			if (column == getColumnIndex(LAT_COL)) return fmt.format(pt.getY());
+			if (column == getColumnIndex(DISTANCE_COL)) {
 				if (row == 0) return 0;
-				Point2D.Double prev_pt = interpolatePoint(row-1);
+				Point2D.Double prev_pt = (Point2D.Double) profile.get(row-1).getPoint();
 				Point2D.Double [] pts = {prev_pt, pt};
 				return fmt.format(GeneralUtils.distance(pts));
+				//return (int)GeneralUtils.distance(pts);
 			}
-			return "TBD";
+			return "-";
 
 		}
 		if( row>=points.size() ) return null;
 		double[] p = (double[])points.get(row);
 
 		Point2D pt = map.getProjection().getRefXY( new Point2D.Double(p[0], p[1]) );
-		if (column == 0)  return fmt.format(pt.getX());
-		else if (column == 1) return fmt.format(pt.getY());
-		else if(column == 2) {
+		if (column == getColumnIndex(LON_COL))  return fmt.format(pt.getX());
+		else if (column == getColumnIndex(LAT_COL)) return fmt.format(pt.getY());
+		else if(column == getColumnIndex(Z_GRIDNAME)) {
 			if (Float.isNaN((float)p[2])) return "-";
-			return new Float(p[2]);
+			return fmt1.format(p[2]);
 		}
-		else if (column == 3) {
+		else if (column == getColumnIndex(DISTANCE_COL)) {
 			double[] prev_p = (double[])points.get(row);
 			if (row > 0) {
 				prev_p = (double[])points.get(row-1);
@@ -788,20 +848,45 @@ public class LineSegmentsObject extends AbstractTableModel
 			Point2D prev_pt = map.getProjection().getRefXY( new Point2D.Double(prev_p[0], prev_p[1]) );
 			Point2D[] pts = {prev_pt, pt};
 			
+			if (dig.isStraightLine()) {
+				double d0 = 0, d1 = 0;
+				if (profile != null) {
+					for (Point4D profRow : profile) {
+						if (profRow.getPoint().equals(prev_pt)) {
+							d0 = profRow.getD();
+						}
+						if (profRow.getPoint().equals(pt)) {
+							d1 = profRow.getD();
+							break;
+						}
+					}
+				}
+				return (fmt2.format(d1-d0));
+			}
+						
 			boolean longWay = false;
-			if (( p[0] > wrap + xmin && prev_p[0] < wrap + xmin) || ( prev_p[0] > wrap + xmin && p[0] < wrap + xmin)) {
+			if (Math.abs((p[0] - prev_p[0])) > wrap/2.) {
 				longWay = true;
 			}
-			return (int) GeneralUtils.distance(pts, longWay);
+			return fmt2.format(GeneralUtils.distance(pts, longWay));
 		}
-		else if (column == 4) {
+		else if (column == getColumnIndex(CUMULATIVE_COL)) {
 			if (row == 0) return 0;
 			double d = 0.;
+			if (dig.isStraightLine()) {
+				for (Point4D profRow : profile) {
+					if (profRow.getPoint().equals(pt)) {
+						d = profRow.getD();
+						return (fmt2.format(d));
+					}
+				}
+			}
+			
 			boolean longWay = false;
 			for (int i=1; i<=row; i++) {
 				double[] this_p = (double[])points.get(i);
 				double[] prev_p = (double[])points.get(i-1);
-				if (( this_p[0] > wrap + xmin && prev_p[0] < wrap + xmin ) || ( prev_p[0] > wrap + xmin && this_p[0] < wrap + xmin )) {
+				if (Math.abs((this_p[0] - prev_p[0])) > wrap/2.) {
 					longWay = true;
 				} else {
 					longWay = false;
@@ -812,43 +897,31 @@ public class LineSegmentsObject extends AbstractTableModel
 				Point2D[] pts = {prev_pt, this_pt};
 				d += GeneralUtils.distance(pts, longWay);
 			}
-			return (int) d;
+			return fmt2.format(d);
 		}
-		return "TBD";
+		return super.getValueAt(row, column);
 	}
 
-	// convert interpolated point to lat lon
-	private Point2D.Double interpolatePoint(int ind) {
-		float[] dxz = (float[])profile.get(ind);
-		int i = (int)Math.floor( dxz[1] );
-		if( i==points.size()-1 ) i--;
-		if (i > -1) {
-			double[] xyz1 = (double[])points.get(i);
-			double[] xyz2 = (double[])points.get(i+1);
-			double d = (double)(dxz[1]-i);
-			Point2D.Double pt = (Point2D.Double) map.getProjection().getRefXY( new Point2D.Double(
-					xyz1[0]+(xyz2[0]-xyz1[0])*d,
-					xyz1[1]+(xyz2[1]-xyz1[1])*d) );
-			return pt;
-		}
-		return null;
-	}
-	
-	
 	// reorder the table rows
 	public void reorder(int fromIndex, int toIndex, int numRows) {
 		// remove the points to be moved and store them in a list
 		ArrayList<Object> movingPts = new ArrayList<Object>();
+		// also reorder the displayToDataIndex (used when importing extra columns in SurveyPlanner) 
+		Vector<Integer> movingRows = new Vector<Integer>();
 		for (int i = 0; i < numRows; i++) {
 			// when a point is removed, the indices get re-assigned,  
 			// so we are always removing points[fromIndex]
 			movingPts.add(points.remove(fromIndex));
+			movingRows.add(displayToDataIndex.remove(fromIndex));
 		}
+		
 		// add the moved points back at their new position
 		if (toIndex > points.size()) {
-			points.add(movingPts);
+			points.addAll(movingPts);
+			displayToDataIndex.addAll(movingRows);
 		} else {			
 			points.addAll(toIndex, movingPts);
+			displayToDataIndex.addAll(toIndex, movingRows);
 		}
 		// update profile, graph and tables
 		fireTableDataChanged();
@@ -908,5 +981,51 @@ public class LineSegmentsObject extends AbstractTableModel
 		points.set(row, p);
 		// update profile, graph and tables
 		updateAll();
-	}	
+	}
+	
+	/**
+	 * Home made class that contains 2D point co-ords,
+	 * a distance measurement, and the z value for the point.
+	 * @author Neville Shane
+	 *
+	 */
+	protected class Point4D extends Point2D{
+		private Point2D p;
+		private double d;
+		private double z;
+		
+		public Point4D(Point2D p, double d, double z) {
+			this.p = p;
+			this.d = d;
+			this.z =z;
+		}
+		
+		@Override
+		public double getX() {
+			return p.getX();
+		}
+
+		@Override
+		public double getY() {
+			return p.getY();
+		}
+		
+		public Point2D getPoint() {
+			return p;
+		}
+
+		public double getZ() {
+			return z;
+		}
+		
+		public double getD() {
+			return d;
+		}
+		
+		@Override
+		public void setLocation(double x, double y) {
+			p.setLocation(x, y);
+		}
+		
+	}
 }

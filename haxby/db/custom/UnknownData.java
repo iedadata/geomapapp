@@ -13,7 +13,8 @@ public class UnknownData {
 	public int[] rgb = null;
 	public float polyX0, polyY0;
 	public GeneralPath polyline;
-
+	private boolean visible = true;
+	
 	public UnknownData(Vector<Object> data){
 		this.data=data;
 	}
@@ -42,7 +43,7 @@ public class UnknownData {
 	}
 
 	public void updateRGB(int rgbIndex) {
-		if (rgbIndex == -1) {
+		if (rgbIndex < 1) {
 			rgb = null;
 			return;
 		}
@@ -89,7 +90,7 @@ public class UnknownData {
 	public float[] getPolylineWESN(int polylineIndex) {
 		float[] wesn = new float[] {Float.MAX_VALUE, -Float.MAX_VALUE, Float.MAX_VALUE, -Float.MAX_VALUE};
 		
-		if (polylineIndex == -1) {
+		if (polylineIndex < 1) {
 			polyline = null;
 			return wesn;
 		}
@@ -112,7 +113,7 @@ public class UnknownData {
 	}
 
 	public void updatePolyline(XMap map, int polylineIndex) {
-		if (polylineIndex == -1) {
+		if (polylineIndex < 1) {
 			polyline = null;
 			return;
 		}
@@ -149,5 +150,13 @@ public class UnknownData {
 			polyline = null;
 			return;
 		}
+	}
+	
+	//used to set whether the data should be visible on the map and table, eg in Velocity Vector decimation
+	public boolean isVisible() {
+		return visible;
+	}
+	public void setVisible(boolean tf) {
+		visible = tf;
 	}
 }

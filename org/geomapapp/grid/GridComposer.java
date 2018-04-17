@@ -17,10 +17,10 @@ import java.awt.image.BufferedImage;
 public class GridComposer extends GetGrid {
 //	static String base = "/local/data/home/bill/db/merc_320_1024/";
 
-	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH", "GMRT2/MERCATOR_GRID_TILE_PATH");
-	public static String vo_base = PathUtil.getPath("GMRT_LATEST/VO_GRID_TILE_PATH", "GMRT2/VO_GRID_TILE_PATH");
-	static String spBase = PathUtil.getPath("GMRT_LATEST/SP_GRID_TILE_PATH", "GMRT2/SP_GRID_TILE_PATH");
-	static String npBase = PathUtil.getPath("GMRT_LATEST/NP_GRID_TILE_PATH", "GMRT2/NP_GRID_TILE_PATH");
+	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
+	public static String vo_base = PathUtil.getPath("GMRT_LATEST/VO_GRID_TILE_PATH");
+	static String spBase = PathUtil.getPath("GMRT_LATEST/SP_GRID_TILE_PATH");
+	static String npBase = PathUtil.getPath("GMRT_LATEST/NP_GRID_TILE_PATH");
 
 	static int oceanGridMaxResLevel = 512;
 	static HiResGrid[] hiRes;

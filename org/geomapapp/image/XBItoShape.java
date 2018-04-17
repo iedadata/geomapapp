@@ -136,7 +136,6 @@ public class XBItoShape {
 
 		File linkFile = new File( dir, fileName+".link");
 		
-	//	String root = "http://www.marine-geo.org/geomapapp/GMA/Layers/Grids/NGDCCoast/";
 		String root = "file://" + dir.getCanonicalPath().replace('\\', '/');
 		if( !root.endsWith("/") ) root += "/";
 		Vector data = new Vector(1);

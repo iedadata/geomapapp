@@ -117,7 +117,7 @@ public class XMap extends ScaledComponent implements Zoomable,
 	/**
 	 * Not implemented.
 	 */
-	protected Vector mapInsets;
+	protected Vector<MapInset> mapInsets;
 
 	protected MapTools tools;
 	/**
@@ -481,13 +481,24 @@ public class XMap extends ScaledComponent implements Zoomable,
 		overlays.remove( overlay );
 		overlayAlphas.remove(overlay);
 
-		if (overlay == focus) {
+		boolean doMask = focus.isMasked();
+		if (overlay == focus || 
+				(overlay instanceof ESRIShapefile && ((ESRIShapefile) overlay).getMultiGrid() != null && 
+						((ESRIShapefile) overlay).getMultiGrid().getGrid2DOverlay() == focus)) {
 			for( int i=overlays.size()-1 ; i>-1 ; i--) {
-				if( overlays.get(i) instanceof Grid2DOverlay) {
-					focus = (Grid2DOverlay)overlays.get(i);
+				Overlay ol = overlays.get(i);
+				if( ol instanceof Grid2DOverlay ) {
+					focus=(Grid2DOverlay)ol;
+					break;
+				} else if (ol instanceof ESRIShapefile && ((ESRIShapefile) ol).getMultiGrid() != null) {
+					focus = ((ESRIShapefile) ol).getMultiGrid().getGrid2DOverlay();
 					break;
 				}
 			}
+		}
+		if (app instanceof MapApp && doMask) {
+			((MapApp) app).tools.maskB.doClick();
+			((MapApp) app).tools.maskB.doClick();
 		}
 		this.firePropertyChange("overlays", overlay, removeFlag);
 		return index;
@@ -685,7 +696,11 @@ public class XMap extends ScaledComponent implements Zoomable,
 		zoom *= factor;
 		newP = ATrans.transform( newP, null );
 		int newX = (int)newP.getX(); // + insets.left;
-		int newY = (int)newP.getY(); // + insets.top;
+		// add the wrap value if newX is -ve.
+		if (wrap > 0) {
+			while (newX < 0) newX += wrap * zoom;
+		}
+		int newY = (int)newP.getY(); // + insets.top;	
 		invalidate();
 		scrollPane.validate();
 		JScrollBar sb = scrollPane.getHorizontalScrollBar();
@@ -693,11 +708,13 @@ public class XMap extends ScaledComponent implements Zoomable,
 		sb = scrollPane.getVerticalScrollBar();
 		sb.setValue(newY);
 		revalidate();
-
+		
 		//If this is MapApp Auto Focus
 		if (app instanceof MapApp) {
 			((MapApp) app).autoFocus();
 		}
+		double[] wesn = getWESN();
+		MapApp.sendLogMessage("Zoom&WESN="+wesn[0]+","+wesn[1]+","+wesn[2]+","+wesn[3]+"&zoom_level=" + zoom);
 	}
 
 	public void setZoomHistoryPast(XMap mapSource) {
@@ -973,7 +990,7 @@ public class XMap extends ScaledComponent implements Zoomable,
 			String str = null;
 			if (focus != null) {
 				z = focus.getZ(pt0);
-				str = gridDialog.getUnits(focus.toString());
+				str = focus.getUnits();
 			
 				if (str != null)
 					setUnits(str);
@@ -1050,7 +1067,7 @@ public class XMap extends ScaledComponent implements Zoomable,
 	 * Not implemented.
 	 */
 	public void addMapInset( MapInset inset ) {
-		if( mapInsets==null ) mapInsets = new Vector();
+		if( mapInsets==null ) mapInsets = new Vector<MapInset>();
 		mapInsets.add( inset );
 	}
 
@@ -1401,6 +1418,8 @@ public class XMap extends ScaledComponent implements Zoomable,
 				overlay.draw(g2);
 			}
 		}
+		mApp.baseMap.drawMask(g2);
+		
 		g2.setPaintMode();
 		if( graticule && mapBorder instanceof PolarMapBorder) ((PolarMapBorder)mapBorder).draw(g2);
 		if( mapInsets==null || mapInsets.size()==0 || !includeInsets ) {
@@ -1480,7 +1499,7 @@ public class XMap extends ScaledComponent implements Zoomable,
 		return PAGE_EXISTS;
 	}
 
-	private float getAlpha(Overlay overlay) {
+	public float getAlpha(Overlay overlay) {
 		if (overlay == null) return 0;
 
 		// This ties the baseMap and the baseMapFocus together
@@ -1650,8 +1669,9 @@ public class XMap extends ScaledComponent implements Zoomable,
 		}
 	}
 	public void mouseClicked(MouseEvent e) {
-		// GMA 1.6.4: Center on spot where user double-clicks (but not if Digitizer is open)
-		if ( e.getClickCount() >= 2 && e.getModifiers()==16 && !((MapApp)app).digitizer.isEnabled()) {
+		// GMA 1.6.4: Center on spot where user double-clicks (but not if Digitizer or Survey Planner are open)
+		if ( e.getClickCount() >= 2 && e.getModifiers()==16 && 
+				!((MapApp)app).digitizer.isEnabled() && !((MapApp)app).db[10].isEnabled()) {
 			Point p = e.getPoint();
 			doZoom( p, 1 );
 		}

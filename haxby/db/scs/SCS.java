@@ -362,6 +362,9 @@ public class SCS implements Database,
 	public boolean isLoaded() {
 		return initiallized;
 	}
+	public void unloadDB() {
+		initiallized = false;
+	}
 	public String getDBName() {
 		return "Analog Seismic Reflection Profiles";
 	}

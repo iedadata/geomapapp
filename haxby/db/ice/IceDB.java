@@ -385,6 +385,9 @@ public class IceDB extends MouseAdapter
 	public boolean isLoaded() {
 		return loaded;
 	}
+	public void unloadDB() {
+		loaded = false;
+	}
 	public void disposeDB() {
 		loaded = false;
 		xyFrame.dispose();

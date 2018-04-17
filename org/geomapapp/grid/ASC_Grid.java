@@ -43,33 +43,33 @@ public class ASC_Grid {
 		}
 
 		String num = (String)ParseLink.getProperty( props, "ncols");
-		width = num==null ? -1 : Integer.parseInt( num );
+		width = num==null ? -1 : Integer.parseInt( num.replace(',', '.') );
 
 		num = (String)ParseLink.getProperty( props, "nrows");
-		height = num==null ? -1 : Integer.parseInt( num );
+		height = num==null ? -1 : Integer.parseInt( num.replace(',', '.') );
 
 		num = (String)ParseLink.getProperty( props, "yllcorner");
 		if (num == null) {
 			num = (String)ParseLink.getProperty( props, "yllcenter");
 			yLLCenter = true;
 		}
-		y0 = num==null ? Double.NaN : Double.parseDouble( num );
+		y0 = num==null ? Double.NaN : Double.parseDouble( num.replace(',', '.') );
 
 		num = (String)ParseLink.getProperty( props, "xllcorner");
 		if (num == null) {
 			num = (String)ParseLink.getProperty( props, "xllcenter");
 			xLLCenter = true;
 		}
-		x0 = num==null ? Double.NaN : Double.parseDouble( num );
+		x0 = num==null ? Double.NaN : Double.parseDouble( num.replace(',', '.') );
 
 		num = (String)ParseLink.getProperty( props, "cellsize");
-		dx = num==null ? Double.NaN : Double.parseDouble( num );
+		dx = num==null ? Double.NaN : Double.parseDouble( num.replace(',', '.') );
 
 		num = (String)ParseLink.getProperty( props, "nodata_value");
-		nodata = num == null ? Double.NaN : Double.parseDouble(num);
+		nodata = num == null ? Double.NaN : Double.parseDouble(num.replace(',', '.'));
 
 		num = (String)ParseLink.getProperty( props, "utm_zone");
-		zone = num==null ? 99 : Integer.parseInt( num );
+		zone = num==null ? 99 : Integer.parseInt( num.replace(',', '.') );
 
 		if (xLLCenter)
 			x0 += dx / 2;
@@ -167,7 +167,7 @@ public class ASC_Grid {
 			st = new StringTokenizer(s);
 			while( st.hasMoreTokens() && i<width*height) {
 				s = st.nextToken();
-				double val = Double.parseDouble( s );
+				double val = Double.parseDouble( s.replace(',', '.') );
 				if( nodata == val) { 
 					grid[i++]=Float.NaN;
 				} else {

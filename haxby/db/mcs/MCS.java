@@ -406,7 +406,6 @@ public class MCS implements ActionListener,
 		} else if( cmd.startsWith("select") ) {
 			mapSelect = cmd;
 		} else if( cmd.equals("close") ) {
-		//	close();
 		} else if( cmd.equals("quit")) {
 		}
 	}
@@ -537,5 +536,10 @@ public class MCS implements ActionListener,
 			}
 		}
 		initiallized = true;
+	}
+	
+	@Override
+	public void unloadDB() {
+		initiallized = false;
 	}
 }

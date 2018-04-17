@@ -234,7 +234,7 @@ public class ESRIShapefile extends java.awt.geom.Rectangle2D.Double
 			k=(k+1)%shapes.size();
 			ESRIShape shape = (ESRIShape)shapes.get(k);
 			if( shape.getType()==0 )continue;
-			if( shape.select(n).shape==shape ) {
+			if( shape.select(n, map).shape==shape ) {
 				selectedIndex = k;
 				return k;
 			}
@@ -346,7 +346,7 @@ public class ESRIShapefile extends java.awt.geom.Rectangle2D.Double
 		for( int k=0 ; k<shapes.size() ; k++) {
 			ESRIShape shape = (ESRIShape)shapes.get(k);
 			if( shape.getType()==0 )continue;
-			if( shape.select(n).shape==shape ) return n;
+			if( shape.select(n, map).shape==shape ) return n;
 		}
 		return n;
 	}

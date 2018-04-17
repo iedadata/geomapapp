@@ -92,7 +92,7 @@ public class ImportFenceDiagram {
 			JPanel p = new JPanel(new BorderLayout());
 			p.setBorder( BorderFactory.createEmptyBorder(5,5,5,5) );
 			JPanel p2 = new JPanel();
-			final JButton ok = new JButton("Ok");
+			final JButton ok = new JButton("OK");
 			ok.setEnabled(false);
 			ok.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {

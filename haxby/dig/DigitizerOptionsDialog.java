@@ -79,7 +79,7 @@ public class DigitizerOptionsDialog implements ActionListener,
 		panel.setBorder( new LineBorder( Color.black, 1) );
 
 		JPanel bPanel = new JPanel( new GridLayout(0,3) );
-		JButton b = new JButton( "Ok" );
+		JButton b = new JButton( "OK" );
 		b.setMnemonic( 'O' );
 		b.addActionListener(this);
 		bPanel.add( b );
@@ -350,7 +350,7 @@ public class DigitizerOptionsDialog implements ActionListener,
 		//	cP.setTransparency( color.getAlpha() );
 			cP.setSwatch( colorSwatch );
 			cP.repaint();
-		} else if( evt.getActionCommand().equals("Ok") ) {
+		} else if( evt.getActionCommand().equals("OK") ) {
 			apply();
 			colorDialog.dispose();
 		} else if( evt.getActionCommand().equals("Reset") ) {

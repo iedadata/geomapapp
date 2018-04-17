@@ -110,7 +110,7 @@ public class PDBOutputConfigDialog extends JDialog implements ActionListener {
 		p.add(p2);
 
 		p2 = new JPanel();
-		b = new JButton("Ok");
+		b = new JButton("OK");
 		b.setActionCommand("ok");
 		b.addActionListener(this);
 		p2.add(b);

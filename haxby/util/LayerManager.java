@@ -21,10 +21,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -33,7 +33,6 @@ import javax.swing.FocusManager;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -66,7 +65,7 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 	public static final JButton importB = new JButton();
 	public static int preferredWidth = 200;
 	public static int preferredHeight = 50;
-	public static String infoURL = "http://www.marine-geo.org/portals/gmrt/";
+	public static String infoURL = "https://www.gmrt.org/";
 	public boolean baseMapVisible = true;
 
 	protected List<LayerPanel> layerPanels = new LinkedList<LayerPanel>();
@@ -80,6 +79,7 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 	private static XMap map;
 	private JFrame lmFrame; 
 	public static boolean doImport = false;
+	private ArrayList<Integer> missingLayers = new ArrayList<Integer>();
 	
 	public LayerManager() {
 		this.setLayout( new BoxLayout(this, BoxLayout.Y_AXIS));	
@@ -320,6 +320,12 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 								XML_Menu.saveSessionLayer(itemsLP, xmlFile);
 							}
 
+							if(layerPanels.get(i).layerName != null && layerPanels.get(i).layerName.matches(MapApp.baseFocusName)) {
+								String baseLayer = ("\r\t<layer\r\t" +
+										"\tname=" + '"' + MapApp.baseFocusName + '"' +"\r\t" +
+										"\tindex=" + '"' + i + '"' + ">" + '\r'+ '\t' +  "</layer>");
+								FilesUtil.writeLayerToFile(baseLayer, xmlFile);
+							}
 							//Write close layer tag to xmlFile once
 							if(i==numLayerPanels-1) {
 								String loadAllLayer =("\r" + '\t' + "<layer " + '\r' + '\t' +
@@ -548,6 +554,9 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 					}
 				});
 				box.add(zoomB);
+				MapApp.sendLogMessage("Loaded_Content&name="+inputLayerName.trim()+"&WESN="+wesn[0]+","+wesn[1]+","+wesn[2]+","+wesn[3]);
+			} else {
+				MapApp.sendLogMessage("Loaded_Content&name="+inputLayerName.trim());
 			}
 
 			
@@ -1497,7 +1506,14 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 				Overlay ol = lp.layer;
 				if (lp.item != null && lp.item.index != null) {
 					//get the index from the saved session item
+					int n = 0;
 					int index = Integer.parseInt(lp.item.index);
+					//adjust the index for any missing layers that didn't load correctly
+					for (int missing: missingLayers) {
+						if (index > missing) n++;
+					}
+					index -= n;
+					
 					if (index < overlays.size()) {
 						//move the overlay up or down to reach the desired index
 						while (overlays.indexOf(ol) > index) {
@@ -1507,8 +1523,19 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 							this.down(ol);
 						}
 					}
+					// toggle top layer visibility to make sure it is plotted on top 
+					if (index == 0) {
+						try {
+							TimeUnit.SECONDS.sleep(1);
+							boolean vis = lp.isVisible();
+							setLayerVisible(lp, !vis);
+							setLayerVisible(lp, vis);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
 				}
-			}
+			}			
 		}
 	}
 	
@@ -1526,5 +1553,14 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 		while (overlays.indexOf(layer) > 0) {
 			this.up(layer);
 		}
+	 }
+	 
+	 public void missingLayer(String index) {
+		 missingLayers.add(Integer.parseInt(index));
+		 sortLayers();
+	 }
+	 
+	 public void resetMissingLayers() {
+		 missingLayers.clear();
 	 }
 }

@@ -1,7 +1,5 @@
 package org.geomapapp.geom;
 
-import haxby.proj.PolarStereo;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -35,6 +33,9 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+
+import haxby.proj.PolarStereo;
+import haxby.util.GeneralUtils;
 
 public class ProjectionDialog implements ItemListener, ChangeListener {
 	public static int GEOGRAPHIC_PROJECTION = 0;
@@ -702,7 +703,7 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		return getProjection(comp, wesn, defaultZScale, width, height, inputPrj);
 	}
 
-	public MapProjection getProjection(Component comp, double[] wesn, double defaultZScale, int width, int height, MapProjection inputProj) {	
+	public MapProjection getProjection(Component comp, double[] wesn, double defaultZScale, int width, int height, MapProjection inputProj) {
 		// Check whether the projection looks like UTM, based on the x and y_range values 
 		this.wesn = wesn;
 		if (wesn[1] > 360 || wesn[3] > 90) {
@@ -725,8 +726,8 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 			minMaxL.setText("Max z: " + maxZ + "    Min z: " + minZ);
 			origMax = maxZ;
 			origMin = minZ;
-			maxEdit.setText(origMax.toString());
-			minEdit.setText(origMin.toString());
+			maxEdit.setText(GeneralUtils.formatToSignificant(maxZ,5));
+			minEdit.setText(GeneralUtils.formatToSignificant(minZ,5));
 			minZ = 0.0;
 			maxZ = 0.0;
 		}
@@ -800,6 +801,18 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		MapProjection proj = getProjection();
 		if( proj==null ) {
 			JOptionPane.showMessageDialog(comp, "Zone must be 1-60. Try Again");
+			return getProjection( comp, wesn, defaultZScale, width, height, inputProj);
+		}
+		double zmax = Double.parseDouble(maxEdit.getText());
+		double zmin = Double.parseDouble(minEdit.getText());
+		double zscale = Double.parseDouble(zScale.getText());
+		if (((zmax - zmin)  * zscale) > Short.MAX_VALUE || 
+				((zmax - zmin)  * zscale) < Short.MIN_VALUE) {
+			String msg = "GeoMapApp could not import this grid: The Z range is too large."
+					+ "\nPlease check the Min Z and Max Z values of the grid."
+					+ "\nOr, edit the Z values in the Confirm Projection & Bounds window.";
+
+			JOptionPane.showMessageDialog(comp, msg);
 			return getProjection( comp, wesn, defaultZScale, width, height, inputProj);
 		}
 		return proj;
