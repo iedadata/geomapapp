@@ -29,7 +29,7 @@ http://wiki.iedadata.org/display/GFG/How+to+build+and+release+GeoMapApp
 
 # Release History
 * 07/20/2017 v3.6.6 Public release of v3.6.6 of GeoMapApp.
-* 04/17/2018 v3.6.8 Public release of v3.6.8 of GeoMapApp.
+* 04/26/2018 v3.6.8 Public release of v3.6.8 of GeoMapApp.
 
 # What's here
 
