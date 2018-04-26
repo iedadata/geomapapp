@@ -656,13 +656,13 @@ public class LineSegmentsObject extends DBTableModel
 			XYZ r2 = XYZ.LonLat_to_XYZ(q2);
 			double angle;
 			//check if we are going the long way round and adjust the increment angle accordingly
-			if (Math.abs((p2.getX() - p1.getX())) > wrap/2.) {
+			if (wrap > 0f && Math.abs((p2.getX() - p1.getX())) > wrap/2.) {
 				//long way
 				angle = -(Math.PI * 2 - Math.acos( r1.dot(r2) ))/(npt-1.);
 			} else {
 				angle = Math.acos( r1.dot(r2) )/(npt-1.);
 			}
-	
+
 			r2 = r1.cross(r2).cross(r1).normalize();
 			double s, c;
 			XYZ r;
@@ -865,7 +865,7 @@ public class LineSegmentsObject extends DBTableModel
 			}
 						
 			boolean longWay = false;
-			if (Math.abs((p[0] - prev_p[0])) > wrap/2.) {
+			if (wrap > 0f && Math.abs((p[0] - prev_p[0])) > wrap/2.) {
 				longWay = true;
 			}
 			return fmt2.format(GeneralUtils.distance(pts, longWay));
@@ -886,7 +886,7 @@ public class LineSegmentsObject extends DBTableModel
 			for (int i=1; i<=row; i++) {
 				double[] this_p = (double[])points.get(i);
 				double[] prev_p = (double[])points.get(i-1);
-				if (Math.abs((this_p[0] - prev_p[0])) > wrap/2.) {
+				if (wrap > 0f && Math.abs((this_p[0] - prev_p[0])) > wrap/2.) {
 					longWay = true;
 				} else {
 					longWay = false;
