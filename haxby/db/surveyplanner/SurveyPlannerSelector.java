@@ -1020,7 +1020,7 @@ public class SurveyPlannerSelector implements ActionListener, MouseListener, Mou
 				Point2D.Double p = (Point2D.Double)map.getProjection().getMapXY(lon,  lat);
 
 				// if crossing the meridian, probably want to add 640 to p.x
-				if (i >= 1 && Math.abs(p.x - prevX) > Math.abs(p.x + wrap - prevX)) {
+				if (wrap > 0 && i >= 1 && Math.abs(p.x - prevX) > Math.abs(p.x + wrap - prevX)) {
 					p.x += wrap;
 				}
 				prevX = p.x;
