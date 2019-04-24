@@ -28,7 +28,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 import java.util.Vector;
 
 import javax.swing.JMenuItem;
@@ -113,6 +115,14 @@ public class MGGData implements Overlay,
 	static final int MGD77_BATHY_SCALE = 10;
 	static final int MGD77_MAGNETICS_SCALE = 10;
 	static final int MGD77_GRAVITY_SCALE = 10;
+	
+	static final int MGD77T_DATE_FIELD = 2;
+	static final int MGD77T_TIME_FIELD = 3;
+	static final int MGD77T_LAT_FIELD = 4;
+	static final int MGD77T_LON_FIELD = 5;
+	static final int MGD77T_BATHY_FIELD = 9;
+	static final int MGD77T_MAGNETICS_FIELD = 15;
+	static final int MGD77T_GRAVITY_FIELD = 22;
 
 	public MGGData( XMap map,
 			String leg, 
@@ -652,6 +662,7 @@ public class MGGData implements Overlay,
 		BufferedReader inDataDir;
 		BufferedReader inDataFile = new BufferedReader(new InputStreamReader( url.openStream()));
 		boolean legFound = false;
+		boolean isM77T = false;
 		try {
 			// If url isn't from the server then use the text control file.
 			if(!MGGurl.contains(MapApp.BASE_URL)){
@@ -663,23 +674,31 @@ public class MGGData implements Overlay,
 			String s = "";
 			String sDataDir = "";
 			String sDataFile = "";
-			String sData = "";
+		
 			legFound = false;
 			if ( leg != null )	{
 				dataFileURL = null;
 				if ( inputLoadedControlFile.compareTo( "LDEO" ) == 0 ) {
-					dataFileURL = haxby.util.URLFactory.url(MGD77_DATA_LDEO + leg + ".a77");
+					dataFileURL = URLFactory.url(MGD77_DATA_LDEO + leg + ".a77");
 				}
 				else if ( inputLoadedControlFile.compareTo( "NGDC" ) == 0 ) {
-					dataFileURL = haxby.util.URLFactory.url(MGD77_DATA_NGDC + leg + ".a77");
+					dataFileURL = URLFactory.url(MGD77_DATA_NGDC + leg + ".a77");
 				}
 				else if ( inputLoadedControlFile.compareTo( "USAP" ) == 0 ) { //ADGRAV
-					dataFileURL = haxby.util.URLFactory.url(MGD77_DATA_ADGRAV + leg + ".a77");
+					dataFileURL = URLFactory.url(MGD77_DATA_ADGRAV + leg + ".a77");
 				}
 				else if ( inputLoadedControlFile.compareTo( "SIOExplorer" ) == 0 ) {
-					dataFileURL = haxby.util.URLFactory.url(MGD77_DATA_SIO + leg + ".a77");
+					dataFileURL = URLFactory.url(MGD77_DATA_SIO + leg + ".a77");
 				}
 				if ( dataFileURL != null) {
+					
+					//look for a77 file, if not found, see if there is a m77t file
+					if (!URLFactory.checkWorkingURL(dataFileURL)) {
+						String m77tFile = dataFileURL.toString().replaceAll(".a77", ".m77t");
+						dataFileURL = URLFactory.url(m77tFile);
+						isM77T = URLFactory.checkWorkingURL(dataFileURL);
+					}
+					
 					try {
 						inDataFile = new BufferedReader( new InputStreamReader( dataFileURL.openStream() ) );
 						legFound = true;
@@ -736,6 +755,13 @@ public class MGGData implements Overlay,
 		}
 		
 //		1.4.4: Parse the MGD-77 file and load it into data structure
+		if (isM77T) {
+			return loadFromM77TFile(map, leg, inDataFile);
+		}
+		return loadFromA77File(map, leg, inDataFile);
+	}
+	
+	static MGGData loadFromA77File(XMap map, String leg, BufferedReader inDataFile) throws IOException {
 		String s;
 		double[] lon = new double[5000];
 		double[] lat = new double[5000];
@@ -861,7 +887,150 @@ public class MGGData implements Overlay,
 		MGGData data = new MGGData( map, leg, lon, lat, topo, grav, mag);
 		return data;
 	}
+	
+	static MGGData loadFromM77TFile(XMap map, String leg, BufferedReader inDataFile) throws IOException {
+		String s;
+		ArrayList<Double> lon = new ArrayList<Double>();
+		ArrayList<Double> lat = new ArrayList<Double>();
+		ArrayList<Float> topo = new ArrayList<Float>();
+		ArrayList<Float> grav = new ArrayList<Float>();
+		ArrayList<Float> mag = new ArrayList<Float>();
 
+		int nt=0;
+		int ng=0;
+		int nm=0;
+		String temp = "";
+		boolean dataPresent = false;
+		while ( ( s = inDataFile.readLine() ) != null ) { // reading in the .a77 files
+			// split the line up into its tab-delimited elements
+			String[] elements = s.split("\t");
+
+			// check for header lines by seeing if column 2 can be parsed as an
+			// int
+			try {
+				Integer.parseInt(elements[MGD77T_DATE_FIELD]);
+			} catch (Exception e) {
+				continue;
+			}
+
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+
+			// get the date field data and split in to year, month and day
+			String tempDate = elements[MGD77T_DATE_FIELD];
+
+			int val = Integer.parseInt(tempDate.substring(0, 4));
+			if (val > 90 && val < 1000) {
+				val += 1900;
+			} else if (val < 25 && val > -1) {
+				val += 2000;
+			}
+			cal.set(Calendar.YEAR, val);
+			val = Integer.parseInt(tempDate.substring(4, 6));
+			cal.set(Calendar.MONTH, val - 1);
+			val = Integer.parseInt(tempDate.substring(6, 8));
+			cal.set(Calendar.DAY_OF_MONTH, val);
+
+			// get the time field and split in to hours, minutes and seconds
+			String tempTime = elements[MGD77T_TIME_FIELD];
+			val = Integer.parseInt(tempTime.substring(0, 2));
+			cal.set(Calendar.HOUR_OF_DAY, val);
+			val = Integer.parseInt(tempTime.substring(2, 4));
+			cal.set(Calendar.MINUTE, val);
+			if (tempTime.contains(".")) {
+				float decSec = Float.parseFloat(tempTime.substring(tempTime.indexOf(".")));
+				cal.set(Calendar.SECOND, (int) (decSec * 60));
+			} else
+				cal.set(Calendar.SECOND, 0);
+
+			// get the lat and lon fields
+			try {
+				temp = elements[MGD77T_LON_FIELD];
+				Double this_lon = Double.parseDouble(temp);
+				dataPresent = true;
+				if (this_lon < 0) {
+					this_lon += 360.;
+				}
+				lon.add(this_lon);
+				temp = "";
+
+				temp = elements[MGD77T_LAT_FIELD];
+				lat.add(Double.parseDouble(temp));
+				temp = "";
+			} catch (Exception ex) {
+				continue;
+			}
+
+			// get any bathymetry data. If none, for this row, add a NaN.
+			dataPresent = false;
+			float this_topo = Float.NaN;
+			try {
+				temp = elements[MGD77T_BATHY_FIELD];
+				this_topo = -1 * Float.parseFloat(temp);
+				dataPresent = true;
+
+				temp = "";
+				if (!Float.isNaN(this_topo) && dataPresent)
+					nt++;
+				else {
+					this_topo = Float.NaN;
+				}
+			} catch (Exception ex) {
+				this_topo = Float.NaN;
+			}
+			topo.add(this_topo);
+			
+			// get any magnetic data. If none, for this row, add a NaN.
+			dataPresent = false;
+			float this_mag = Float.NaN;
+			try {
+				temp = elements[MGD77T_MAGNETICS_FIELD];
+				this_mag = Float.parseFloat(temp);
+				dataPresent = true;
+
+				temp = "";
+				if (!Float.isNaN(this_mag) && dataPresent)
+					nm++;
+				else {
+					this_mag = Float.NaN;
+				}
+			} catch (Exception ex) {
+				this_mag = Float.NaN;
+			}
+			mag.add(this_mag);
+
+			// get any gravity data. If none, for this row, add a NaN.
+			dataPresent = false;
+			float this_grav = Float.NaN;
+			try {
+				temp = elements[MGD77T_GRAVITY_FIELD];
+				this_grav = Float.parseFloat(temp);
+				dataPresent = true;
+
+				temp = "";
+				if (!Float.isNaN(this_grav) && dataPresent)
+					ng++;
+				else {
+					this_grav = Float.NaN;
+				}
+			} catch (Exception ex) {
+				this_grav = Float.NaN;
+			}
+			grav.add(this_grav);
+			
+
+		}
+		if( nt==0 && ng==0 && nm==0 ) throw new IOException("no data in leg "+leg);
+		if(nt==0) topo=null;
+		if(ng==0) grav=null;
+		if(nm==0) mag=null;
+		System.out.println(nt +"\t"+ ng +"\t"+ nm);
+		
+		//create the MGDData structure (need to convert the arrayLists to arrays first)
+		MGGData data = new MGGData( map, leg, GeneralUtils.arrayList2doubles(lon), GeneralUtils.arrayList2doubles(lat),
+				GeneralUtils.arrayList2floats(topo), GeneralUtils.arrayList2floats(grav), GeneralUtils.arrayList2floats(mag));
+		return data;
+	}
+	
 //	***** GMA 1.6.2: Functions to display the pop-up menu and copy the MGG data for 
 //	the current point to the clipboard.
 	public void tryPopUp(MouseEvent evt){

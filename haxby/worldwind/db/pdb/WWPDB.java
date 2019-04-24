@@ -270,18 +270,16 @@ public class WWPDB extends PDB implements WWOverlay,
 					copyToClipboard(getSelectionData()); 
 					break;
 				case 2: // Save ASCII
-					saveAsASCII(getTableData());
+					saveAsASCII("all");
 					break;
 				case 3: // Save xls
-					saveAsExcel(getTableData());
+					saveAsExcel("all");
 					break;
 				case 4: // Save Selected ASCII
-					Iterator it = getSelectionData(); 
-					saveAsASCII(it);
+					saveAsASCII("selection");
 					break;
 				case 5: // Save Selected Excel
-					it = getSelectionData();
-					saveAsExcel(it);
+					saveAsExcel("all");
 					break;
 				default:
 					break;

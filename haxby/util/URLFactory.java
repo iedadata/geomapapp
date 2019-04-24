@@ -70,4 +70,8 @@ public class URLFactory {
 		}
 		return false;
 	}
+
+	public static boolean checkWorkingURL(URL url) {
+		return checkWorkingURL(url.toString());
+	}
 }

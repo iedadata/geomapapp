@@ -1108,13 +1108,6 @@ public class DBInputDialog extends JDialog implements ActionListener,
 		if ( input != null ) {
 			input.setDocument( new PlainDocument() );
 		}
-
-		try {
-			final Field field = Dialog.class.getDeclaredField("modalDialogs");
-			field.setAccessible(true);
-			final List<?> list = (List<?>) field.get(null);
-			list.remove(this);
-		} catch (final Exception ex) {}
 	}
 	
 	public String getPath() {

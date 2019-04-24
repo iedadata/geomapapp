@@ -1893,6 +1893,7 @@ public class UnknownDataSet implements MouseListener,
 						out.write("\n");
 					}
 					out.close();
+					MapApp.sendLogMessage("Saving_or_Downloading&table="+desc.name.replace("Data Table: ", "")+"&saveOption="+saveOption+"&fmt=ascii");
 				} catch(Exception ex) {
 					JOptionPane.showMessageDialog(map.getTopLevelAncestor(),
 							"an error occurred during this operation:\t"
@@ -1955,6 +1956,7 @@ public class UnknownDataSet implements MouseListener,
 					}
 					wb.write();
 					wb.close();
+					MapApp.sendLogMessage("Saving_or_Downloading&table="+desc.name.replace("Data Table: ", "")+"&saveOption="+saveOption+"&fmt=excel");
 				} catch(Exception ex) {
 					JOptionPane.showMessageDialog(map.getTopLevelAncestor(),
 							"an error occurred during this operation:\t"
@@ -2034,6 +2036,7 @@ public class UnknownDataSet implements MouseListener,
 						xlsxWB.write(xlsxOut);
 						xlsxOut.close();
 						xlsxWB.close();
+						MapApp.sendLogMessage("Saving_or_Downloading&table="+desc.name.replace("Data Table: ", "")+"&saveOption="+saveOption+"&fmt=excelxlsx");
 					}
 				} catch(Exception ex) {
 					JOptionPane.showMessageDialog(map.getTopLevelAncestor(),
@@ -2068,6 +2071,7 @@ public class UnknownDataSet implements MouseListener,
 				return ind.length;
 			}
 		});
+		MapApp.sendLogMessage("Saving_or_Downloading&table="+desc.name.replace("Data Table: ", "")+"&saveOption="+saveOption+"&fmt=kml");
 	}
 
 	public void bookmark(){

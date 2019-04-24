@@ -56,7 +56,6 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -76,8 +75,9 @@ import javax.swing.event.MouseInputAdapter;
 import org.geomapapp.geom.XYZ;
 import org.geomapapp.gis.shape.ESRIShapefile;
 import org.geomapapp.grid.Grid2DOverlay;
-import org.geomapapp.grid.GridDialog;
 
+import haxby.db.mb.PreviewCruise.CruiseGridViewer;
+import haxby.db.mb.PreviewGrids.GridViewer;
 import haxby.map.MapApp;
 import haxby.map.Overlay;
 import haxby.map.XMap;
@@ -122,6 +122,7 @@ public class GMAProfile implements Overlay, XYPoints {
 				degreesOrMinutes;
 	JRadioButton standardUnits,
 					metricUnits;
+	JToggleButton multiPlotBtn = new JToggleButton();
 	JLabel xScaleLabel;
 	JLabel[] yScaleLabels;
 	JTextField[] verticalExgTs;
@@ -361,15 +362,16 @@ public class GMAProfile implements Overlay, XYPoints {
 		}
 
 		if (gridsToPlot.size() > 0) grid = gridsToPlot.get(0);
-		
-		if(graphs==null ) {
-			graphs = new ArrayList<XYGraph>();
-			
-			for( int k=0 ; k<gridsToPlot.size() ; k++) {
-				GMAProfile newPoints = getNewPoints(gridsToPlot.get(k));
-				if (newPoints == null) continue;
-				graph = new XYGraph(newPoints, gridsToPlot.size() - k - 1);
 
+		if (multiPlotBtn.isSelected()) {
+			if (graphs == null) {
+				graphs = new ArrayList<XYGraph>();
+				GMAProfile[] newPoints = new GMAProfile[gridsToPlot.size()]; 
+				
+				for( int k=0 ; k<gridsToPlot.size() ; k++) {
+					newPoints[k] = getNewPoints(gridsToPlot.get(k));
+				}
+				graph = new XYMultiGraph(newPoints, 0);
 				graph.setAxesSides( Axes.LEFT | Axes.BOTTOM );
 				graph.addMouseMotionListener(new MouseMotionAdapter() {
 					public void mouseMoved(MouseEvent e) {
@@ -390,43 +392,85 @@ public class GMAProfile implements Overlay, XYPoints {
 				Zoomer z = new Zoomer(graph);
 				graph.addMouseListener(z);
 				graph.addKeyListener(z);
-				graphs.add(graph);
-			}
-			
-			//if not all gridsToPlot are fully loaded, reset to prevGrids
-			if (graphs.size() != gridsToPlot.size()) {
-				gridsToPlot = prevGrids;
-			}
-
-			dialog = new JFrame("Profile");
-			dialog.setDefaultCloseOperation( dialog.HIDE_ON_CLOSE);
-			dialog.addWindowListener(new WindowAdapter() {
-				public void windowClosing(WindowEvent e) {
-					path = null;
-					map.repaint();
+				graphs.add((XYMultiGraph) graph);
+			} else {
+				GMAProfile[] points = (GMAProfile[]) ((XYMultiGraph)graph).xyArray;
+				for (int i=0; i<gridsToPlot.size(); i++) {
+					if (autoYs[i].isSelected()) {
+						points[i] = getNewPoints(gridsToPlot.get(i));
+					}
 				}
-			});
-			graphPanel = new JPanel();
-			graphPanel.setLayout(new GridLayout(graphs.size(),1));
-			for (XYGraph plotGraph : graphs) {
-				if (plotGraph != null) graphPanel.add(plotGraph);
+				((XYMultiGraph)graph).setPoints(points, 0);
 			}
-			
-			dialog.getContentPane().add( graphPanel, "Center" );
-			dialog.getContentPane().add( getTools(), "North" );
-			dialog.pack();
-//			dialog.setSize(650, 870);
-			dialog.setSize(650, 170 + graphPanel.getHeight());
-
-		} else {
-			for (int i=0; i<graphs.size(); i++) {
-				if (autoYs[i].isSelected()) {
-					GMAProfile newPoints = getNewPoints(gridsToPlot.get(i));
-					graphs.get(i).setPoints(newPoints, 0);
-				}
-			}
-		}
+		} else {		
+			if(graphs==null ) {
+				graphs = new ArrayList<XYGraph>();
 				
+				for( int k=0 ; k<gridsToPlot.size() ; k++) {
+					GMAProfile newPoints = getNewPoints(gridsToPlot.get(k));
+					if (newPoints == null) continue;
+					graph = new XYGraph(newPoints, 0);
+	
+					graph.setAxesSides( Axes.LEFT | Axes.BOTTOM );
+					graph.addMouseMotionListener(new MouseMotionAdapter() {
+						public void mouseMoved(MouseEvent e) {
+							setLoc( e );
+						}
+					});
+					graph.addMouseListener(new MouseAdapter() {
+						public void mouseClicked(MouseEvent e) {
+							if( e.isControlDown() )return;
+							recenter( e );
+						}
+						public void mouseExited(MouseEvent e) {
+							drawArc(null);
+							arc = null;
+							arc2 = null;
+						}
+					});
+					Zoomer z = new Zoomer(graph);
+					graph.addMouseListener(z);
+					graph.addKeyListener(z);
+					graphs.add(graph);
+				}
+				
+				//if not all gridsToPlot are fully loaded, reset to prevGrids
+				if (graphs.size() != gridsToPlot.size()) {
+					gridsToPlot = prevGrids;
+				}
+				if (dialog == null || !dialog.isVisible()) {
+					dialog = new JFrame("Profile");
+					dialog.setDefaultCloseOperation( dialog.HIDE_ON_CLOSE);
+					dialog.addWindowListener(new WindowAdapter() {
+						public void windowClosing(WindowEvent e) {
+							multiPlotBtn.setSelected(false);
+							graphs = null;
+							path = null;
+							map.repaint();
+						}
+					});
+					graphPanel = new JPanel();
+					graphPanel.setLayout(new GridLayout(graphs.size(),1));
+					for (XYGraph plotGraph : graphs) {
+						if (plotGraph != null) graphPanel.add(plotGraph);
+					}
+					
+					dialog.getContentPane().add( graphPanel, "Center" );
+					dialog.getContentPane().add( getTools(), "North" );
+					dialog.pack();
+		//			dialog.setSize(650, 870);
+					dialog.setSize(650, 170 + graphPanel.getHeight());
+				}
+	
+			} else {
+				for (int i=0; i<graphs.size(); i++) {
+					if (autoYs[i].isSelected()) {
+						GMAProfile newPoints = getNewPoints(gridsToPlot.get(i));
+						graphs.get(i).setPoints(newPoints, 0);
+					}
+				}
+			}
+		}	
 		if(!dialog.isVisible())dialog.setVisible(true);
 
 		int dpi = Toolkit.getDefaultToolkit().getScreenResolution();
@@ -434,6 +478,7 @@ public class GMAProfile implements Overlay, XYPoints {
 		xScaleT.setText(""+ fmt.format(dpi/graph.xScale));
 		double xExg = 1000*(dpi/graph.xScale);
 		double yExg, vExg;
+
 		for (int i=0; i<graphs.size(); i++) {
 			graphs.get(i).repaint();
 			yScaleTs[i].setText(""+ (fmt.format((-1)*dpi/graphs.get(i).yScale)));
@@ -564,13 +609,24 @@ public class GMAProfile implements Overlay, XYPoints {
 			thisGraph.xRange[0] -= x;
 			thisGraph.xRange[1] -= x;
 			
-			Vector<float[]> thisXyz = ((GMAProfile)thisGraph.xy).xyz;
-			
-			for( int k=0 ; k<thisXyz.size() ; k++) {
-				float[] xy = (float[])thisXyz.get(k);
-				xy[index] -= (float)x;
+			if (this.multiPlotBtn.isSelected()) {
+				for (XYPoints thisXy : ((XYMultiGraph)thisGraph).xyArray) {
+					Vector<float[]> thisXyz = ((GMAProfile)thisXy).xyz;
+					
+					for( int k=0 ; k<thisXyz.size() ; k++) {
+						float[] xy = (float[])thisXyz.get(k);
+						xy[index] -= (float)x;
+					}
+				}
+				
+			} else {
+				Vector<float[]> thisXyz = ((GMAProfile)thisGraph.xy).xyz;
+				
+				for( int k=0 ; k<thisXyz.size() ; k++) {
+					float[] xy = (float[])thisXyz.get(k);
+					xy[index] -= (float)x;
+				}
 			}
-			
 			thisGraph.repaint();
 		}
 	}
@@ -621,7 +677,6 @@ public class GMAProfile implements Overlay, XYPoints {
 		drawArc(null);
 		arc = null;
 		arc2 = null;
-
 		xyz  = ((GMAProfile)graphs.get(0).xy).xyz; 
 		if( xyz==null || xyz.size()<2 )return;
 		float x = (float)graph.getXAt( e.getPoint() );
@@ -786,6 +841,7 @@ public class GMAProfile implements Overlay, XYPoints {
 	public double getPreferredYScale(int dataIndex) {
 		return yScale;
 	}
+	
 	public void plotXY( Graphics2D g,
 				Rectangle2D bounds,
 				double xScale, double yScale,
@@ -800,6 +856,7 @@ public class GMAProfile implements Overlay, XYPoints {
 		int k1, k2;
 		k1 = 0;
 		k2 = -1;
+		Color[] colors = {Color.BLACK, Color.RED, Color.BLUE, Color.GREEN};
 		
 		//If the profile doesn't cross the active grid, display a message in the plot
 		if( getNumValidZ() == 0) {
@@ -809,7 +866,7 @@ public class GMAProfile implements Overlay, XYPoints {
 			//add the grid name in the lower left corner
 			g.setColor( Color.black );
 			font = new Font("TimesRoman", Font.BOLD, 15); 
-			GeneralUtils.drawLowerLeftString(g, gridName, bounds, font, xScale, yScale, true);
+			GeneralUtils.drawLowerLeftString(g, gridName, bounds, font, xScale, yScale, true, dataIndex);
 			return;
 		}
 
@@ -841,14 +898,28 @@ public class GMAProfile implements Overlay, XYPoints {
 		g.setColor( Color.white );
 		g.setStroke( new BasicStroke(4f)); // Background white shadow to graph values
 		g.draw(path);
-		g.setColor( Color.black );
-		g.setStroke( new BasicStroke(2f)); // Black 2 stroke to graph values
+		g.setColor( colors[dataIndex] );
+		g.setStroke( new BasicStroke(2f)); 
 		g.draw(path);
 		
 		//add the grid name in the lower left corner
 		Font font = new Font("TimesRoman", Font.BOLD, 15); 
-		GeneralUtils.drawLowerLeftString(g, gridName, bounds, font, xScale, yScale, true);
+		GeneralUtils.drawLowerLeftString(g, gridName, bounds, font, xScale, yScale, true, dataIndex);
 	}
+
+	/*
+	 * Return whether the multiplot button should be displayed
+	 * For now, this is only available when looking at the development
+	 * and GMRT released grid using PreviewGrids of PreviewCruise
+	 */
+	public Boolean isMultiPlot() {
+		int count = 0;
+		for (Grid2DOverlay thisGrid : gridsToPlot) {
+			if (thisGrid instanceof CruiseGridViewer || thisGrid instanceof GridViewer ) count ++;
+		}
+		return (count >= 1);
+	}
+	
 	
 	/*
 	 * Return the number of non-NaN z-values
@@ -1310,8 +1381,40 @@ public class GMAProfile implements Overlay, XYPoints {
 
 			panel.add(thisYPanel);
 			
-		}
+			
 
+		}
+		if (isMultiPlot()) {
+			JPanel multiPlotPanel = new JPanel(new FlowLayout( FlowLayout.LEFT, 10, 2));
+			multiPlotBtn.setText("Plot on one graph");
+			multiPlotBtn.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent e){
+					int nGraphs = 1;
+					graphs = null;
+					doProfile( (Line2D.Double)line);
+					
+					if (multiPlotBtn.isSelected()) {
+						multiPlotBtn.setText("Plot on separate graphs");
+					} else {
+						multiPlotBtn.setText("Plot on one graph");
+						nGraphs = graphs.size();
+					}
+
+					dialog.remove(graphPanel);
+					graphPanel = new JPanel();
+					graphPanel.setLayout(new GridLayout(nGraphs, 1));
+					for (XYGraph plotGraph : graphs) {
+						if (plotGraph != null) graphPanel.add(plotGraph);
+					}
+					dialog.getContentPane().add( graphPanel, "Center" );
+					dialog.pack();
+					dialog.setSize(650, 170 + graphPanel.getHeight());
+				}
+			});
+		
+			multiPlotPanel.add(multiPlotBtn);
+			panel.add(multiPlotPanel);
+		}
 
 
 

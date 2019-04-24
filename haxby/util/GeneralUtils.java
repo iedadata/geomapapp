@@ -507,6 +507,10 @@ public class GeneralUtils {
 	 * @param yScale
 	 */
 	public static void drawLowerLeftString(Graphics g, String text, Rectangle2D rect, Font font, double xScale, double yScale, boolean whiteBox) {
+		drawLowerLeftString(g, text, rect, font, xScale, yScale, whiteBox, 0);
+	}
+	
+	public static void drawLowerLeftString(Graphics g, String text, Rectangle2D rect, Font font, double xScale, double yScale, boolean whiteBox, int lineNum) {
 		// Get the original font
 		Font oldFont = g.getFont();
 	    // Get the FontMetrics
@@ -515,6 +519,8 @@ public class GeneralUtils {
 	    int x = 10;
 	    // Determine the Y coordinate for the text (note we add the ascent, as in java 2d 0 is top of the screen)
 	    int y = (int) ((rect.getHeight() * yScale - metrics.getHeight()) ) + metrics.getAscent() - 5;
+	    // If this is not the first line, draw the string above the existing string
+	    y -= (metrics.getHeight() + 5) * lineNum;
 	    // Set the font
 	    Graphics2D g2 = (Graphics2D) g;
 	    g2.setFont(font);

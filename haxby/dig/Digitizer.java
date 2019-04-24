@@ -1,15 +1,31 @@
 package haxby.dig;
 
-import haxby.util.*;
-import haxby.map.*;
-import haxby.image.*;
+import java.awt.Graphics2D;
+import java.awt.Insets;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.geom.AffineTransform;
+import java.util.Vector;
 
-import java.awt.*;
-import java.awt.geom.*;
-import java.awt.event.*;
-import java.util.*;
-import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.Box;
+import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
+import javax.swing.JList;
+import javax.swing.JToggleButton;
+import javax.swing.SwingUtilities;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
+import haxby.image.Icons;
+import haxby.map.Overlay;
+import haxby.util.ScaledComponent;
 
 public class Digitizer implements Overlay,
 				MouseListener,
@@ -29,7 +45,7 @@ public class Digitizer implements Overlay,
 //	JPanel tools;
 	Box tools;
 	ButtonGroup buttonGroup;
-	JToggleButton selectB;
+	JToggleButton selectB, digB, annotB;
 	int mode;
 
 	public Digitizer( ScaledComponent map ) {
@@ -57,6 +73,15 @@ public class Digitizer implements Overlay,
 	public JToggleButton getSelectB() {
 		return selectB;
 	}
+	
+	public JToggleButton getDigB() {
+		return digB;
+	}
+	
+	public JToggleButton getAnnotB() {
+		return annotB;
+	}
+	
 	void initTools() {
 	//	tools = new JPanel( new GridLayout(1, 0 ));
 		tools = Box.createHorizontalBox();
@@ -109,6 +134,7 @@ public class Digitizer implements Overlay,
 				icon = Icons.getIcon(Icons.SEGMENTS, true);
 				tb.setSelectedIcon( icon );
 				tb.setToolTipText("Digitize a Reflector");
+				digB = tb;
 			}
 			else if( clas.equals(Class.forName("haxby.dig.AnnotationObject")) ) {
 				ImageIcon icon = Icons.getIcon(Icons.ANNOTATION, false);
@@ -116,6 +142,7 @@ public class Digitizer implements Overlay,
 				icon = Icons.getIcon(Icons.ANNOTATION, true);
 				tb.setSelectedIcon( icon );
 				tb.setToolTipText("Add Text Annotation");
+				annotB = tb;
 			} 
 			else {
 				java.lang.reflect.Field field = clas.getField( "ICON" );
@@ -208,6 +235,8 @@ public class Digitizer implements Overlay,
 		if(this.selectB.isSelected() == false)
 			return;
 
+		if (SwingUtilities.isRightMouseButton(evt)) return;
+		
 		if( evt.getSource()==objectList ) {
 			if( objects.size()==0 || evt.getX()>16 ) return;
 			try {
@@ -371,5 +400,31 @@ public class Digitizer implements Overlay,
 		}
 		model.contentsChanged();
 		map.repaint();
+	}
+	public void deleteLastObject() {
+		//this version called by Delete Last Horizon
+		deleteLastObject(true);
+	}
+	
+	public void deleteLastObject(boolean createNew) {
+		//create New = false if called by Delete Last Pick, when no more picks left in line
+		currentObject.finish();
+		//if the currentObject has no points, get rid of that one, then get rid of the new Object
+		if (currentObject instanceof LineSegmentsObject && ((LineSegmentsObject)currentObject).getPoints().size() == 0) {
+			objects.remove(currentObject);
+			model.objectRemoved();
+			if (objects.size() > 0) currentObject = (DigitizerObject) objects.lastElement();	
+		}
+		if (createNew) {
+			objects.remove(currentObject);
+			model.objectRemoved();
+			digB.doClick(); // this will create a new current object
+		}
+		map.repaint();
+		
+	}
+	
+	public void setCurrentObject(DigitizerObject obj) {
+		currentObject = obj;
 	}
 }

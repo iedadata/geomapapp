@@ -29,6 +29,7 @@ public class LineSegmentsObject
 	Color lastColor, lastFill;
 	BasicStroke stroke;
 	boolean selected;
+	boolean showPoints;
 	long when;
 	int currentPoint;
 	double currentOffset = 0.;
@@ -223,9 +224,14 @@ public class LineSegmentsObject
 	public boolean isSelected() {
 		return selected;
 	}
+	
+	public void setShowPoints (boolean tf) {
+		showPoints = tf;
+	}
+	
 	public void draw( Graphics2D g, double[] scales, Rectangle bounds ) {
 		editShape=null;
-		if( !visible || points.size()<=1 ) return;
+		if (!visible || points.size() == 0) return;
 		g.setStroke( stroke );
 		GeneralPath path = new GeneralPath();
 		double[] xyz = (double[])points.get(0);
@@ -233,12 +239,15 @@ public class LineSegmentsObject
 		double max = xyz[1]*scales[1];
 		path.moveTo( (float)min, (float)max );
 		GeneralPath path1 = new GeneralPath();
-		double dx = 2.;
-		double dy = 2.;
+		double dx = 2.5;
+		double dy = 2.5;
+		if (showPoints) {
+			dx = dy = 3.0;
+		}
 		double x, y;
 		x = xyz[0]*scales[0];
 		y = xyz[1]*scales[1];
-		if( selected ) path1.append( new Rectangle2D.Double( x-dx, y-dy, 2*dx, 2*dy), false);
+		if( selected || showPoints) path1.append( new Rectangle2D.Double( x-dx, y-dy, 2*dx, 2*dy), false);
 		for(int i=1 ; i<points.size() ; i++) {
 			xyz = (double[])points.get(i);
 			x = xyz[0]*scales[0];
@@ -246,7 +255,7 @@ public class LineSegmentsObject
 			if( x>max ) max=x;
 			else if( x<min ) min=x;
 			path.lineTo( (float)x, (float)y );
-			if( selected ) path1.append( new Rectangle2D.Double( x-dx, y-dx, 2*dx, 2*dx), false);
+			if( selected || showPoints) path1.append( new Rectangle2D.Double( x-dx, y-dx, 2*dx, 2*dx), false);
 		}
 		double wrap = this.wrap * scales[0];
 		wrap = 0;
@@ -279,25 +288,47 @@ public class LineSegmentsObject
 				g.draw( path );
 			}
 		}
-		if( !selected ) return;
-		g.setXORMode( Color.white );
-		g.setStroke( new BasicStroke( 1f ));
-		if( wrap>0. ) {
-			AffineTransform at = g.getTransform();
-			double offset = 0.;
-			while( min+offset>bounds.getX() ) offset -= wrap;
-			while( max+offset< bounds.getX() ) offset += wrap;
-			g.translate( offset, 0.);
-			while( min+offset < bounds.getX()+bounds.getWidth() ) {
+		
+		if(selected ) {
+			g.setColor(Color.WHITE);
+			g.setStroke( new BasicStroke( 1f ));
+			if( wrap>0. ) {
+				AffineTransform at = g.getTransform();
+				double offset = 0.;
+				while( min+offset>bounds.getX() ) offset -= wrap;
+				while( max+offset< bounds.getX() ) offset += wrap;
+				g.translate( offset, 0.);
+				while( min+offset < bounds.getX()+bounds.getWidth() ) {
+					g.draw( path );
+					//g.draw( path1 );
+					offset += wrap;
+					g.translate( wrap, 0.);
+				}
+				g.setTransform( at);
+			} else {
 				g.draw( path );
-				g.draw( path1 );
-				offset += wrap;
-				g.translate( wrap, 0.);
+				//g.draw( path1 );
 			}
-			g.setTransform( at);
-		} else {
-			g.draw( path );
-			g.draw( path1 );
+		}
+		
+		if (selected || showPoints) {
+			g.setColor(Color.red);
+			g.setStroke( new BasicStroke( 3f ));
+			if( wrap>0. ) {
+				AffineTransform at = g.getTransform();
+				double offset = 0.;
+				while( min+offset>bounds.getX() ) offset -= wrap;
+				while( max+offset< bounds.getX() ) offset += wrap;
+				g.translate( offset, 0.);
+				while( min+offset < bounds.getX()+bounds.getWidth() ) {
+					g.draw( path1 );
+					offset += wrap;
+					g.translate( wrap, 0.);
+				}
+				g.setTransform( at);
+			} else {
+				g.draw( path1 );
+			}
 		}
 		g.setPaintMode();
 	}
@@ -363,6 +394,7 @@ public class LineSegmentsObject
 	}
 	public void mouseClicked( MouseEvent evt ) {
 		if(!active || evt.isControlDown())return;
+		if (SwingUtilities.isRightMouseButton(evt)) return;
 		drawEdit();
 		Point2D.Double p = (Point2D.Double)map.getScaledPoint( evt.getPoint() );
 		if( points.size()>0 ) {

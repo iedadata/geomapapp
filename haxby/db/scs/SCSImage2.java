@@ -2,6 +2,7 @@ package haxby.db.scs;
 
 import haxby.dig.AnnotationObject;
 import haxby.dig.Digitizer;
+import haxby.dig.DigitizerObject;
 import haxby.dig.LineSegmentsObject;
 import haxby.dig.LineType;
 import haxby.image.Icons;
@@ -120,7 +121,7 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 
 	public SCSImage2(SCS scs) {
 //		***** GMA 1.6.2: Tool tip text
-		setToolTipText("Right-click to digitize");
+		setToolTipText("Right-click for menu");
 //		***** GMA 1.6.2
 		
 		this.scs = scs;
@@ -133,10 +134,22 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 //		***** GMA 1.6.2: Add a pop-up menu that appears when a right-click occurs to allow the user 
 //		to record the data for a particular point along the selected SCS leg.
 		pm = new JPopupMenu();
-		JMenuItem mi = new JMenuItem("Copy Information to Clipboard");
+		JMenuItem mi = new JMenuItem("Copy Information at this Mouse Location to Clipboard");
 		mi.setActionCommand("copy");
 		mi.addActionListener(this);
 		pm.add(mi);
+		JMenuItem mi2 = new JMenuItem("Delete Last Horizon");
+		mi2.setActionCommand("deleteLastHorizon");
+		mi2.addActionListener(this);
+		pm.add(mi2);
+		JMenuItem mi3 = new JMenuItem("Delete Last Pick");
+		mi3.setActionCommand("deleteLastPick");
+		mi3.addActionListener(this);
+		pm.add(mi3);
+		JMenuItem mi4 = new JMenuItem("Name Selected Horizon");
+		mi4.setActionCommand("nameHorizon");
+		mi4.addActionListener(this);
+		pm.add(mi4);
 //		***** GMA 1.6.2
 		zoomer = new Zoomer(this);
 
@@ -270,7 +283,7 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 							}
 							if( i==types.size() ) {
 								type = (LineType)types.get(0);
-								line.setName( type.name );
+								//line.setName( type.name );
 							}
 							line.setColor( type.color );
 							line.setStroke( type.stroke );
@@ -284,9 +297,12 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 								points.add( new double[] {x, y, 0.} );
 							}
 							line.setPoints( points );
+							line.setColor(Color.GREEN);
+							line.setShowPoints(true);
 							objects.add( line );
 						}
 						in.close();
+						dig.setCurrentObject((DigitizerObject) objects.lastElement());
 					} catch (Exception ex ) {
 						ex.printStackTrace();
 						try {
@@ -450,7 +466,16 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 			PrintStream out = new PrintStream(
 					new FileOutputStream( file ));
 		out.println( cruise.name +"\t"+ cruise.nav.getStart() +"\t"+ cruise.nav.getEnd() );
-			out.println( "cruise time (unix secs)\tlongitude\tlatitude\ttwo-way-time");
+			out.println( "cruise_time(unix_secs)\t"
+					+ "longitude\t"
+					+ "latitude\t"
+					+ "digitized_point_twtt(s)\t"
+					+ "distance_from_start(km)\t"
+					+ "PDR_seafloor_depth(m)\t"
+					+ "seafloor_age(Ma)\t"
+					+ "digitized_point_depth(m)\t"
+					+ "thickness(m)\t"
+					+ "backtrack_depth(m)");
 			Vector objects = dig.getObjects();
 			Vector points;
 			double[] xy, lonlat;
@@ -464,19 +489,71 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 					out.println(">\t" + obj.toString() +"\t"+ points.size() );
 				}
 				if( points.size()==0 ) continue;
-				int tdindex=0;
+			
+				NumberFormat fmt = NumberFormat.getInstance();
 				for( int i=0 ; i<points.size() ; i++ ) {
 					NumberFormat latLonFormat = NumberFormat.getInstance();
 					latLonFormat.setMaximumFractionDigits(6);
 					latLonFormat.setMinimumFractionDigits(6);
+					
 					xy = (double[])points.get(i);
-					double t = timeAtX( xy[0] );
+					double x = xy[0];
+					double y = xy[1];
+					
+					long t = (long)timeAtX( x );
 					lonlat = cruise.xyAtTime( t );
-					out.println( t +"\t"+ latLonFormat.format(lonlat[0]) +"\t"+ latLonFormat.format(lonlat[1]) 
-							+"\t"+ (xy[1]*.0075) );
+
+					double[] newAgeDepth = new double[2];
+					newAgeDepth = ageDepthAtTime((int)t);
+					double age = newAgeDepth[0];
+					double sfDepthms = newAgeDepth[1];
+					double sfDepthM = sfDepthms * (SOUND_VELOCITY_WATER / 2000.0);
+					double sfDepthSec = sfDepthms / 1000;
+					double cursorDepthM = 0.75 * 7.5 * y;
+					double cursorDepthSec = 0.0075 * y;
+					double sedThicknessM = 0;
+					double sedThicknessSec = 0;
+					double backTrackedDepthM = 0;
+
+					if (cursorDepthSec > sfDepthSec)	{
+						sedThicknessSec = cursorDepthSec - sfDepthSec;
+						sedThicknessM = sedThicknessSec * (SOUND_VELOCITY_SEDIMENT / 2.0);
+						backTrackedDepthM = cursorDepthM - B_COEFF * Math.sqrt(age) - (sedThicknessM / 2.0);
+					}
+					
+					String xPos = Double.toString(x*0.1852);
+					if ( xPos.indexOf(".") != -1 ) {
+						xPos = xPos.substring(0,xPos.indexOf("."));
+					}
+					String line = t +"\t"+ 
+								  latLonFormat.format(lonlat[0]) +"\t"+ 
+								  latLonFormat.format(lonlat[1]) +"\t"+
+								  fmt.format(cursorDepthSec) + "\t" +
+								  xPos +"\t";
+					if (sfDepthms >=0 ) {
+						line += fmt.format((int)sfDepthM).replace(",", "");
+					}
+					line += "\t";
+					
+					if (age >= 0) {
+						line += fmt.format(age);
+					}
+					line += "\t" + 
+							fmt.format((int)cursorDepthM).replace(",", "") +"\t";
+					
+					if ( sfDepthms >= 0 && sedThicknessM > 1 )	{
+						line += fmt.format((int)sedThicknessM).replace(",", "");
+					}
+					line += "\t";
+					
+					if (age >= 0 && sedThicknessM > 10) {
+						line += fmt.format((int)backTrackedDepthM).replace(",", "");
+					}
+					out.println(line);																		
 				}
 			}
 			out.close();
+			MapApp.sendLogMessage("Saving_or_Downloading&portal="+scs.getDBName()+"&what=digitized_product&cruise="+this.cruise.name);
 		} catch(IOException ex) {
 			ex.printStackTrace();
 		}
@@ -1099,6 +1176,11 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 		try {
 			saveJPG(file, saveWholeImage);
 			JOptionPane.showMessageDialog(null, "Save Successful");
+			if (saveWholeImage) {
+				MapApp.sendLogMessage("Saving_or_Downloading&portal="+scs.getDBName()+"&what=image_full&cruise="+this.cruise.name);
+			} else {
+				MapApp.sendLogMessage("Saving_or_Downloading&portal="+scs.getDBName()+"&what=image_viewport&cruise="+this.cruise.name);
+			}
 		}
 		catch(IOException ex) { 
 			JOptionPane.showMessageDialog(null, ex.getMessage(), "Error Writing Jpeg", JOptionPane.ERROR_MESSAGE);
@@ -1242,7 +1324,7 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 			wholeImageD.setLocation(400, 400);
 			wholeImageD.setVisible(true);
 		}
-		if ( evt.getActionCommand().equals("Zoom In") || evt.getActionCommand().equals("Zoom Out") ) {
+		else if ( evt.getActionCommand().equals("Zoom In") || evt.getActionCommand().equals("Zoom Out") ) {
 			if(zoomInTB.isSelected() || zoomOutTB.isSelected()) {
 				for ( int i = 0; i < dig.getButtons().size(); i++ ) {
 					((JToggleButton)dig.getButtons().get(i)).setSelected(false);
@@ -1265,15 +1347,75 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 		else if(evt.getActionCommand().equals("select")) {
 
 		}
-		else if( Integer.parseInt(evt.getActionCommand())==0 || (Integer.parseInt(evt.getActionCommand())==1))
+		else if (evt.getActionCommand().equals("deleteLastHorizon")) {
+			if (dig.getObjects().size() == 0) return;
+			String msg = "Are you sure you wish to delete the last horizon?";
+			int n = JOptionPane.showConfirmDialog(this, msg, "Confirm Horizon Deletion", JOptionPane.YES_NO_OPTION);
+			if (n == JOptionPane.NO_OPTION) return;
+			dig.deleteLastObject();
+		}
+		else if (evt.getActionCommand().equals("deleteLastPick")) {			
+			if (dig.getObjects().size() == 0) return;
+			try {
+				for( int i=0 ; i<dig.getObjects().size(); i++ ) {
+					try {
+						((DigitizerObject) dig.getObjects().get(i)).setSelected(false);
+					} catch( Exception ex) {}
+				}
+				LineSegmentsObject obj = (LineSegmentsObject) dig.getObjects().lastElement();
+				obj.setSelected(true);
+				if (obj.getPoints().size() > 0) {
+					obj.getPoints().remove(obj.getPoints().lastElement());
+					if (obj.getPoints().size() == 0) {
+						dig.deleteLastObject(false);
+					}
+					repaint();
+				}
+			}
+			catch(Exception ex) {return;};
+		}
+		else if (evt.getActionCommand().equals("nameHorizon")) {
+			try {
+				Vector<LineSegmentsObject> horizons = dig.getObjects();
+				LineSegmentsObject selHorizon = null;
+				int count = 0;
+				for (LineSegmentsObject h : horizons) {
+					if (h.isSelected()) {
+						selHorizon = h;
+						count ++;
+					}
+				}
+				if (selHorizon != null && count == 1 ) {
+					String s = (String)JOptionPane.showInputDialog(this,"Allocate a name to the selected horizon for the Save file", "Name Horizon", JOptionPane.PLAIN_MESSAGE);
+					if ((s != null) && (s.length() > 0)) {
+						selHorizon.setName(s);
+					}
+				} else {
+					JOptionPane.showMessageDialog(this, "Please select the horizon you wish to name by clicking \n"
+							+ "the Select pointer/cursor button and then clicking anywhere on the line.", "Name Horizon", JOptionPane.INFORMATION_MESSAGE);
+				}
+			}
+			catch (Exception ex) {return;}
+		}
+		else if(Integer.parseInt(evt.getActionCommand())==0)
 		{
 			if(zoomInTB.isSelected()) {
-				JOptionPane.showMessageDialog(getTopLevelAncestor(), "Cannot Digitize In Zoom, Zoom In Deselected");
 				zoomInTB.doClick();
+				dig.getDigB().doClick();
 			}
 			if(zoomOutTB.isSelected()) {
-				JOptionPane.showMessageDialog(getTopLevelAncestor(), "Cannot Digitize In Zoom, Zoom Out Deselected");
 				zoomOutTB.doClick();
+				dig.getDigB().doClick();
+			}
+		}
+		else if(Integer.parseInt(evt.getActionCommand())==1) {
+			if(zoomInTB.isSelected()) {
+				zoomInTB.doClick();
+				dig.getAnnotB().doClick();
+			}
+			if(zoomOutTB.isSelected()) {
+				zoomOutTB.doClick();
+				dig.getAnnotB().doClick();
 			}
 		}
 	}

@@ -6,19 +6,16 @@ public class PDBAnalysis {
 	float[] val;
 	float[] stdDev;
 	boolean[] compiled;
-	short dataQuality;
 	short dataTypes;
 	public PDBAnalysis(PDBBatch batch, 
-			int dataQuality, 
 			short[] code, 
 			float[] val, 
-			float[] stdDev,
+//			float[] stdDev,
 			boolean[] compiled) {
 		parent = batch;
-		this.dataQuality = (short)dataQuality;
 		this.code = code;
 		this.val = val;
-		this.stdDev = stdDev;
+//		this.stdDev = stdDev; // not used?
 		this.compiled = compiled;
 		int data = 0;
 		for(int i=0 ; i<code.length ; i++) {
@@ -34,9 +31,6 @@ public class PDBAnalysis {
 	}
 	public boolean hasDataType(int types) {
 		return ((int)dataTypes & types) != 0;
-	}
-	public int getDataQuality() {
-		return (int)dataQuality;
 	}
 	public void dispose() {
 		parent = null;

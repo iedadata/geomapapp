@@ -25,6 +25,7 @@ import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 
+import org.geomapapp.geom.CylindricalProjection;
 import org.geomapapp.geom.MapProjection;
 import org.geomapapp.geom.Mercator;
 import org.geomapapp.geom.ProjectionDialog;
@@ -437,7 +438,7 @@ public class ImportGrid implements Runnable {
 		for( int k=0 ; k<files.length ; k++) {
 			area.setText("Processing "+files[k].getName()+", "+ (k+1) +" of "+ files.length);
 			area.update(area.getGraphics());
-			if (grids[k].getGrid() != null) {
+			if (grids[k].getGrid() != null) {			
 				tile( grids[k].getGrid(), tileIO, proj, scale, offset, zScale[k], add_offset[k], res);
 				//if logging, write filename to log
 				if (log) {
@@ -569,7 +570,8 @@ public class ImportGrid implements Runnable {
 			Double[] southNegative = new Double[files.length];
 			Double[] northPositive = new Double[files.length];
 
-
+			waiting = true;
+			displayWaitingDots();
 			for( int k=0 ; k<files.length ; k++) {
 				GrdProperties gridP1 = new GrdProperties(files[k].getPath());
 				// z range
@@ -610,14 +612,16 @@ public class ImportGrid implements Runnable {
 		for( int k=0; k<files.length; k++) {
 			appendNewText("\nReading " + files[k].getName() + " dimensions");
 			GrdProperties gridP = new GrdProperties(files[k].getPath());
-			
 			// Get the WESN
 			double[] emptyRange = new double[2];
 			if (gridP.x_range == null || gridP.y_range == null || gridP.z_range == null ||
 					Arrays.equals(gridP.x_range, emptyRange) || Arrays.equals(gridP.y_range, emptyRange) || Arrays.equals(gridP.z_range, emptyRange)){
 				String msg = "Unable to open " + files[k].getName() + 
 						".<br>The netCDF grid file cannot be read properly." +
-						"<br>Check that it is a standard 2-D netCDF file (example: Use \"grdinfo\").";
+						"<br><br>Use, for example, \"grdinfo\" to check that:" +
+						"<br>(a) It is a standard 2-D netCDF file and not a multi-data set netCDF file." +
+						"<br>(b) The header min/max values are valid numbers and not \"NaN\"." +
+						"<br><br>Use, for example, \"grdinfo\" and \"grdreformat\" to rewrite the header.";
 				//create an EditorPane to handle any html
 			    JEditorPane ep = GeneralUtils.makeEditorPane(msg);
 				JOptionPane.showMessageDialog(frame,ep , "Import Error", JOptionPane.ERROR_MESSAGE);
@@ -641,11 +645,13 @@ public class ImportGrid implements Runnable {
 					pd.removeResetFeature();
 				}
 			}
-
+			waiting = false;
 			final MapProjection proj = getProjection(files[k].getName(), gridP.getProjection(), gridWESN, gridP.dimension[0], gridP.dimension[1]);
 			if ( proj == null ) {
 				return;
 			}
+			waiting = true;
+			displayWaitingDots();
 			double[] wesnGrid = getGridWESN(proj, new Rectangle(0, 0, gridP.dimension[0], gridP.dimension[1]));
 
 			if ( proj instanceof UTMProjection) {
@@ -676,7 +682,7 @@ public class ImportGrid implements Runnable {
 			} else{
 				zMax =  Math.max(zScale[k] * (gridP.z_range[1] + add_offset[k]), zMax);
 			}
-
+			
 			final File file = files[k];
 			grids[k] = new GridFile() {
 				public Grid2D getGrid() throws IOException {
@@ -693,7 +699,7 @@ public class ImportGrid implements Runnable {
 			};
 			currentIndex++;
 		}
-		
+		waiting = false;
 		tileGrids(name, files, grids, 360. / 640);
 		MapApp.sendLogMessage("Imported_NetCDF_Grid&name="+name+"&WESN="+wesn[0]+","+wesn[1]+","+wesn[2]+","+wesn[3]);
 	}
@@ -721,14 +727,62 @@ public class ImportGrid implements Runnable {
 		zMin = Double.MAX_VALUE;
 		zMax = -Double.MAX_VALUE;
 
+
+		/* If more then one grid file is selected then compute the ceiling
+		 * and floor Z value for all the selected files.
+		 */
+		if(files.length > 1){
+			Double[] westNegative = new Double[files.length];
+			Double[] eastPositive = new Double[files.length];
+			Double[] southNegative = new Double[files.length];
+			Double[] northPositive = new Double[files.length];
+			waiting = true;
+			displayWaitingDots();
+			for( int k=0 ; k<files.length ; k++) {				
+				ASC_Grid gridFile = new ASC_Grid(files[k]);
+				gridFile.readHeader();
+				gridFile.readGrid();
+
+				lowestMin[k] = gridFile.zMin;
+				highestMax[k] = gridFile.zMax;
+		
+				// wesn
+				westNegative[k] = gridFile.x0;
+				eastPositive[k] = gridFile.x0 + (gridFile.width - 1) * gridFile.dx;
+				southNegative[k] = gridFile.y0;
+				northPositive[k] = gridFile.y0 + (gridFile.height - 1) * gridFile.dx;
+				//System.out.println("w " + westNegative[k] + " e " + eastPositive[k] + " s " +  southNegative[k] + " n " + northPositive[k]);
+				currentIndex++;
+			}
+			Arrays.sort(lowestMin);
+			Arrays.sort(highestMax);
+			zMinFloor = lowestMin[0];
+			zMaxCeiling = highestMax[highestMax.length-1];
+
+			// Set values in ProjectionsDialog
+			pd.setFloorCeilingZ(zMinFloor, zMaxCeiling);
+
+			Arrays.sort(westNegative);
+			Arrays.sort(eastPositive);
+			Arrays.sort(southNegative);
+			Arrays.sort(northPositive);
+			mostWest = westNegative[0];
+			mostEast = eastPositive[eastPositive.length-1];
+			mostSouth = southNegative[0];
+			mostNorth = northPositive[northPositive.length-1];
+			//System.out.println("w " + mostWest + " e " +  mostEast + " s " +  mostSouth + " n " +  mostNorth);
+			pd.setWESNRange(mostWest, mostEast, mostSouth, mostNorth);
+		}
+
 		currentIndex = 0;
 		zMinTemp = new Double[files.length];
 		zMaxTemp = new Double[files.length];
 
 		for( int k=0 ; k<files.length ; k++) {
+			
 			ASC_Grid gridFile = new ASC_Grid(files[k]);
-			gridFile.readHeader();
-			gridFile.readGrid();
+
+			Grid2D grid = gridFile.getGrid();
 			double gridWESN[] = new double[] { gridFile.x0, gridFile.x0 + (gridFile.width - 1) * gridFile.dx,
 					gridFile.y0, gridFile.y0 + (gridFile.height - 1) * gridFile.dx};
 
@@ -736,13 +790,14 @@ public class ImportGrid implements Runnable {
 			pd.removeEditFeature(); // remove edit button for all
 			pd.removeResetFeature(); // remove reset button for all
 
+			waiting = false;
 			final MapProjection proj = getProjection(files[k].getName(), gridFile.proj, gridWESN, gridFile.width, gridFile.height);
 			if (proj == null)
 				return;
+			waiting = true;
+			displayWaitingDots();
 
 			gridFile.proj = proj;
-			Grid2D grid = gridFile.getGrid();
-
 			if (gridFile.proj instanceof UTMProjection) {
 				double dx = (grid.getWESN()[1] - grid.getWESN()[0]) / gridFile.width;
 				dxMin = Math.min(dx, dxMin);
@@ -758,26 +813,21 @@ public class ImportGrid implements Runnable {
 			wesn[3] = Math.max(wesnGrid[3], wesn[3]);
 
 			// If zMin changed use edited value otherwise use original
-			if(gridFile.zMin != pd.getMinEdit()) {
+			if(Double.parseDouble(GeneralUtils.formatToSignificant(gridFile.zMin,5)) != pd.getMinEdit()) {
 				zMin = pd.getMinEdit();
-				zMinTemp[k] = zMin;
 			}else {
 				zMin = Math.min(zScale[k] * (gridFile.zMin + add_offset[k]), zMin);
-				zMinTemp[k] = zMin;
 			}
 
 			// If zMax changed use edited value otherwise use original
-			if(gridFile.zMax != pd.getMaxEdit()){
+			if(Double.parseDouble(GeneralUtils.formatToSignificant(gridFile.zMax,5)) != pd.getMaxEdit()){
 				zMax = pd.getMaxEdit();
-				zMaxTemp[k] = zMax;
 			} else{
-				zMax =  Math.max(zScale[k] * (gridFile.zMax = add_offset[k]), zMax);
-				zMaxTemp[k] = zMax;
+				zMax =  Math.max(zScale[k] * (gridFile.zMax + add_offset[k]), zMax);
 			}
-
+					
 			final File file = files[k];
-			final Double zMinT = zMinTemp[k];
-			final Double zMaxT = zMaxTemp[k];
+
 			grids[k] = new GridFile() {
 				public Grid2D getGrid() throws IOException {
 					ASC_Grid gridFile = new ASC_Grid(file);
@@ -788,6 +838,7 @@ public class ImportGrid implements Runnable {
 			};
 			currentIndex++;
 		}
+		waiting = false;
 		tileGrids(name, files, grids, 360. / 640);
 		MapApp.sendLogMessage("Imported_ESRI_ASCII_Grid&name="+name+"&WESN="+wesn[0]+","+wesn[1]+","+wesn[2]+","+wesn[3]);
 	}
@@ -817,6 +868,8 @@ public class ImportGrid implements Runnable {
 		currentIndex = 0;
 		zMinTemp = new Double[files.length];
 		zMaxTemp = new Double[files.length];
+		
+
 		for( int k=0 ; k<files.length ; k++) {
 			ESRI_Binary_Grid gridFile = new ESRI_Binary_Grid(files[k]);
 
@@ -849,25 +902,22 @@ public class ImportGrid implements Runnable {
 			wesn[1] = Math.max(wesnGrid[1], wesn[1]);
 			wesn[2] = Math.min(wesnGrid[2], wesn[2]);
 			wesn[3] = Math.max(wesnGrid[3], wesn[3]);
-
+		
 			// If zMin changed use edited value otherwise use original
-			if(gridFile.zMin * zScale[k] != pd.getMinEdit()) {
+			if(Double.parseDouble(GeneralUtils.formatToSignificant(gridFile.zMin,5)) != pd.getMinEdit()) {
 				zMin = pd.getMinEdit();
-				zMinTemp[k] = zMin;
 			}else {
 				zMin = Math.min(zScale[k] * (gridFile.zMin + add_offset[k]), zMin);
-				zMinTemp[k] = zMin;
 			}
 
 			// If zMax changed use edited value otherwise use original
-			if(gridFile.zMax != pd.getMaxEdit()){
+			if(Double.parseDouble(GeneralUtils.formatToSignificant(gridFile.zMax,5)) != pd.getMaxEdit()){
 				zMax = pd.getMaxEdit();
-				zMaxTemp[k] = zMax;
 			} else{
-				zMax =  Math.max(zScale[k] * (gridFile.zMax = add_offset[k]), zMax);
-				zMaxTemp[k] = zMax;
+				zMax =  Math.max(zScale[k] * (gridFile.zMax + add_offset[k]), zMax);
 			}
-
+			
+			
 			final File file = files[k];
 
 			grids[k] = new GridFile() {
@@ -990,7 +1040,7 @@ public class ImportGrid implements Runnable {
 				zMax = pd.getMaxEdit();
 				zMaxTemp[k] = zMax;
 			} else{
-				zMax =  Math.max(zScale[k] * (gridFile.zMax = add_offset[k]), zMax);
+				zMax =  Math.max(zScale[k] * (gridFile.zMax + add_offset[k]), zMax);
 				zMaxTemp[k] = zMax;
 			}
 
@@ -1023,32 +1073,6 @@ public class ImportGrid implements Runnable {
 
 	void tile(Grid2D grd, TileIO.Short tileIO, MapProjection mapProj, double scale, double offset, double zScale, double add_offset, int res) throws IOException {
 		if (grd == null) return;
-		double[] wesn = grd.getWESN();
-
-		if (wesn[1] > 360 && wesn[0] < 360) {
-			MapProjection grdProj = grd.getProjection();
-			Point2D p = grdProj.getMapXY(360, 0);
-
-			Rectangle bounds = grd.getBounds();
-			Rectangle subBounds = new Rectangle(0,0, (int) p.getX() - 1, (int) bounds.getHeight());
-			Point2D endPoint = grdProj.getRefXY(subBounds.width - 1, 0);
-			double[] subWESN = new double[] {wesn[0], endPoint.getX(), wesn[2], wesn[3]};
-			MapProjection subProjection = 
-				new RectangularProjection(subWESN, subBounds.width, subBounds.height);
-			Grid2D subGrid = GridUtilities.getSubGrid(subBounds, grd, subProjection);
-
-			tile(subGrid, tileIO, mapProj, scale, offset, zScale, add_offset, res);
-
-			subBounds = new Rectangle((int) p.getX(), 0,
-								(int) bounds.getWidth() - (int) p.getX(), (int) bounds.getHeight());
-			subWESN = new double[] {360.00000001, wesn[1], wesn[2], wesn[3]};
-			subProjection = 
-				new RectangularProjection(subWESN, subBounds.width, subBounds.height);
-			subGrid = GridUtilities.getSubGrid(subBounds, grd, subProjection);
-
-			tile(subGrid, tileIO, mapProj, scale, offset, zScale, add_offset, res);
-			return;
-		}
 
 		Rectangle bounds = grd.getBounds();
 		int x1, y1, x2, y2;
@@ -1060,6 +1084,8 @@ public class ImportGrid implements Runnable {
 		Point2D lr = gridProj.getRefXY( 
 				new Point(grd.bounds.x + bounds.width-1, grd.bounds.y + bounds.height-1) );
 
+		boolean crossesMeridian = (ul.getX() < 0 && lr.getX() > 0) || (ul.getX() < 360 && lr.getX() > 360);
+		
 		if (mapType == MapApp.MERCATOR_MAP) {
 			if( ul.getY()<-79. )ul.setLocation(ul.getX(), -79);
 			if( lr.getY()<-79. )lr.setLocation(lr.getX(), -79);
@@ -1072,6 +1098,8 @@ public class ImportGrid implements Runnable {
 		if (!gridProj.isCylindrical())
 			wrap = -1;
 
+		double mapWrap = 360 * ((CylindricalProjection) mapProj).getScale();
+
 		ul = mapProj.getMapXY(ul);
 		lr = mapProj.getMapXY(lr);
 		if( gridProj.isCylindrical() && mapType == MapApp.MERCATOR_MAP) {
@@ -1081,9 +1109,13 @@ public class ImportGrid implements Runnable {
 			y2 = (int)Math.ceil(lr.getY());
 
 			if (x1 > x2) {
-				int tmp = x1;
-				x1 = x2;
-				x2 = tmp;
+				if (crossesMeridian) {
+					x2 += mapWrap;
+				} else {
+					int tmp = x1;
+					x1 = x2;
+					x2 = tmp;				
+				}
 			}
 
 			if (y1 > y2) {
@@ -1127,7 +1159,12 @@ public class ImportGrid implements Runnable {
 		for( int ix=ix1 ; ix<=ix2 ; ix++) {
 			int xA = (int)Math.max(ix*320, x1);
 			int xB = (int)Math.min((ix+1)*320, x2);
+			if (xA >= mapWrap) {
+				xA -= mapWrap;
+				xB -= mapWrap;
+			}
 			for( int iy=iy1 ; iy<=iy2 ; iy++) {
+
 				int yA = (int)Math.max(iy*320, y1);
 				int yB = (int)Math.min((iy+1)*320, y2);
 				Grid2D.Short tile=null;
@@ -1144,15 +1181,18 @@ public class ImportGrid implements Runnable {
 				int count = 0;
 				for( int x=xA ; x<xB ; x++) {
 					for( int y=yA ; y<yB ; y++) {
-						Point2D.Double p = (Point2D.Double)mapProj.getRefXY(new Point(x, y));
-						p = (Point2D.Double)gridProj.getMapXY(p);
+						Point2D.Double p0 = (Point2D.Double)mapProj.getRefXY(new Point(x, y));
+						Point2D.Double p = (Point2D.Double)gridProj.getMapXY(p0);
+						p.setLocation(p.getX() + 1e-5, p.getY());
 						if( wrap>0. ) {
 							while(p.x>=bounds.x+bounds.width)p.x-=wrap;
 							while(p.x<bounds.x)p.x+=wrap;
 						}
 						double val = grd.valueAt(p.x, p.y);
 						if( Double.isNaN(val))continue;
+
 						hasData = true;
+	
 						if ( zScale < 0 ) {
 							tile.setValue(x, y, (val + add_offset) * zScale, true);
 						}

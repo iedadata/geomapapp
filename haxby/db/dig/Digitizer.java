@@ -796,7 +796,7 @@ public class Digitizer implements Database,
 				for (int col = 0; col < obj.getColumnCount() - 1; col++) {
 					line += obj.getValueAt(row, col, 0, true).toString().replace(",", "") + "\t";
 				}
-				line += obj.getValueAt(row, obj.getColumnCount()-1, 0, true);
+				line += obj.getValueAt(row, obj.getColumnCount()-1, 0, true).toString().replace(",", "");
 				out.println(line);
 			}
 			
@@ -807,7 +807,7 @@ public class Digitizer implements Database,
 				for (int col = 0; col < obj.getColumnCount() - 1; col++) {
 					line += obj.getValueAt(row, col, 1, true).toString().replace(",", "") + "\t";
 				}
-				line += obj.getValueAt(row, obj.getColumnCount()-1, 1, true);
+				line += obj.getValueAt(row, obj.getColumnCount()-1, 1, true).toString().replace(",", "");
 				out.println(line);
 			}
 

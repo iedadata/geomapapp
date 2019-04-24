@@ -138,6 +138,7 @@ import haxby.proj.ProjectionFactory;
 import haxby.util.BrowseURL;
 import haxby.util.GeneralUtils;
 import haxby.util.LayerManager;
+import haxby.util.LayerManager.LayerPanel;
 import haxby.util.PathUtil;
 import haxby.util.ProcessingDialog;
 import haxby.util.ProcessingDialog.StartStopTask;
@@ -148,7 +149,6 @@ import haxby.util.SilentProcessingTask;
 import haxby.util.UIDTracker;
 import haxby.util.URLFactory;
 import haxby.util.WESNPanel;
-import haxby.util.LayerManager.LayerPanel;
 import haxby.wfs.WFSViewServer;
 import haxby.wms.Layer;
 import haxby.wms.WMSViewServer;
@@ -171,7 +171,8 @@ public class MapApp implements ActionListener,
 		SUPPORTED_MAPS.add(new Integer(NORTH_POLAR_MAP));
 	}
 
-	public final static String VERSION = "3.6.8"; // 04/15/2018
+
+	public final static String VERSION = "3.6.10"; // 04/17/2019
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
@@ -3503,6 +3504,9 @@ public class MapApp implements ActionListener,
 	}
 
 	public static void main( String[] args) {
+		//fixes issue with column sorting
+		System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
+		
 		createMapApp(args);
 	}
 
@@ -3514,6 +3518,7 @@ public class MapApp implements ActionListener,
 	}
 	public static JFileChooser getFileChooser() {
 		if( chooser==null ) chooser = new JFileChooser(System.getProperty("user.home"));
+		chooser.setDialogTitle("Open");
 		chooser.resetChoosableFileFilters();
 		return chooser;
 	}

@@ -43,6 +43,7 @@ import org.geomapapp.image.RenderingTools;
 import org.geomapapp.util.Icons;
 import org.geomapapp.util.XML_Menu;
 
+import haxby.db.mb.PreviewCruise.CruiseGridViewer;
 import haxby.map.MapApp;
 import haxby.map.XMap;
 import haxby.proj.PolarStereo;
@@ -75,6 +76,7 @@ public class GridDialog implements ItemListener, WindowListener {
 	public final static String GEOID = "Geoid (Sandwell and Smith 97)";
 	public final static String TOPO_9 = "Topography (Smith and Sandwell v9.1)";
 	public final static String NASA_ELEV_MODEL = "NASA Elevation Model (USA 10m, World 30m, Ocean 900m)";
+	public final static String DEV = "Development Tiles Grid";
 
 	public final static String AGE_UNITS = "mY";
 	public final static String SPREADING_RATE_UNITS = "mm/a";
@@ -206,7 +208,7 @@ public class GridDialog implements ItemListener, WindowListener {
 //	***** Changed by A.K.M. 06/26/06 *****
 
 	public JToggleButton gridTB;
-	boolean loaded = false;
+	public boolean loaded = false;
 	public JToggleButton toggleListLockUnlock;
 	public Hashtable<String, Grid2DOverlay> gridCBElements;
 	Hashtable<Grid2DOverlay, MultiGrid> mGrids;
@@ -727,7 +729,7 @@ public class GridDialog implements ItemListener, WindowListener {
 				map.addOverlay(grid.name,grid);
 			}
 			
-			if( !merc ) {
+			if( !merc && !grid.toString().equals(GridDialog.DEV)  && !(grid instanceof CruiseGridViewer)) {
 				int which = ((MapApp) map.getApp()).getMapType();
 				if (which == MapApp.SOUTH_POLAR_MAP)
 					GridComposer.getGridSP(map.getClipRect2D(), grid, 512);
@@ -798,6 +800,7 @@ public class GridDialog implements ItemListener, WindowListener {
 		haxby.map.XMap map = grid.getMap();
 
 		if (grid.toString().equals(GridDialog.DEM) ||
+				grid.toString().equals(GridDialog.DEV) ||
 				grid.toString().equals(GridDialog.NASA_ELEV_MODEL))
 			 grid.getRenderer().oceanB.setSelected(true);
 		
@@ -873,6 +876,7 @@ public class GridDialog implements ItemListener, WindowListener {
 					dialog.getContentPane().remove( currentPanel );
 				dialog.getContentPane().add(tool, "Center");
 			}
+			
 			currentPanel = tool;
 			currentGrid = gridCB.getSelectedIndex();
 			
@@ -889,7 +893,11 @@ public class GridDialog implements ItemListener, WindowListener {
 	}
 	public void addGrid( Grid2DOverlay grid ) {
 		gridCB.addItem( grid );
-		gridCBElements.put(GRID_SHORT_TO_LONG_NAMES.get(grid.name), grid);
+		if (GRID_SHORT_TO_LONG_NAMES.get(grid.name) == null) {
+			gridCBElements.put(grid.name, grid);
+		} else {
+			gridCBElements.put(GRID_SHORT_TO_LONG_NAMES.get(grid.name), grid);
+		}
 	}
 	
 	//addGrid for contributed grids
@@ -920,9 +928,9 @@ public class GridDialog implements ItemListener, WindowListener {
 		loadGrid();
 	}
 	
-//	public void setSelectedGrid(Grid2DOverlay grid) {
-//		gridCB.setSelectedItem(grid);
-//	}
+	public void setSelectedGrid(Grid2DOverlay grid) {
+		gridCB.setSelectedItem(grid);
+	}
 	
 	public Grid2DOverlay[] getGrids() {
 		Grid2DOverlay[] grids = new Grid2DOverlay[gridCB.getItemCount()];
@@ -1193,7 +1201,7 @@ public class GridDialog implements ItemListener, WindowListener {
 					boolean merc =  map.getProjection() instanceof haxby.proj.Mercator;
 					if (!isContributedGrid(grid.name)) {
 						//global grids
-						if( !merc ) {
+						if( !merc && !grid.toString().equals(GridDialog.DEV) && !(grid instanceof CruiseGridViewer)) {
 							int which = ((MapApp) map.getApp()).getMapType();
 							if (which == MapApp.SOUTH_POLAR_MAP)
 								GridComposer.getGridSP(map.getClipRect2D(), grid, 512);
@@ -1202,6 +1210,7 @@ public class GridDialog implements ItemListener, WindowListener {
 
 						} else {
 							GRID_LOADERS.get(grid.toString()).loadGrid(grid);
+							switchPanel();
 						}
 						if (grid.lut.contourB.isSelected()) {
 							grid.contour.contour(grid.interval, grid.bolding_interval, grid.cb);

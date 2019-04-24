@@ -15,8 +15,8 @@ public class PDBStation {
 	public static PDBStation[] stations = null;
 	String id;
 	boolean suffix;
-	short expedition;
-	short location;
+	int expedition;
+	int location;
 	long[] samples;
 	byte sampleTechnique;
 	byte materialFlags;
@@ -31,8 +31,8 @@ public class PDBStation {
 
 	public PDBStation(String id,
 			long[] samples,
-			short expedition,
-			short location,
+			int expedition,
+			int location,
 			byte sampleTechnique,
 			byte materialFlags,
 			short itemsMeasured,
@@ -46,12 +46,12 @@ public class PDBStation {
 			suffix = false;
 		}
 		this.samples = samples;
-		this.expedition = expedition;
+//		this.expedition = expedition;  // not used?
 		this.location = location;
-		this.sampleTechnique = sampleTechnique;
+//		this.sampleTechnique = sampleTechnique; // not used?
 		this.materialFlags = materialFlags;
 		this.itemsMeasured = itemsMeasured;
-		this.alterationFlags = alterationFlags;
+//		this.alterationFlags = alterationFlags; // not used?
 		this.rockTypes = rockTypes;
 	}
 	public String getID() {
@@ -74,7 +74,7 @@ public class PDBStation {
 	public int[] getSampleNums() {
 		int[] tmp = new int[howManySamples()];
 		for( int i=0 ; i<tmp.length ; i++) {
-			tmp[i] = (int)samples[i] & 0xffff;
+			tmp[i] = (int)samples[i];
 		}
 		return tmp;
 	}
@@ -114,9 +114,10 @@ public class PDBStation {
 	public boolean hasRockType( int type ) {
 		return ((int)rockTypes & type)!=0;
 	}
-	public boolean hasAlterations( int alterations ) {
-		return ((int)alterationFlags & alterations)!=0;
-	}
+//  NOT USED?	
+//	public boolean hasAlterations( int alterations ) {
+//		return ((int)alterationFlags & alterations)!=0;
+//	}
 	static void init( int n ) {
 		stations = new PDBStation[n];
 	}
@@ -129,7 +130,6 @@ public class PDBStation {
 			stations = tmp;
 		}
 		stations[index] = station;
-	System.out.println(stations.length);
 	}
 	static int trimToSize() {
 		int k;
@@ -156,7 +156,7 @@ public class PDBStation {
 	public static void load() throws IOException {
 		if(loaded) return;
 		//URL url = URLFactory.url(PETDB_PATH + "June2014/stations_new.txt");
-		URL url = URLFactory.url(PETDB_PATH + "petdb_new/stations_new.txt");
+		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/stations_new.txt");
 		URLConnection urlConn = url.openConnection();
 		urlConn.setDoInput(true);
 		urlConn.setUseCaches(false);
@@ -166,8 +166,8 @@ public class PDBStation {
 		int index=0;
 		String id, s;
 		long[] samples;
-		short expedition;
-		short location;
+		int expedition;
+		int location;
 		byte sampleTechnique;
 		byte materialFlags;
 		short itemsMeasured;
@@ -182,17 +182,27 @@ public class PDBStation {
 				while (true) try{
 					s = in.readLine();
 					String [] results = s.split("\\t");
-					index = Short.parseShort(results[0]);
+					if (results.length != 11) continue;
+					index = Integer.parseInt(results[0]);
 					id = results[1];
-					expedition = Short.parseShort(results[2]);
-					location = Short.parseShort(results[3]);
+
+					expedition = Integer.parseInt(results[2]);
+					location = Integer.parseInt(results[3]);
 					samples = new long[Short.parseShort(results[4])];
 					String [] sampleItems = results[5].split(",");
 					for( int i=0 ; i<samples.length ; i++) {
 						samples[i] = Long.parseLong(sampleItems[i]);
 					}
-					sampleTechnique = Byte.parseByte(results[6]);
-					materialFlags = Byte.parseByte(results[7]);
+					try {
+						sampleTechnique = Byte.parseByte(results[6]);
+					} catch(Exception e) {
+						sampleTechnique = 0;
+					}
+					try {
+						materialFlags = Byte.parseByte(results[7]);
+					} catch(Exception e) {
+						continue;
+					}
 					itemsMeasured = Short.parseShort(results[8]);
 					alterationFlags = Byte.parseByte(results[9]);
 					rockTypes = Short.parseShort(results[10]);

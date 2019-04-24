@@ -57,6 +57,26 @@ public class GetGrid {
      */
     // Uses Path Util to get path from xml file.
 	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
+	public static String mb_base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
+	
+    /**
+     * relative paths to data directories
+     */
+    //Contributed grid content
+    static String cGridsDir = "grids";
+    //High resolution land data
+    static String landDir = "gdem";
+    //GMRT curated multibeam data
+    static String swathDir = "swath";
+    //GEBCO basemap
+    static String basemapDir = "gebco_basemap";
+    
+    /**
+     * GetGrid now uses a static grid object that is manipulated by functions
+     */
+    static Grid2D.Float finalGrid;
+	
+	
     /**
      * Scale up the bounding box to the desired resolution.
      *
@@ -75,19 +95,19 @@ public class GetGrid {
 					    int resFrom, 
 					    int resTo,
 					    int padding) {
-	Rectangle2D rect = unscaledBounds;
-	double scalingFactor = (double) resTo / (double) resFrom;
-
-	int x = (int) Math.floor(scalingFactor * rect.getX()) - padding;
-	int y = (int) Math.floor(scalingFactor * rect.getY()) - padding;
-	int width = 2 * padding + (int) Math.ceil( 
-						  scalingFactor * (rect.getX() + rect.getWidth()) 
-						   ) - x;
-	int height = 2 * padding + (int) Math.ceil( 
-						   scalingFactor * (rect.getY() + rect.getHeight())
-						    ) - y;
-
-	return new Rectangle(x, y, width, height);
+		Rectangle2D rect = unscaledBounds;
+		double scalingFactor = (double) resTo / (double) resFrom;
+	
+		int x = (int) Math.floor(scalingFactor * rect.getX()) - padding;
+		int y = (int) Math.floor(scalingFactor * rect.getY()) - padding;
+		int width = 2 * padding + (int) Math.ceil( 
+							  scalingFactor * (rect.getX() + rect.getWidth()) 
+							   ) - x;
+		int height = 2 * padding + (int) Math.ceil( 
+							   scalingFactor * (rect.getY() + rect.getHeight())
+							    ) - y;
+	
+		return new Rectangle(x, y, width, height);
     }
                                         
     /**
@@ -99,16 +119,17 @@ public class GetGrid {
      * @return the number of directory 
      */
     public static int getNLevel(int res) {
-	int nLevel = 0;
-
-	while (res >= 8) {
-	    res /= 8;
-	    nLevel++;
-	}
-
-	return nLevel;
+		int nLevel = 0;
+	
+		while (res >= 8) {
+		    res /= 8;
+		    nLevel++;
+		}
+	
+		return nLevel;
     }
-
+  
+    
     /**
      * Fills a from a Grid2D.Short with data from the requested
      * resolution and tileset. Does not overwrite existing values,
@@ -120,83 +141,84 @@ public class GetGrid {
      * be a power of 2)
      * @param grid the grid to be populated
      */
+
     public static void fillShortGrid(String tilesPrefix,
 				     int gridRes,
 				     int fillRes, 
-				     Grid2D grid) {
-	// DEBUG
-	//System.out.println("Filling from " + base + tilesPrefix + fillRes);
-
-	// setup tile IO
-	Rectangle gridBounds = grid.getBounds();
-	Rectangle fillBounds = getScaledBounds(gridBounds, gridRes, fillRes, DEFAULT_PADDING);
-	double scaleFactor = fillRes * 1.0 / gridRes;
-	Projection proj = ProjectionFactory.getMercator(PIXELS_PER_360 * fillRes);
-	Rectangle fillBaseRect = new Rectangle(0, 
-		       (-PIXELS_PER_NS_HEMISPHERE * fillRes)-DEFAULT_PADDING,
-		       PIXELS_PER_360 * fillRes,
-		       (PIXELS_PER_NS_HEMISPHERE * 2 * fillRes)+DEFAULT_PADDING);
-	TileIO fillIO = new TileIO.Short(proj,
-					 base + tilesPrefix + fillRes,
-					 PIXELS_PER_180,
-					 getNLevel(fillRes));
-	TiledGrid fillTiler = new TiledGrid(proj, 
-					    fillBaseRect,
-					    fillIO,
-					    PIXELS_PER_180,
-					    1,
-					    null);
-	fillTiler.setWrap(PIXELS_PER_360 * fillRes);
-
-	// read in grid contents to buffer
-	Grid2D.Short fillGrid = new Grid2D.Short(fillBounds, proj);
-	fillGrid = (Grid2D.Short)fillTiler.composeGrid(fillGrid);
-
-	// write contents to grid; if we're filling from the
-	// same resolution as the final product, no need to
-	// scale
-
-	// DEBUG
-	int gridNaNs = 0;
-	int fillVals = 0;
-
-	if (gridRes == fillRes) {
-	    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
-		for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
-		    double new_z = fillGrid.valueAt(x, y);
-		    double old_z = grid.valueAt(x, y);
-		    if (Double.isNaN(old_z)) {
-			grid.setValue(x, y, new_z);
-			// DEBUG
-			if (!Double.isNaN(new_z))
-			    fillVals++;
-			gridNaNs++;
+				     String basePath) {
+		// DEBUG
+	//	System.out.println("Filling from " + baseUrl + tilesPrefix + fillRes);
+	
+		// setup tile IO
+		Rectangle gridBounds = finalGrid.getBounds();
+		Rectangle fillBounds = getScaledBounds(gridBounds, gridRes, fillRes, DEFAULT_PADDING);
+		double scaleFactor = ((double) fillRes) * 1.0 / ((double) gridRes);
+		Projection proj = ProjectionFactory.getMercator(PIXELS_PER_360 * fillRes);
+		Rectangle fillBaseRect = new Rectangle(0, 
+			       (-PIXELS_PER_NS_HEMISPHERE * fillRes)-DEFAULT_PADDING,
+			       PIXELS_PER_360 * fillRes,
+			       (PIXELS_PER_NS_HEMISPHERE * 2 * fillRes)+DEFAULT_PADDING);
+		TileIO fillIO = new TileIO.Short(proj,
+						 basePath + tilesPrefix + "/z_" + fillRes,
+						 PIXELS_PER_180,
+						 getNLevel(fillRes));
+		TiledGrid fillTiler = new TiledGrid(proj, 
+						    fillBaseRect,
+						    fillIO,
+						    PIXELS_PER_180,
+						    1,
+						    null);
+		fillTiler.setWrap(PIXELS_PER_360 * fillRes);
+	
+		// read in grid contents to buffer
+		Grid2D.Short fillGrid = new Grid2D.Short(fillBounds, proj);
+		fillGrid = (Grid2D.Short)fillTiler.composeGrid(fillGrid);
+	
+		// write contents to grid; if we're filling from the
+		// same resolution as the final product, no need to
+		// scale
+	
+		// DEBUG
+		int gridNaNs = 0;
+		int fillVals = 0;
+	
+		if (gridRes == fillRes) {
+		    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
+				for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
+				    double new_z = fillGrid.valueAt(x, y);
+				    double old_z = finalGrid.valueAt(x, y);
+				    if (Double.isNaN(old_z)) {
+						finalGrid.setValue(x, y, new_z);
+						// DEBUG
+						if (!Double.isNaN(new_z))
+						    fillVals++;
+						gridNaNs++;
+				    }
+				}
+		    }
+		} else {
+		    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
+				for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
+				    // induces bicubic interpolation
+				    double new_z = fillGrid.valueAt(scaleFactor * x, scaleFactor * y);
+				    double old_z = finalGrid.valueAt(x, y);
+				    if (Double.isNaN(old_z)) {
+						finalGrid.setValue(x, y, new_z);
+						// DEBUG
+						if (!Double.isNaN(new_z))
+						    fillVals++;
+						gridNaNs++;
+				    }
+				}
 		    }
 		}
-	    }
-	} else {
-	    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
-		for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
-		    // induces bicubic interpolation
-		    double new_z = fillGrid.valueAt(scaleFactor * x, scaleFactor * y);
-		    double old_z = grid.valueAt(x, y);
-		    if (Double.isNaN(old_z)) {
-			grid.setValue(x, y, new_z);
-			// DEBUG
-			if (!Double.isNaN(new_z))
-			    fillVals++;
-			gridNaNs++;
-		    }
-		}
-	    }
+	
+		// DEBUG
+		//long total = gridBounds.width * gridBounds.height;
+		//System.out.printf("%d of %d nodes were NaNs\n", gridNaNs, total);
+		//System.out.printf("%d of %d nodes were filled with something other than a NaN\n", fillVals, total);
 	}
-
-	// DEBUG
-	long total = gridBounds.width * gridBounds.height;
-	//System.out.printf("%d of %d nodes were NaNs\n", gridNaNs, total);
-	//System.out.printf("%d of %d nodes were filled with something other than a NaN\n", fillVals, total);
-}
-
+    
     /**
      * Fills from a Grid2D.Float with data from the requested
      * resolution and tileset. Does not overwrite existing values,
@@ -204,86 +226,88 @@ public class GetGrid {
      * 
      * @param tilesPrefix the path from GetGrid.base to the tiles,
      * including the "z_", "zw_", or other prefix (e.g. "gdem/z_")
-     * @param res the scaling factor the the new resolution (must
+     * @param gridRes the resolution of the input tiles (must
      * be a power of 2)
-     * @param grid the grid to be populated
+     * @param fillRes the resolution of the output tile (must
+     * be a power of 2)
+     * @param basePath the basepath to use
      */
     public static void fillFloatGrid(String tilesPrefix,
 				     int gridRes,
 				     int fillRes, 
-				     Grid2D grid) {
+                     String basePath) {
 
-	// DEBUG
-	//System.out.println("Filling from " + base + tilesPrefix + fillRes);
-
-	// setup tile IO
-	Rectangle gridBounds = grid.getBounds();
-	Rectangle fillBounds = getScaledBounds(gridBounds, gridRes, fillRes, DEFAULT_PADDING);
-	double scaleFactor = fillRes * 1.0 / gridRes;
-	Projection fillProj = ProjectionFactory.getMercator(PIXELS_PER_360 * fillRes);
-	Rectangle fillBaseRect = new Rectangle(0, 
-		       (-PIXELS_PER_NS_HEMISPHERE * fillRes)-DEFAULT_PADDING,
-		       PIXELS_PER_360 * fillRes,
-		       (PIXELS_PER_NS_HEMISPHERE * 2 * fillRes)+DEFAULT_PADDING);
-	TileIO fillIO = new TileIO.Float(fillProj,
-					 base + tilesPrefix + fillRes,
-					 PIXELS_PER_180,
-					 getNLevel(fillRes));
-	TiledGrid fillTiler = new TiledGrid(fillProj,
-					    fillBaseRect,
-					    fillIO,
-					    PIXELS_PER_180,
-					    1,
-					    null);
-	fillTiler.setWrap(PIXELS_PER_360 * fillRes);
-
-	// read in grid contents to buffer
-	Grid2D.Float fillGrid = new Grid2D.Float(fillBounds, fillProj);
-	fillGrid = (Grid2D.Float)fillTiler.composeGrid(fillGrid);
-
-	// write contents to grid; if we're filling from the
-	// same resolution as the final product, no need to
-	// scale
-		
-	// DEBUG
-	int gridNaNs = 0;
-	int fillVals = 0;
-
-	if (gridRes == fillRes) {
-	    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
-		for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
-		    double new_z = fillGrid.valueAt(x, y);
-		    double old_z = grid.valueAt(x, y);
-		    if (Double.isNaN(old_z)) {
-			grid.setValue(x, y, new_z);
-			// DEBUG
-			if (!Double.isNaN(new_z))
-			    fillVals++;
-			gridNaNs++;
+		// DEBUG
+		//System.out.println("Filling from " + base + tilesPrefix + fillRes);
+	
+		// setup tile IO
+		Rectangle gridBounds = finalGrid.getBounds();
+		Rectangle fillBounds = getScaledBounds(gridBounds, gridRes, fillRes, DEFAULT_PADDING);
+		double scaleFactor = ((double) fillRes) * 1.0 / ((double) gridRes);
+		Projection fillProj = ProjectionFactory.getMercator(PIXELS_PER_360 * fillRes);
+		Rectangle fillBaseRect = new Rectangle(0, 
+			       (-PIXELS_PER_NS_HEMISPHERE * fillRes)-DEFAULT_PADDING,
+			       PIXELS_PER_360 * fillRes,
+			       (PIXELS_PER_NS_HEMISPHERE * 2 * fillRes)+DEFAULT_PADDING);
+		TileIO fillIO = new TileIO.Float(fillProj,
+						 basePath + tilesPrefix + "/z_" + fillRes,
+						 PIXELS_PER_180,
+						 getNLevel(fillRes));
+		TiledGrid fillTiler = new TiledGrid(fillProj,
+						    fillBaseRect,
+						    fillIO,
+						    PIXELS_PER_180,
+						    1,
+						    null);
+		fillTiler.setWrap(PIXELS_PER_360 * fillRes);
+	
+		// read in grid contents to buffer
+		Grid2D.Float fillGrid = new Grid2D.Float(fillBounds, fillProj);
+		fillGrid = (Grid2D.Float)fillTiler.composeGrid(fillGrid);
+	
+		// write contents to grid; if we're filling from the
+		// same resolution as the final product, no need to
+		// scale
+			
+		// DEBUG
+		//int gridNaNs = 0;
+		//int fillVals = 0;
+	
+		if (gridRes == fillRes) {
+		    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
+				for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
+				    double new_z = fillGrid.valueAt(x, y);
+				    double old_z = finalGrid.valueAt(x, y);
+				    if (Double.isNaN(old_z)) {
+						finalGrid.setValue(x, y, new_z);
+						// DEBUG
+						//if (!Double.isNaN(new_z))
+						 //   fillVals++;
+						//gridNaNs++;
+				    }
+				}
+		    }
+		} else {
+		    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
+				for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
+				    // induces bicubic interpolation
+				    double new_z = fillGrid.valueAt(scaleFactor * x, scaleFactor * y);
+				    double old_z = finalGrid.valueAt(x, y);
+				    if (Double.isNaN(old_z)) {
+						finalGrid.setValue(x, y, new_z);
+						// DEBUG
+	//					if (!Double.isNaN(new_z))
+	//					    fillVals++;
+	//					gridNaNs++;
+				    }
+				}
 		    }
 		}
-	    }
-	} else {
-	    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
-		for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
-		    // induces bicubic interpolation
-		    double new_z = fillGrid.valueAt(scaleFactor * x, scaleFactor * y);
-		    double old_z = grid.valueAt(x, y);
-		    if (Double.isNaN(old_z)) {
-			grid.setValue(x, y, new_z);
-			// DEBUG
-			if (!Double.isNaN(new_z))
-			    fillVals++;
-			gridNaNs++;
-		    }
-		}
-	    }
-	}
-
-	// DEBUG
-	long total = gridBounds.width * gridBounds.height;
-	//System.out.printf("%d of %d nodes were NaNs\n", gridNaNs, total);
-	//System.out.printf("%d of %d nodes were filled with something other than a NaN\n", fillVals, total);
+	
+		// DEBUG
+		//long total = gridBounds.width * gridBounds.height;
+		//System.out.printf("%d of %d nodes were NaNs\n", gridNaNs, total);
+		//System.out.printf("%d of %d nodes were filled with something other than a NaN\n", fillVals, total);
     }
 
     /**
@@ -298,7 +322,7 @@ public class GetGrid {
      */
     public static void applyMask(String tilesPrefix,
 				 int gridRes,
-				 Grid2D grid) {
+				 Grid2D grid, String baseUrl) {
 	// setup tile IO
 	Rectangle gridBounds = grid.getBounds();
 	int maskRes = gridRes;
@@ -308,7 +332,7 @@ public class GetGrid {
 					       PIXELS_PER_360 * maskRes,
 					       PIXELS_PER_NS_HEMISPHERE * 2 * maskRes);
 	TileIO.Boolean maskIO = new TileIO.Boolean(maskProj,
-					 base + tilesPrefix + maskRes,
+					 baseUrl + tilesPrefix + "/m_" + maskRes,
 					 PIXELS_PER_180,
 					 getNLevel(maskRes));
 	TiledMask maskTiler = new TiledMask(maskProj,
@@ -349,7 +373,7 @@ public class GetGrid {
      * @param baseURL the new base URL
      */
     public static void setBaseURL(String baseURL) {
-	base = baseURL;
+    	base = baseURL;
     }
 
     /**
@@ -363,11 +387,13 @@ public class GetGrid {
      * @param res the resolution of composed grid
      * @param masked whether to mask the composed grid
      */
-    public static Grid2D.Float getGrid(Rectangle2D.Double unscaledBounds, int boundsRes, int res, boolean masked) {
-	Rectangle projectedBounds = getScaledBounds(unscaledBounds, boundsRes, res, 0); // no padding
-	return getGrid(projectedBounds, res, masked);
+    public static Grid2D.Float getGrid(Rectangle2D.Double unscaledBounds, int boundsRes, int res, boolean masked, String basePath, String mbPath) {
+		Rectangle projectedBounds = getScaledBounds(unscaledBounds, boundsRes, res, 0); // no padding
+		return getGrid(projectedBounds, res, masked, basePath, mbPath);
     }
 
+    
+    
     /**
      * Compose a new grid of a given region and resolution. The
      * grid may be optionally masked to include only high
@@ -378,94 +404,72 @@ public class GetGrid {
      * @param res the resolution of composed grid
      * @param masked whether to mask the composed grid
      */
-    public static Grid2D.Float getGrid(Rectangle projectedBounds, int res, boolean masked) {
-	// A record of the current state of the live tiles
-	// String[] tilePrefixes_Short = {"gdem/z_", "ocean/z", "grids/z_"};
-	// String[] tilePrefixes_Float = {"z_"};
-	// String[] tilePrefixes_Boolean = {"mask/m_"}; 
-
-	// create our grid2D float container
-	Grid2D.Float finalGrid = new Grid2D.Float(
-						  projectedBounds, 
-						  ProjectionFactory.getMercator(PIXELS_PER_360 * res)
-						  );
-	// Fill grid with NaNs initially
-	// finalGrid.initGrid();
-
-	// The grid composer follows a "fill-in" logic,
-	// whereby only NaN's in the grid buffer can be
-	// overwritten by subsequent data. Therefore, we write
-	// the highest resolution data first and "fill-in"
-	// around it.
-
-	// contributed grids at res, down to and including 512
-	fillFloatGrid("grids/z_",
-		      res,
-		      res,
-		      (Grid2D) finalGrid);
-
-	if (res > 512) {
-	    for (int res0 = res / 2; res0 >= 512; res0 /= 2) {
-		fillFloatGrid("grids/z_",
-			      res,
-			      res0,
-			      (Grid2D) finalGrid);
-	    }
-	}
-
-	// gdem @ res
-	if (res >= 128) {
-		fillShortGrid("gdem/z_",
-		      	res,
-		      	res,
-		      	(Grid2D) finalGrid);
-		if (res >= 8192) {
-			fillShortGrid("gdem/z_",
-				res,
-				8192,
-				(Grid2D) finalGrid);
-		}
-		if (res >= 2048) {
-			fillShortGrid("gdem/z_",
-				res,
-				2048,
-				(Grid2D) finalGrid);
-		}
-	}
-
-	// multibeam from scale down to 64
-	if (res >= 64) {
-	    for (int res0 = res; res0 >= 64; res0 /= 2) {
-		fillShortGrid("multibeam/z_",
-			      res,
-			      res0,
-			      (Grid2D) finalGrid);
-	    }
-	} else {
-		fillShortGrid("multibeam/z_",
-			      res,
-			      res,
-			      (Grid2D) finalGrid);
-	}
-
+    public static Grid2D.Float getGrid(Rectangle projectedBounds, int res, boolean masked, String basePath, String mbPath) {
+		// A record of the current state of the live tiles
+		// String[] tilePrefixes_Short = {"gdem/z_", "ocean/z", "grids/z_"};
+		// String[] tilePrefixes_Float = {"z_"};
+		// String[] tilePrefixes_Boolean = {"mask/m_"}; 
 	
-	// TODO masking
-	if (masked) {
-	    applyMask("mask/m_",
-		      res,
-		      (Grid2D) finalGrid);
-	} else {
-	// fill in remaining NaNs with SS
-		fillFloatGrid("z_",
-		      res,
-		      Math.min(res, 64),
-		      (Grid2D) finalGrid);
-
-	}
-                
-	return finalGrid;
-    }
-        
+		// create our grid2D float container
+		finalGrid = new Grid2D.Float(
+	        projectedBounds,
+	        ProjectionFactory.getMercator(PIXELS_PER_360 * res)
+		);
+	
+		// The grid composer follows a "fill-in" logic,
+		// whereby only NaN's in the grid buffer can be
+		// overwritten by subsequent data. Therefore, we write
+		// the highest resolution data first and "fill-in"
+		// around it.
+	
+		// contributed grids at res, down through all relevant grid content
+		
+	    int cGridsFinalRes = (res>512) ? 64 : 1;
+		for (int res0 = res; res0 >= cGridsFinalRes; res0 /= 2) {
+	        fillFloatGrid( cGridsDir , res , res0, basePath );
+	    }
+	    
+		// gdem @ res and at 8192/2048 if required
+		if (res >= 128) {
+			fillShortGrid( landDir , res , res, basePath );
+			if (res > 8192) fillShortGrid( landDir , res, 8192, basePath );
+			if (res > 2048) fillShortGrid( landDir , res , 2048, basePath );
+		}
+	
+		// multibeam from scale down to 64
+	    if (res >= 512) {
+	        for (int res0 = res; res0 >= 512; res0 /= 2) {
+	            fillFloatGrid( "" , res , res0 ,  mbPath );
+	            if (!basePath.equals(mbPath)) fillFloatGrid( "" , res , res0, basePath );
+		    }
+	    } else {
+	        //Bypasses normal workflow if res is 64 or less
+	        //The normal mbPath has GEBCO burned in from 64 to 1
+	        //The swathDir is only multibeam data.
+	        //Using the swathDir eliminates interpolation overshoots
+	        //    introduced by burning in GEBCO
+	        String fillDir = ((res >= 128)?"":swathDir);
+			fillFloatGrid( fillDir , res , res , mbPath );
+	        if (!basePath.equals(mbPath)) fillFloatGrid( fillDir , res , res , basePath);
+		}
+	
+		
+		// Masking not necessary if grid built in this order
+		if (masked) {
+		    /*applyMask("mask",
+			      res,
+			      (Grid2D) finalGrid);*/
+		} else {
+		// fill in remaining NaNs with GEBCO
+	        int basemapRes = Math.min(res,64);
+			fillFloatGrid(basemapDir, res, basemapRes, basePath);
+		}
+	                
+		return finalGrid;
+    }  
+    
+    
+     
     private static void printUsage(String[] args, String message) {
 	System.err.println("--- error  -- ");
 	System.err.println("to compose a grid with bounds \n\twest=20, east=40, south=-20, north=0");
@@ -554,7 +558,7 @@ public class GetGrid {
 
 	// try to create the grid
 	try {
-	    grid = getGrid(area, 1, res, masked);
+	    grid = getGrid(area, 1, res, masked, base, mb_base);
 	} catch (Throwable ex) {
 	    System.err.println("An error occured while composing grd file");
 	    System.err.println(ex.getMessage());

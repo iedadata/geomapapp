@@ -1,18 +1,20 @@
 package haxby.db.pdb;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
+
 import haxby.map.MapApp;
 import haxby.util.PathUtil;
 import haxby.util.URLFactory;
 
-import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
-
 public class PDBSample {
-	public static PDBSample[] sample = null;
-	short parent;
+	public static Map<Integer,PDBSample> sample;
+	int parent;
 	byte[] id;
 	boolean suffix;
 	PDBBatch[] batch;
@@ -22,7 +24,7 @@ public class PDBSample {
 			MapApp.BASE_URL+"/data/portals/petdb/");
 
 	public PDBSample( int station, String ID, short rockType ) {
-		parent = (short)station;
+		parent = station;
 		if( ID==null ) ID="";
 		if(ID.startsWith("@")) {
 			id = ID.substring(1).getBytes();
@@ -62,12 +64,7 @@ public class PDBSample {
 	}
 	static void unload() {
 		if (sample == null) return;
-		for (int i = 0 ; i < sample.length; i++)
-		{
-			if (sample[i] != null)
-				sample[i].dispose();
-			sample[i] = null;
-		}
+		sample.clear();
 		sample = null;
 	}
 	private void dispose() {
@@ -79,15 +76,14 @@ public class PDBSample {
 	}
 	public static void load() throws IOException {
 	//	URL url = URLFactory.url(PETDB_PATH + "June2014/pdb_dataC_new.txt");
-		URL url = URLFactory.url(PETDB_PATH + "petdb_new/pdb_dataC_new.txt");
+		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/pdb_dataC_new.txt");
 		URLConnection urlConn = url.openConnection();
 		urlConn.setDoInput(true); 
 		urlConn.setUseCaches(false);
 
 		BufferedReader txtReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
 
-		sample = new PDBSample[60000]; /*FIXME: was 58000 Hard-code array size. Will cause problem when total sample number exceed 35000. Currently there are more than 48,000 samples in database.  */
-		//sample = new PDBSample[200000];
+		sample = new HashMap<Integer, PDBSample>(); 
 		int snum = -1;
 
 			String oneLine;
@@ -108,13 +104,13 @@ public class PDBSample {
 
 			short rock = Short.parseShort(substrings[index++]);
 //System.out.println(station + " " + id + " " + rock + " snum " + snum);
-			sample[snum] = new PDBSample(station, id, rock); /* FIXME:Lulin  if snum > 42640, the program will crash here */
-			PDBSample samp = sample[snum];
-
+			PDBSample samp = new PDBSample(station, id, rock);
+			sample.put(snum, samp);
+			
 			int nb = Short.parseShort(substrings[index++]);
 			for( int i=0 ; i<nb ; i++) {
 
-			int ref = Short.parseShort(substrings[index++]);
+				int ref = Short.parseShort(substrings[index++]);
 				if (ref > maxref) maxref=ref;
 				int materialShift = Integer.parseInt(substrings[index++]);
 
@@ -131,11 +127,11 @@ public class PDBSample {
 				int na = Integer.parseInt(substrings[index++]);
 				for( int j=0 ; j<na ; j++) {
 
-					int dq = Integer.parseInt(substrings[index++]);
+					int at = Integer.parseInt(substrings[index++]); //not used
 					int nc = Integer.parseInt(substrings[index++]);
 
 					float[] val = new float[nc];
-					float[] stdDev = new float[nc];
+					float[] stdDev = new float[nc]; // not used
 					short[] code = new short[nc];
 					boolean[] compiled = new boolean[nc];
 					boolean hasSD = false;
@@ -155,8 +151,7 @@ public class PDBSample {
 					}
 					if(!hasSD) stdDev=null;
 					
-					PDBAnalysis a = new PDBAnalysis(b, dq, 
-							code, val, stdDev, compiled);
+					PDBAnalysis a = new PDBAnalysis(b, code, val, compiled);
 					b.addAnalysis(a);
 				}
 
@@ -165,7 +160,7 @@ public class PDBSample {
 
 
 			}
-				if( PDBStation.stations[station]==null) sample[snum] = null;
+				if( PDBStation.stations[station]==null) sample.remove(snum);
 
 			} catch (Exception e){
 				//Catch exception if any

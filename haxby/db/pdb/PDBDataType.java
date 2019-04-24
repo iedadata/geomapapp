@@ -15,7 +15,7 @@ import java.util.Vector;
 public class PDBDataType {
 	/* FIXME: Lulin Song leave 'Age' and 'EM' here. It will be removed in the future when pdb_dataC code[i] matches the new list */
 	public final static String[][] dataCode = {
-			/*	{ "A", "Age" },   */      /*Kerstin recommend to remove this. But pdb_dataC file use this */
+				{ "A", "Age" },        /*Kerstin recommend to remove this. But pdb_dataC file use this */
 				{ "MAJ", "Major" },
 				{ "TE", "Trace" },
 				{ "REE", "Rare Earth" },
@@ -24,7 +24,7 @@ public class PDBDataType {
 				{ "NGAS", "Noble Gas" },
 				{ "VO", "Volatile" },
 				{ "US", "U-Series" },
-			/*	{ "EM", "End Member" } */ /* Kerstin recommend to remove this. But pdb_dataC file use this */
+				{ "EM", "End Member" } /* Kerstin recommend to remove this. But pdb_dataC file use this */
 	};
 	static byte[] group;
 	static byte[][] name;
@@ -42,7 +42,7 @@ public class PDBDataType {
 		if( initiallized ) return;
 		Vector<String[]> v = new Vector<String[]>();
 		//URL url = URLFactory.url(PETDB_PATH + "June2014/item_codeA_new.txt");
-		URL url = URLFactory.url(PETDB_PATH + "petdb_new/item_codeA_new.txt");
+		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/item_codeA_new.txt");
 		URLConnection urlConn = url.openConnection();
 		urlConn.setDoInput(true); 
 		urlConn.setUseCaches(false);

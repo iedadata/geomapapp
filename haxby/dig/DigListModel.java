@@ -12,7 +12,7 @@ public class DigListModel extends AbstractListModel {
 		return dig.objects.size();
 	}
 	public Object getElementAt( int index ) {
-		if( dig.objects.size()==0 ) return "no objects";
+		if( dig.objects.size()==0 || index >= dig.objects.size() ) return "no objects";
 		return dig.objects.get(index);
 	}
 	public void objectRemoved() {
