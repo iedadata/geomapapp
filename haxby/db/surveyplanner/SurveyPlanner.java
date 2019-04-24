@@ -60,7 +60,7 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener, Mo
 		enabled = false;
 		loaded = false;
 		this.surveyLines = new ArrayList<SurveyLine>();
-		System.out.println("Loading Survey Planner");
+
 		// initialize the Digitizer for generating waypoints
 		dig = new Digitizer(map);
 		display = new SurveyPlannerDataDisplay(this, dig);

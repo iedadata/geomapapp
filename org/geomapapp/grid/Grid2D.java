@@ -550,7 +550,7 @@ public abstract class Grid2D {
 		}
 		public void setValue( int x, int y, short val ) {
 			if( !contains(x, y) ) return;
-			if( grid==null && val==NaN )return;
+			if( grid==null && val == NaN)return;
 			initGrid();			
 			grid[getIndex(x, y)] = val;
 		}

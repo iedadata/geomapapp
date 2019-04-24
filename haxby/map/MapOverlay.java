@@ -259,8 +259,10 @@ public class MapOverlay implements Overlay {
 		if( x0M > rect.x+rect.width ) return;
 		transM.translate(x0M, y0M);
 		transM.scale(scaleM, scaleM);
+		//Don't let the selected transparency affect the mask - set alpha to 1
+		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1));;
 		g.drawRenderedImage(maskedImage, transM);
-		x0M+=wrap;
+		if (wrap > 0) x0M+=wrap;
 	}
 
 	/**

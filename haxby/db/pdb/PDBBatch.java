@@ -13,9 +13,9 @@ public class PDBBatch {
 		//	int mineralCode 
 			) {
 		parent = sample;
-		ref = (short)refNum;
+//		ref = (short)refNum; // not used?
 		material = (byte)materialCode;
-//		mineral = (byte)mineralCode;
+//		mineral = (byte)mineralCode; // not used?
 		analyses = new PDBAnalysis[0];
 		dataTypes = 0;
 	}

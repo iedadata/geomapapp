@@ -84,7 +84,7 @@ public class PDBExpedition {
 	public static void load() throws IOException {
 		if(loaded) return;
 		//URL url = URLFactory.url(PETDB_PATH + "June2014/expeditions_new.txt");
-		URL url = URLFactory.url(PETDB_PATH + "petdb_new/expeditions_new.txt");
+		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/expeditions_new.txt");
 		URLConnection urlConn = url.openConnection();
 		urlConn.setDoInput(true); 
 		urlConn.setUseCaches(false);
@@ -105,7 +105,7 @@ public class PDBExpedition {
 				while (true) try{
 					s = in.readLine();
 					String [] results = s.split("\\t");
-					index = Short.parseShort(results[0]);
+					index = Integer.parseInt(results[0]);
 					start = Short.parseShort(results[1]);
 					institution = Short.parseShort(results[2]);
 					code = results[3];

@@ -133,4 +133,9 @@ public abstract class CylindricalProjection implements MapProjection {
 			(scale==p.scale) &&
 			(range==p.range);
 	}
+	public double getScale() {
+		return scale;
+	}
+	
+	
 }

@@ -932,6 +932,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 			}
 			wb.write();
 			wb.close();
+			MapApp.sendLogMessage("Saving_or_Downloading&portal=Ocean Floor Drilling&what=all");
 		} catch (Exception ex){
 			ex.printStackTrace();
 		}
@@ -974,6 +975,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 			}
 			wb.write();
 			wb.close();
+			MapApp.sendLogMessage("Saving_or_Downloading&portal=Ocean Floor Drilling&what=selection");
 		} catch (Exception ex){
 			ex.printStackTrace();
 		}
@@ -2097,6 +2099,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 				in.close();
 				out.flush();
 				out.close();
+				MapApp.sendLogMessage("Saving_or_Downloading&portal=Ocean Floor Drilling&what=sediment_data&hole=" + hole.name + "&sediment=" + (String)selectSedimentCB.getSelectedItem());
 			} catch (MalformedURLException mue) {
 				mue.printStackTrace();
 			} catch (IOException ioe) {

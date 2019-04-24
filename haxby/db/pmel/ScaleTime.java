@@ -617,6 +617,11 @@ public class ScaleTime extends JComponent
 			nFrame++;
 			System.out.println( nFrame +"\t"+ size +" bytes");
 		}
+		for (JRadioButton ds: pmel.datasets) {
+			if (ds.isSelected()) {
+				MapApp.sendLogMessage("Saving_or_Downloading&portal="+pmel.getDBName()+"&what=movie&area=" + ds.getText());
+			}
+		}
 	}
 
 	/**

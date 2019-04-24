@@ -26,14 +26,6 @@ import javax.swing.JLabel;
 import org.geomapapp.geom.MapProjection;
 
 public abstract class TileIO {
-	public final static String BASE_DIR_MERC = 
-		"/scratch/ridgembs/bill/grid/final/merc_320_1024";
-	public final static String BASE_URL_MERC = 
-		haxby.map.MapApp.TEMP_BASE_URL + "MapApp/merc_320_1024";
-	public final static String BASE_DIR_SP = 
-		"/scratch/ridgembs/bill/antarctic/public/SP_320_50";
-	public final static String BASE_URL_SP = 
-		haxby.map.MapApp.TEMP_BASE_URL + "antarctic/SP_320_50";
 	protected MapProjection proj;
 	protected int gridSize;
 	protected String root;
@@ -67,6 +59,7 @@ public abstract class TileIO {
 		remote = root.toLowerCase().startsWith("http");
 		if( root.toLowerCase().startsWith("file:") ) {
 			root = (new File(root)).getPath();
+			root = root.replace("file:", "");
 			remote = false;
 		}
 		separator = remote ? "/" :
@@ -172,7 +165,8 @@ public abstract class TileIO {
 			String path = getDirPath( x, y);
 			path += getName(x, y)+".zgrid";
 			if( label!=null) label.setText( "reading "+path);
-// System.out.println(path);
+//			System.out.println(path);
+
 			in =null;
 			if(remote) {
 				URL url = URLFactory.url(path);
@@ -403,7 +397,8 @@ public abstract class TileIO {
 			String path = getDirPath( x, y);
 			path += getName(x, y)+".igrid.gz";
 			if( label!=null) label.setText( "reading "+path);
-//	System.out.println(path);
+//			System.out.println(path);
+	
 			in =null;
 			if(remote) {
 				URL url = URLFactory.url(path);

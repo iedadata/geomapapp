@@ -67,11 +67,13 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import haxby.dig.AnnotationObject;
 import haxby.dig.Digitizer;
+import haxby.dig.DigitizerObject;
 import haxby.dig.LineSegmentsObject;
 import haxby.dig.LineType;
 import haxby.image.Icons;
@@ -109,6 +111,7 @@ public class XMImage extends haxby.util.ScaledComponent
 	boolean flip=false;
 	boolean saving=false;
 	Zoomer zoomer;
+	Point scrollPoint = new Point (0,0);
 	// LDEO MCS
 	static String MULTI_CHANNEL_PATH = PathUtil.getPath("PORTALS/MULTI_CHANNEL_PATH",
 			MapApp.BASE_URL+"/data/portals/mcs/");
@@ -132,6 +135,7 @@ public class XMImage extends haxby.util.ScaledComponent
 	JCheckBox segyCB;
 	JCheckBox navCB;
 	private static final String errMsg = "Error attempting to launch web browser";
+	private boolean rightClick = false;
 //	***** GMA 1.6.2
 
 //	***** GMA 1.6.2: Add variables to record and display data for a user-selected point along a
@@ -147,6 +151,7 @@ public class XMImage extends haxby.util.ScaledComponent
 	JToggleButton cursorTB = null;
 	JToggleButton zoomInTB = null;
 	JToggleButton zoomOutTB = null;
+	JToggleButton flipTB = null;
 //	***** GMA 1.6.4
 
 //	***** GMA 1.6.4: Add y offset to popup so it doesn't create lines
@@ -154,9 +159,6 @@ public class XMImage extends haxby.util.ScaledComponent
 	Digitizer dig;
 
 	public XMImage( Digitizer inputDig ) {
-//		***** GMA 1.6.2: Tool tip text
-		setToolTipText("Right-click to digitize");
-//		***** GMA 1.6.2	
 		dig = inputDig;
 		dig = new Digitizer(this);
 		border = null;
@@ -183,12 +185,26 @@ public class XMImage extends haxby.util.ScaledComponent
 
 //		***** GMA 1.6.2: Add a pop-up menu that appears when a right-click occurs to allow the user 
 //		to record the data for a particular point along the selected MCS cruise line.
+		
+		setToolTipText("Right-click for menu");
+		
 		pm = new JPopupMenu();
-		JMenuItem mi = new JMenuItem("Click to Copy Digitized Point to Clipboard");
+		JMenuItem mi = new JMenuItem("Copy Digitized Values at this Mouse Location to Clipboard");
 		mi.setActionCommand("copy");
 		mi.addActionListener(this);
 		pm.add(mi);
-//		***** GMA 1.6.2
+		JMenuItem mi2 = new JMenuItem("Delete Last Horizon");
+		mi2.setActionCommand("deleteLastHorizon");
+		mi2.addActionListener(this);
+		pm.add(mi2);
+		JMenuItem mi3 = new JMenuItem("Delete Last Pick");
+		mi3.setActionCommand("deleteLastPick");
+		mi3.addActionListener(this);
+		pm.add(mi3);
+		JMenuItem mi4 = new JMenuItem("Name Selected Horizon");
+		mi4.setActionCommand("nameHorizon");
+		mi4.addActionListener(this);
+		pm.add(mi4);
 	}
 	void disposeImage() {
 		image = null;
@@ -337,7 +353,7 @@ public class XMImage extends haxby.util.ScaledComponent
 			g.drawString( "no image loaded", 10, 50 );
 			return;
 		}
-		line.drawCDP( -1 );
+		if (line != null) line.drawCDP( -1 );
 		Graphics2D g2 = (Graphics2D) g;
 		g2.setRenderingHint( RenderingHints.KEY_TEXT_ANTIALIASING,
 					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -634,7 +650,7 @@ public class XMImage extends haxby.util.ScaledComponent
 	}
 
 	public void zoomIn(Point p) {
-		if( image==null )return;
+		if( image==null || rightClick)return;
 		Insets ins = border.getBorderInsets(this);
 		Rectangle rect = getVisibleRect();
 		double zoomX = getZoomX();
@@ -655,11 +671,12 @@ public class XMImage extends haxby.util.ScaledComponent
 		synchronized(this) {
 			scroller.validate();
 		}
-		scroller.scrollTo(new Point(newX, newY));
+		scrollPoint = new Point(newX, newY);
+		scroller.scrollTo(scrollPoint);
 		repaint();
 	}
 	public void zoomOut(Point p) {
-		if( image==null )return;
+		if( image==null || rightClick )return;
 		double zoomX = getZoomX();
 		double zoomY = getZoomY();
 		Insets ins = border.getBorderInsets(this);
@@ -681,26 +698,23 @@ public class XMImage extends haxby.util.ScaledComponent
 		synchronized(this) {
 			scroller.validate();
 		}
-		scroller.scrollTo(new Point(newX, newY));
+		scrollPoint = new Point(newX, newY);
+		scroller.scrollTo(scrollPoint);
 		repaint();
 	}
 	public void setScroller(Scroller scroller) {
 		this.scroller = scroller;
 	}
-	void popup( Point p ) {
-	//	popM.show( this, p.x, p.y );
-	}
-	public void mouseClicked(MouseEvent e) {
-		if( e.isPopupTrigger() ) popup(e.getPoint() );
-	}
-	public void mousePressed(MouseEvent e) {
 
-//		***** GMA 1.6.2: Record the MCS data at the point where the user right-clicks, and then 
-//		bring up a pop-up menu giving the user the option to copy this information to the 
-//		clipboard.
+	public void mouseClicked(MouseEvent e) {
+	}
+	
+	public void mousePressed(MouseEvent e) {
 		if( image==null || line==null ) {
 			return;
 		}
+		rightClick = SwingUtilities.isRightMouseButton(e);
+
 		tempInfo = line.map.getLonLat();
 		int closedParenthesesNumber = 0;
 		int secondCPIndex = 0;
@@ -717,17 +731,11 @@ public class XMImage extends haxby.util.ScaledComponent
 		tempInfo = tempInfo.substring( 0, secondCPIndex + 1 );
 		currentTime = timeAt(e.getY());
 		currentCDP = cdpAt(e.getX());
-		tryPopUp(e);
-//		***** GMA 1.6.2
 
-		popup(e.getPoint() );
+		tryPopUp(e);
 	}
 	public void mouseReleased(MouseEvent e) {
-
-//		***** GMA 1.6.2: Maintains the presence of the pop-up even when the user releases the 
-//		mouse button when the user releases the right mouse button.
 		tryPopUp(e);
-//		***** GMA 1.6.2
 	}
 	public void mouseEntered(MouseEvent e) {
 		if( image==null || line==null )return;
@@ -806,14 +814,24 @@ public class XMImage extends haxby.util.ScaledComponent
 
 		}
 		try{
-		if(Integer.parseInt(cmd)==0 || (Integer.parseInt(cmd)==1)) {
+		if(Integer.parseInt(cmd)==0) {
 			if(zoomInTB.isSelected()) {
-				JOptionPane.showMessageDialog(getTopLevelAncestor(), "Cannot Digitize In Zoom, Zoom In Deselected");
 				zoomInTB.doClick();
+				dig.getDigB().doClick();
 			}
 			if(zoomOutTB.isSelected()) {
-				JOptionPane.showMessageDialog(getTopLevelAncestor(), "Cannot Digitize In Zoom, Zoom Out Deselected");
 				zoomOutTB.doClick();
+				dig.getDigB().doClick();
+			}
+		}
+		else if(Integer.parseInt(cmd)==1) {
+			if(zoomInTB.isSelected()) {
+				zoomInTB.doClick();
+				dig.getAnnotB().doClick();
+			}
+			if(zoomOutTB.isSelected()) {
+				zoomOutTB.doClick();
+				dig.getAnnotB().doClick();
 			}
 		}
 
@@ -889,6 +907,23 @@ public class XMImage extends haxby.util.ScaledComponent
 			}
 			dig.getSelectB().setSelected(true);
 			dig.getSelectB().doClick();
+			
+			// so we can flip horizons, store the digitized values for the picks and then undigitize them after the flip
+			try {
+				Vector<LineSegmentsObject> horizons = dig.getObjects();
+				for (LineSegmentsObject horizon : horizons) {
+					Vector<double[]> points = (Vector<double[]>)horizon.getPoints();
+					for (double[] xyz : points) {
+						Point tempP = new Point( (int)xyz[0], (int)xyz[1] );
+						Point2D resultP = reverseProcessPoint(tempP);
+						xyz[1] = cdpAt((int) resultP.getX());
+						xyz[0] = timeAt((int)(resultP.getY()));
+					}
+					
+				}
+			} catch(Exception ex) {
+			}
+
 			image.setFlip(!image.isFlip());
 			flip = image.isFlip();
 			double zoomX = getZoomX();
@@ -904,13 +939,30 @@ public class XMImage extends haxby.util.ScaledComponent
 			double y = p.getY() / zoomY;
 			double w = (double) rect.width - ins.left - ins.right;
 			double h = (double) rect.height - ins.top - ins.bottom;
+			
+			// undo the digitized values to get new xy values for the horizons
+			try {
+				Vector<LineSegmentsObject> horizons = dig.getObjects();
+				for (LineSegmentsObject horizon : horizons) {
+					for (double[] xyz : (Vector<double[]>)horizon.getPoints()) {
+						double resultPy = undoTimeAt(xyz[0]);
+						double resultPx = undoCdpAt(xyz[1]);
+						Point newPoint = undoReverseProcessPoint(new Point2D.Double(resultPx,resultPy));
+						xyz[0] = newPoint.getX();
+						xyz[1] = newPoint.getY();
+					}
+				}	
+			} catch(Exception ex) {
+			}
+			
 			invalidate();
 			int newX = (int) (x*zoomX - w*.5d);
 			int newY = (int) (y*zoomY - h*.5d);
 			synchronized(this) {
 				scroller.validate();
 			}
-			scroller.scrollTo(new Point(newX, newY));
+			scrollPoint = new Point(newX, newY);
+			scroller.scrollTo(scrollPoint);
 			repaint();
 		} else if( cmd.equals("save")) {
 			new Thread(){
@@ -937,11 +989,68 @@ public class XMImage extends haxby.util.ScaledComponent
 		else if ( cmd.equals("Save digitized products") ) {
 			saveDigitizedProducts();
 		}
+		else if (cmd.equals("deleteLastHorizon")) {
+			if (dig.getObjects().size() == 0) return;
+			String msg = "Are you sure you wish to delete the last horizon?";
+			int n = JOptionPane.showConfirmDialog(this, msg, "Confirm Horizon Deletion", JOptionPane.YES_NO_OPTION);
+			if (n == JOptionPane.NO_OPTION) return;
+			dig.deleteLastObject();
+		}
+		else if (cmd.equals("deleteLastPick")) {
+			if (dig.getObjects().size() == 0) return;
+			try {
+				for( int i=0 ; i<dig.getObjects().size(); i++ ) {
+					try {
+						((DigitizerObject) dig.getObjects().get(i)).setSelected(false);
+					} catch( Exception ex) {}
+				}
+				LineSegmentsObject obj = (LineSegmentsObject) dig.getObjects().lastElement();
+				obj.setSelected(true);
+				if (obj.getPoints().size() > 0) {
+					obj.getPoints().remove(obj.getPoints().lastElement());
+					if (obj.getPoints().size() == 0) {
+						dig.deleteLastObject(false);
+					}
+					panel.repaint();
+				}
+			}
+			catch(Exception ex) {return;};
+		}
+		else if (cmd.equals("nameHorizon")) {
+			try {
+				Vector<LineSegmentsObject> horizons = dig.getObjects();
+				LineSegmentsObject selHorizon = null;
+				int count = 0;
+				for (LineSegmentsObject h : horizons) {
+					if (h.isSelected()) {
+						selHorizon = h;
+						count ++;
+					}
+				}
+				if (selHorizon != null && count == 1 ) {
+					String s = (String)JOptionPane.showInputDialog(this,"Allocate a name to the selected horizon for the Save file", "Name Horizon", JOptionPane.PLAIN_MESSAGE);
+					if ((s != null) && (s.length() > 0)) {
+						selHorizon.setName(s);
+					}
+				} else {
+					JOptionPane.showMessageDialog(this, "Please select the horizon you wish to name by clicking \n"
+							+ "the Select pointer/cursor button and then clicking anywhere on the line.", "Name Horizon", JOptionPane.INFORMATION_MESSAGE);
+				}
+			}
+			catch(Exception ex) {return;}
+		}
 	}
 
 	public void saveDigitizedProducts() {
 		JFileChooser chooser = MapApp.getFileChooser();
-		chooser.setSelectedFile(new File( this.line.getCruiseID()+"_" +this.line.lineID+ "_Horizon1"+ ".txt"));
+		Vector objects = dig.getObjects();
+		String horiz_text;
+		if (objects.size() > 1) {
+			horiz_text = "_Horizons.txt";
+		} else {
+			horiz_text = "_Horizon1.txt";
+		}
+		chooser.setSelectedFile(new File( this.line.getCruiseID() + "_" +this.line.lineID + horiz_text));
 		int ok = chooser.showSaveDialog( getTopLevelAncestor() );
 
 		if( ok == JFileChooser.CANCEL_OPTION )return;
@@ -950,7 +1059,7 @@ public class XMImage extends haxby.util.ScaledComponent
 			PrintStream out = new PrintStream( new FileOutputStream(file) );
 			out.println(line.getCruiseID()+" "+line.lineID);//added line data to the text file DEP 9.13.2011
 			out.println("Longitude\tLatitude\tTwo-Way Travel Time (secs)\tCMP#");
-			Vector objects = dig.getObjects();
+
 			Vector points;
 			double[] xy;
 			for( int k=0 ; k<objects.size() ; k++ ) {
@@ -958,31 +1067,37 @@ public class XMImage extends haxby.util.ScaledComponent
 				points = (Vector)obj.getPoints();
 				if( obj instanceof AnnotationObject ) {
 					out.println(">\t" + obj.toString() +"\t"+ points.size() 
+							+"\t"+ scrollPoint.getX() + "\t" + scrollPoint.getY() + "\t" + xAvg + "\t" + xRep + "\t" + yAvg + "\t" + yRep + "\t" + flip
 							+"\t"+  ((AnnotationObject)obj).getAnnotation() );
 				} else {
-					out.println(">\t" + obj.toString() +"\t"+ points.size() );
+					out.println(">\t" + obj.toString() +"\t"+ points.size() 
+					+"\t"+ scrollPoint.getX() + "\t" + scrollPoint.getY() + "\t" + xAvg + "\t" + xRep + "\t" + yAvg + "\t" + yRep+ "\t" + flip);
 				}
 				if( points.size()==0 ) continue;
 				for( int i=0 ; i<points.size() ; i++ ) {
+					NumberFormat latLonFormat = NumberFormat.getInstance();
+					latLonFormat.setMaximumFractionDigits(6);
+					latLonFormat.setMinimumFractionDigits(6);
+					NumberFormat timeFormat = NumberFormat.getInstance();
+					timeFormat.setMaximumFractionDigits(6);
+					timeFormat.setMinimumFractionDigits(6);
+					
 					xy = (double[])points.get(i);
+					
 					Point tempP = new Point( (int)xy[0], (int)xy[1] );
 					Point2D resultP = reverseProcessPoint(tempP);
-
+					
 					Point2D p = line.pointAtCDP(cdpAt((int)resultP.getX()));
 					Point2D latLonP = line.map.getProjection().getRefXY(p);
 					double tempX = latLonP.getX();
 					while ( tempX > 180. ) {
 						tempX -= 360.;
 					}
-					NumberFormat latLonFormat = NumberFormat.getInstance();
-					latLonFormat.setMaximumFractionDigits(6);
-					latLonFormat.setMinimumFractionDigits(6);
-					NumberFormat timeFormat = NumberFormat.getInstance();
-					timeFormat.setMaximumFractionDigits(3);
-					timeFormat.setMinimumFractionDigits(3);
-					latLonP = new Point2D.Double( tempX, latLonP.getY() );
 
+
+					latLonP = new Point2D.Double( tempX, latLonP.getY() );
 					Point2D test = new Point2D.Double(undoCdpAt(cdpAt((int)resultP.getX())), undoTimeAt(timeAt((int)(resultP.getY()))));
+				
 					//System.out.println(""+undoReverseProcessPoint(test).x);
 					//System.out.println(""+undoReverseProcessPoint(test).y);
 					//System.out.println(""+line.cdp[cdpAt((int)resultP.getX())].getY());
@@ -990,6 +1105,7 @@ public class XMImage extends haxby.util.ScaledComponent
 				}
 			}
 			out.close();
+			MapApp.sendLogMessage("Saving_or_Downloading&portal=Digital Seismic Reflection Profiles (MCS & SCS)&what=digitized_product&cruise="+this.line.getCruiseID()+"&line=" +(String) this.line.lineID );
 		} catch(IOException ex) {
 			ex.printStackTrace();
 		}
@@ -1131,11 +1247,13 @@ public class XMImage extends haxby.util.ScaledComponent
 					ZipEntry ze = new ZipEntry(getID() + ".jpg");
 					zos.putNextEntry(ze);
 					saveJPEG(zos);
+					MapApp.sendLogMessage("Saving_or_Downloading&portal=Digital Seismic Reflection Profiles (MCS & SCS)&what=image_viewport&cruise="+this.line.getCruiseID()+"&line=" +(String) this.line.lineID );
 				}
 				if (imageFullCB.isSelected()) {
 					ZipEntry ze = new ZipEntry(getID() + "Full.jpg");
 					zos.putNextEntry(ze);
 					saveFullJPEG(zos);
+					MapApp.sendLogMessage("Saving_or_Downloading&portal=Digital Seismic Reflection Profiles (MCS & SCS)&what=image_full&cruise="+this.line.getCruiseID()+"&line=" +(String) this.line.lineID );
 				}
 
 //				***** GMA 1.6.2: Remove segyCB from the group of save options that can be 
@@ -1153,6 +1271,7 @@ public class XMImage extends haxby.util.ScaledComponent
 					ZipEntry ze = new ZipEntry(getID() + ".nav");
 					zos.putNextEntry(ze);
 					saveNAV(zos);
+					MapApp.sendLogMessage("Saving_or_Downloading&portal=Digital Seismic Reflection Profiles (MCS & SCS)&what=nav&cruise="+this.line.getCruiseID()+"&line=" +(String) this.line.lineID );
 				}
 				zos.close();
 				JOptionPane.showMessageDialog(null, "Save Successful");
@@ -1191,6 +1310,7 @@ public class XMImage extends haxby.util.ScaledComponent
 				saveJPEG(out);
 				out.close();
 				JOptionPane.showMessageDialog(null, "Save Successful");
+				MapApp.sendLogMessage("Saving_or_Downloading&portal=Digital Seismic Reflection Profiles (MCS & SCS)&what=image_viewport&cruise="+this.line.getCruiseID()+"&line=" +(String) this.line.lineID );
 			}
 			catch(IOException ex) {
 				JOptionPane.showMessageDialog(null, ex.getMessage(), "Error Writing Jpeg", JOptionPane.ERROR_MESSAGE);
@@ -1226,6 +1346,7 @@ public class XMImage extends haxby.util.ScaledComponent
 				saveFullJPEG(out);
 				out.close();
 				JOptionPane.showMessageDialog(null, "Save Successful");
+				MapApp.sendLogMessage("Saving_or_Downloading&portal=Digital Seismic Reflection Profiles (MCS & SCS)&what=image_full&cruise="+this.line.getCruiseID()+"&line=" +(String) this.line.lineID );
 			}
 			catch(IOException ex) { 
 				JOptionPane.showMessageDialog(null, ex.getMessage(), "Error Writing Jpeg", JOptionPane.ERROR_MESSAGE);
@@ -1260,6 +1381,7 @@ public class XMImage extends haxby.util.ScaledComponent
 				saveNAV(out);
 				out.close();
 				JOptionPane.showMessageDialog(null, "Save Successful");
+				MapApp.sendLogMessage("Saving_or_Downloading&portal=Digital Seismic Reflection Profiles (MCS & SCS)&what=nav&cruise="+this.line.getCruiseID()+"&line=" +(String) this.line.lineID );
 			}
 			catch(IOException ex) { 
 				JOptionPane.showMessageDialog(null, ex.getMessage(), "Error Writing NAV", JOptionPane.ERROR_MESSAGE);
@@ -1586,7 +1708,8 @@ public class XMImage extends haxby.util.ScaledComponent
 		int newY = (int) (y*zoomY - h*.5d);
 		invalidate();
 		scroller.validate();
-		scroller.scrollTo(new Point(newX, newY));
+		scrollPoint = new Point(newX, newY);
+		scroller.scrollTo(scrollPoint);
 		repaint();
 	}
 	public void wider() {
@@ -1613,7 +1736,8 @@ public class XMImage extends haxby.util.ScaledComponent
 		invalidate();
 		scroller.validate();
 		r1 = getBounds();
-		scroller.scrollTo(new Point(newX, newY));
+		scrollPoint = new Point(newX, newY);
+		scroller.scrollTo(scrollPoint);
 		repaint();
 	}
 	public void revVid() {
@@ -1661,16 +1785,13 @@ public class XMImage extends haxby.util.ScaledComponent
 		tb.setToolTipText("Negative/Positive Image");
 //		***** GMA 1.6.2
 
-		tb = new JToggleButton(Icons.getIcon(Icons.FORWARD,false));
-		tb.setSelectedIcon(Icons.getIcon(Icons.REVERSE,true));
-		tb.setBorder(null);
-		tb.addActionListener(this);
-		toolBar.add(tb);
-		tb.setActionCommand("flip");
-
-//		***** GMA 1.6.2: Add tooltiptext to the "flip" button
-		tb.setToolTipText("Flip");
-//		***** GMA 1.6.2
+		flipTB = new JToggleButton(Icons.getIcon(Icons.FORWARD,false));
+		flipTB.setSelectedIcon(Icons.getIcon(Icons.REVERSE,true));
+		flipTB.setBorder(null);
+		flipTB.addActionListener(this);
+		toolBar.add(flipTB);
+		flipTB.setActionCommand("flip");
+		flipTB.setToolTipText("Flip");
 
 		b = new JButton(Icons.getIcon(Icons.SAVE,false));
 		b.setPressedIcon( Icons.getIcon(Icons.SAVE,true) );
@@ -1767,7 +1888,7 @@ public class XMImage extends haxby.util.ScaledComponent
 		{
 			public void actionPerformed(ActionEvent e) {
 				try {
-					setLine(XMCS.currentLine, true);
+					setLine(line, true);
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -1852,7 +1973,7 @@ public class XMImage extends haxby.util.ScaledComponent
 //	the current point to the clipboard.
 	public void tryPopUp(MouseEvent evt){
 		String osName = System.getProperty("os.name");
-		if ( !evt.isControlDown()  && !zoomInTB.isSelected() && !zoomOutTB.isSelected() ) {
+		if ( !evt.isControlDown()) {
 			if ( osName.startsWith("Mac OS") && evt.isShiftDown() ) {
 				pm.show(evt.getComponent(), evt.getX(), evt.getY() );
 			}
@@ -1875,7 +1996,7 @@ public class XMImage extends haxby.util.ScaledComponent
 		tempString = tempString.replaceAll("[\\(\\)=,\\w&&[^WESN\\d]]+","");
 		String [] result = tempString.split("\\s+");
 		tempString = "";
-		for ( int i =0; i < result.length; i++ ) {
+		for ( int i =2; i < result.length; i++ ) {
 			if ( result[i].indexOf("\u00B0") != -1 && result[i].indexOf("\u00B4") == -1 ) {
 				result[i] = result[i].replaceAll("\\u00B0","");
 			}
@@ -1891,6 +2012,7 @@ public class XMImage extends haxby.util.ScaledComponent
 				}
 				result[i] = result[i].replaceAll("[NS]","");
 			}
+			result[i] = Float.toString(Float.parseFloat(result[i]));
 			tempString += result[i] + "\t";
 		}
 		tempString = tempString.trim();
@@ -1967,8 +2089,6 @@ public class XMImage extends haxby.util.ScaledComponent
 	 * @throws IOException
 	 */
 	public void setLine(XMLine cruiseLine, boolean load) throws IOException {
-		dig.reset();
-		this.line = cruiseLine;
 		int ok;
 		if(cruiseLine == null) {
 			JOptionPane.showMessageDialog(null, "Select a line");
@@ -1979,6 +2099,7 @@ public class XMImage extends haxby.util.ScaledComponent
 			chooser.setMultiSelectionEnabled( true );
 			ok = chooser.showOpenDialog( getTopLevelAncestor() );
 			if( ok==chooser.APPROVE_OPTION ) {
+				dig.reset();
 				File[] files = chooser.getSelectedFiles();
 				BufferedReader in=null;
 				Vector types = dig.getOptionsDialog().getLineTypes();
@@ -2004,7 +2125,35 @@ public class XMImage extends haxby.util.ScaledComponent
 
 							name = st.nextToken();
 							int n = Integer.parseInt( st.nextToken() );
-														LineSegmentsObject line;
+							LineSegmentsObject line;
+							
+							try {
+								//get zoom levels and scroll point from file and set the view to those values
+								int scrollX = (int) Double.parseDouble(st.nextToken());
+								int scrollY = (int) Double.parseDouble(st.nextToken());
+								
+								xAvg = Integer.parseInt(st.nextToken());
+								xRep = Integer.parseInt(st.nextToken());
+								yAvg = Integer.parseInt(st.nextToken());
+								yRep = Integer.parseInt(st.nextToken());
+
+								boolean loadFlip = Boolean.parseBoolean(st.nextToken());
+								if (loadFlip != flip) flipTB.doClick();
+								scrollPoint = new Point(scrollX, scrollY);
+								if(scroller != null) {
+									invalidate();
+									synchronized(getTreeLock()) {
+										scroller.validate();
+									}
+									scroller.scrollTo(scrollPoint);
+									panel.repaint();
+								}
+
+
+							} catch(Exception e) {
+								System.out.println(e.getMessage());
+							}
+							
 							if( st.hasMoreTokens() ) {
 								AnnotationObject obj = new AnnotationObject(
 										cruiseLine.map, dig);
@@ -2023,7 +2172,7 @@ public class XMImage extends haxby.util.ScaledComponent
 							}
 							if( i==types.size() ) {
 								type = (LineType)types.get(0);
-								line.setName( type.name );
+								//line.setName( type.name );
 							}
 							line.setColor( type.color );
 							line.setStroke( type.stroke );
@@ -2043,9 +2192,12 @@ public class XMImage extends haxby.util.ScaledComponent
 								points.add( new double[] {addPoint.x, addPoint.y, 0.} );
 							}
 							line.setPoints( points );
+							line.setColor(Color.RED);
+							line.setShowPoints(true);
 							objects.add( line );
 						}
 						in.close();
+						dig.setCurrentObject((DigitizerObject) objects.lastElement());
 					} catch (Exception ex ) {
 						ex.printStackTrace();
 						try {

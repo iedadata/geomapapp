@@ -1,13 +1,5 @@
 package haxby.db.pdb;
 
-import haxby.db.Database;
-import haxby.db.XYGraph;
-import haxby.db.custom.ExcelFileFilter;
-import haxby.map.MapApp;
-import haxby.map.XMap;
-import haxby.proj.Projection;
-import haxby.util.XBTable;
-
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -41,12 +33,15 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -68,20 +63,31 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
+import javax.swing.SwingConstants;
+import javax.swing.border.EtchedBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.TableModel;
 
+import org.geomapapp.image.ColorScaleTool;
+import org.geomapapp.util.Cursors;
+import org.geomapapp.util.Icons;
+
+import haxby.db.Database;
+import haxby.db.XYGraph;
+import haxby.db.custom.ExcelFileFilter;
+import haxby.map.MapApp;
+import haxby.map.XMap;
+import haxby.proj.Projection;
+import haxby.util.PathUtil;
+import haxby.util.URLFactory;
+import haxby.util.XBTable;
 import jxl.Workbook;
 import jxl.write.Label;
 import jxl.write.WritableSheet;
 import jxl.write.WritableWorkbook;
-
-import org.geomapapp.image.ColorScaleTool;
-import org.geomapapp.util.Cursors;
-import org.geomapapp.util.Icons;
 
 public class PDB implements Database,
 			MouseListener,
@@ -138,21 +144,24 @@ public class PDB implements Database,
 	protected MouseListener stationSorter = new MouseAdapter() {
 		public void mouseClicked(MouseEvent e) {
 			int c = table.getTableHeader().columnAtPoint(e.getPoint());
-			model.sortByColumn(table.convertColumnIndexToModel(c));
+			model.sortByColumn(c);
+			table.updateUI();
 		}
 	};
 
 	protected MouseListener analysisSorter = new MouseAdapter() {
 		public void mouseClicked(MouseEvent e) {
 			int c = aTable.getTableHeader().columnAtPoint(e.getPoint());
-			aModel.sortByColumn(aTable.convertColumnIndexToModel(c));
+			aModel.sortByColumn(c);
+			aTable.updateUI();
 		}
 	};
 
 	protected MouseListener sampleSorter = new MouseAdapter() {
 		public void mouseClicked(MouseEvent e) {
 			int c = sTable.getTableHeader().columnAtPoint(e.getPoint());
-			sModel.sortByColumn(aTable.convertColumnIndexToModel(c));
+			sModel.sortByColumn(c);
+			sTable.updateUI();
 		}
 	};
 
@@ -321,7 +330,6 @@ public class PDB implements Database,
 
 		bg.add(plotCompiledChem);
 		bg.add(rb);
-		p.add(new JLabel("Scale from: "));
 		p.add(plotCompiledChem);
 		p.add(rb);
 		p2.add(p);
@@ -367,7 +375,7 @@ public class PDB implements Database,
 
 //		1.3.5: Assign appropriate name to color scale window and color label
 //		cst.setName((String)o + " - " + desc.name);
-		cst.setName("Scaling " + o2[colorColumnIndex] + " in " + 
+		cst.setName("Color " + o2[colorColumnIndex] + " in " + 
 				(plotCompiledChem.isSelected() ? "Samples" : "Analyses"));
 		cst.showDialog((JFrame)c);
 
@@ -426,7 +434,7 @@ public class PDB implements Database,
 				int idx = sel[i];
 				long[] samples = PDBStation.stations[model.current[idx]].samples;
 				for (int j = 0; j < samples.length; j++) {
-					PDBSample sample = PDBSample.sample[(int) samples[j]];
+					PDBSample sample = PDBSample.sample.get((int)samples[j]);
 					try {
 						PDBBatch[] batches = sample.batch;
 						for (int k = 0; k < batches.length; k++) {
@@ -455,7 +463,7 @@ public class PDB implements Database,
 				long[] samples = PDBStation.stations[model.current[idx]].samples;
 				if(samples == null || samples.length == 0)continue;
 				for (int j = 0; j < samples.length; j++) {
-					Integer index = ((Integer)sModel.sampleToIndex.get(PDBSample.sample[(int) samples[j]]));
+					Integer index = ((Integer)sModel.sampleToIndex.get(PDBSample.sample.get((int) samples[j])));
 					if (index == null) continue;
 					sTable.addRowSelectionInterval(index.intValue(), index.intValue());
 				}
@@ -854,7 +862,7 @@ public class PDB implements Database,
 				return null;
 			}
 			for (int i = 0; i < samples.length; i++) {
-				PDBSample sample = PDBSample.sample[(int) samples[i]];
+				PDBSample sample = PDBSample.sample.get((int) samples[i]);
 				Float value = ((PDBSampleModel)colorTable).getValueAt(sample, colorColumnIndex);
 				if (value == null || value.isNaN()) continue;
 				return cst.getColor(value.floatValue());
@@ -864,7 +872,7 @@ public class PDB implements Database,
 			if (samples == null || samples.length == 0) return null;
 			try{ 
 				for (int j = 0; j < samples.length; j++) {
-					PDBSample sample = PDBSample.sample[(int) samples[j]];
+					PDBSample sample = PDBSample.sample.get((int) samples[j]);
 					PDBBatch[] batches = sample.batch;
 					for (int k = 0; k < batches.length; k++) {
 						PDBAnalysis[] analyses = batches[k].analyses;
@@ -1059,13 +1067,10 @@ public class PDB implements Database,
 			PDBSample.load();		// Load Sample
 		} catch (IOException ex) {
 			loaded = false;
-//System.err.println(ex.getMessage());
+			System.err.println(ex.getMessage());
 			return false;
 		}
-		int n=0;
-		for(int k=0 ; k<PDBSample.sample.length ; k++) {
-			if(PDBSample.sample[k]!=null) n++;
-		}
+
 		/* Resize the main frame */
 		MapApp app = (MapApp)map.getApp();
 		app.setFrameSize( 1165,750 );
@@ -1081,6 +1086,29 @@ public class PDB implements Database,
 
 		JPanel p = new JPanel(new GridLayout(0,1));
 
+		
+		try {
+			String updateURL = PathUtil.getPath("PORTALS/PETDB_PATH")  + "last_update_date.txt";
+			URL url = URLFactory.url(updateURL);
+			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
+
+			if(in.ready()) {
+				// Get Dataset Information
+				String updateDate = in.readLine();
+				String dateText = "<html>PetDB Portal Content Last Updated: " + updateDate + "</html>";
+				JLabel textDate = new JLabel(dateText, SwingConstants.CENTER);
+				textDate.setFont( new Font( "SansSerif", Font.PLAIN, 13));
+				textDate.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
+
+				p.add(textDate);
+			}
+			in.close();
+		} catch(Exception e) {
+			System.out.println("PetDB update date file not found");
+		}
+		
+		
+		
 		//Group Graph, Color, Lasso Data Options together
 		JPanel p2 = new JPanel(new GridLayout(1,0));
 
@@ -1112,18 +1140,16 @@ public class PDB implements Database,
 					copyToClipboard(getSelectionData());
 					break;
 				case 2: // Save ASCII
-					saveAsASCII(getTableData());
+					saveAsASCII("all");
 					break;
 				case 3: // Save xls
-					saveAsExcel(getTableData());
+					saveAsExcel("all");
 					break;
 				case 4: // Save Selected ASCII
-					Iterator it = getSelectionData();
-					saveAsASCII(it);
+					saveAsASCII("selection");
 					break;
 				case 5: // Save Selected Excel
-					it = getSelectionData();
-					saveAsExcel(it);
+					saveAsExcel("selection");
 					break;
 				default:
 					break;
@@ -1135,11 +1161,13 @@ public class PDB implements Database,
 		p.add(save);
 		dataDisplay = new JTabbedPane(JTabbedPane.TOP);
 		JScrollPane sp1 = new JScrollPane(getTable());
-		dataDisplay.add("Stations", sp1);
+		dataDisplay.addTab("Stations", sp1);
 		JScrollPane sp2 = new JScrollPane(getCompiledTable());
-		dataDisplay.add("Compiled Chem", sp2);
+		dataDisplay.addTab("Compiled Chem",null, sp2, "Lists the compiled " + 
+				"geochemical analyses for all samples associated with the displayed stations.");
 		JScrollPane sp3 = new JScrollPane(getAnalysisTable());
-		dataDisplay.add("Analyses", sp3);
+		dataDisplay.addTab("Analyses",null, sp3, "Lists the individual geochemical " + 
+				"analyses for each sample associated with the displayed stations.");
 
 		dialog.add( p, "North" );
 		dialog.add( new PDBSelectionDialog( this ), "Center");
@@ -1513,7 +1541,7 @@ public class PDB implements Database,
 					}
 					if (z<tm.getColumnCount()-1) s.append("\t");
 				}
-				i++;
+				i++;				
 				return s.toString();
 			}
 		};
@@ -1599,11 +1627,29 @@ public class PDB implements Database,
 		};
 	}
 
-	protected void saveAsExcel(Iterator it) {
+	protected void saveAsExcel(String saveOption) {
+		Iterator it;
+		if (saveOption == "selection") {
+			it = getSelectionData();
+		} else {
+			it = getTableData();
+		}
+		it.next();
+		if (!it.hasNext()) {
+			JOptionPane.showMessageDialog(null, "One or more rows must be selected.", "Save Selected", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		
+		if (saveOption == "selection") {
+			it = getSelectionData();
+		} else {
+			it = getTableData();
+		}
+		
 		JFileChooser jfc = new JFileChooser(System.getProperty("user.home"));
 		ExcelFileFilter eff = new ExcelFileFilter();
 		jfc.setFileFilter(eff);
-		File f=new File("PDB_Export.xls");
+		File f=new File("PetDB_Export.xls");
 		jfc.setSelectedFile(f);
 		do {
 			int c = jfc.showSaveDialog(null);
@@ -1630,13 +1676,33 @@ public class PDB implements Database,
 
 			wb.write();
 			wb.close();
+			MapApp.sendLogMessage("Saving_or_Downloading&portal="+getDBName()+"&saveOption="+saveOption+"&fmt=excel&table="+dataDisplay.getSelectedIndex());
 		} catch (Exception ex){
 		}
 	}
 
-	protected void saveAsASCII(Iterator it) {
+	protected void saveAsASCII(String saveOption) {
+		Iterator it;
+		if (saveOption == "selection") {
+			it = getSelectionData();
+		} else {
+			it = getTableData();
+		}
+		
+		it.next();
+		if (!it.hasNext()) {
+			JOptionPane.showMessageDialog(null, "One or more rows must be selected.", "Save Selected", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		
+		if (saveOption == "selection") {
+			it = getSelectionData();
+		} else {
+			it = getTableData();
+		}
+		
 		JFileChooser jfc = new JFileChooser(System.getProperty("user.home"));
-		File f = new File("PDB_Export.txt");
+		File f = new File("PetDB_Export.txt");
 		jfc.setSelectedFile(f);
 		do {
 			int c = jfc.showSaveDialog(null);
@@ -1656,6 +1722,8 @@ public class PDB implements Database,
 				out.write("\n");
 			}
 			out.close();
+			MapApp.sendLogMessage("Saving_or_Downloading&portal="+getDBName()+"&saveOption="+saveOption+"&fmt=ascii&table="+dataDisplay.getSelectedIndex());
+				
 		} catch (IOException ex){}
 	}
 

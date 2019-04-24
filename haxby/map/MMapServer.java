@@ -152,6 +152,10 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 	}
 	
 	private static boolean getImage(Rectangle2D rect, MapOverlay overlay, double zoom) {
+		return getImage(rect, overlay, zoom, base, true);
+	}
+	
+	public static boolean getImage(Rectangle2D rect, MapOverlay overlay, double zoom, String path, boolean bufferTiles) {
 		int res = 1;
 		while(zoom > res) {
 			res *=2;
@@ -215,7 +219,7 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 						y1 = Math.max( y0, yA);
 						y2 = Math.min( y0+320, yA+heightA);
 						try {
-							tile = getTile(resA, tileX, tileY);
+							tile = getTile(resA, tileX, tileY, path, bufferTiles);
 							if(tile == null )continue;
 						} catch( Exception ex ) {
 							continue;
@@ -304,7 +308,7 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 					continue;
 				}
 				try {
-					tile = getTile(res, tileX, tileY);
+					tile = getTile(res, tileX, tileY, path, bufferTiles);
 					if(tile == null )continue;
 				} catch( Exception ex ) {
 				//	ex.printStackTrace();
@@ -345,7 +349,13 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 		return getImage(rect, overlay, 1);
 	}
 
+	
 	public static BufferedImage getTile( int res, int x, int y) 
+			throws IOException {
+		return getTile(res, x, y, base, true);
+	}
+	
+	public static BufferedImage getTile( int res, int x, int y, String path, boolean bufferTiles) 
 					throws IOException {
 		int MAX_TRIES = 1;
 		Tile tile;
@@ -356,30 +366,32 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 		while(x>=wrap) x-=wrap;
 
 		// Check that the tile exists...
-		if (res > 64) {
-			int xx = x;
-			int yy = y;
-
-			xx += res;
-			yy += res;
-			int key = (xx << 16) | yy;
-//			if (!set.contains(key)) //TODO what was this `set'?
-//				throw new IOException("No such tile");
-		}
-
-		for( int i=0 ; i<tiles.size() && !DRAW_TILE_LABELS; i++) {
-			tile = (Tile)tiles.get(i);
-			if(res==tile.res && x==tile.x && y==tile.y) {
-				if(i!=0) {
-					synchronized (tiles) {
-						tiles.remove(tile);
-						tiles.add(0,tile);
+		if (bufferTiles) {
+			if (res > 64) {
+				int xx = x;
+				int yy = y;
+	
+				xx += res;
+				yy += res;
+				int key = (xx << 16) | yy;
+	//			if (!set.contains(key)) //TODO what was this `set'?
+	//				throw new IOException("No such tile");
+			}
+	
+			for( int i=0 ; i<tiles.size() && !DRAW_TILE_LABELS; i++) {
+				tile = (Tile)tiles.get(i);
+				if(res==tile.res && x==tile.x && y==tile.y) {
+					if(i!=0) {
+						synchronized (tiles) {
+							tiles.remove(tile);
+							tiles.add(0,tile);
+						}
 					}
+					return ImageIO.read(new ByteArrayInputStream(tile.jpeg));
 				}
-				return ImageIO.read(new ByteArrayInputStream(tile.jpeg));
 			}
 		}
-
+		
 		int nGrid = res;
 		int nLevel = 0;
 		while( nGrid>=8 ) {
@@ -396,8 +408,8 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 			factor /= 8;
 		}
 		name += "/"+ getName( x, y ) +".jpg";
-		url = URLFactory.url(base + name );
-
+		url = URLFactory.url(path + name );
+		//System.out.println(res + " " + x + " " + y + ": gmrt tile: " + url);
 		int tries = MAX_TRIES;
 		while (true) {
 			try {
@@ -430,14 +442,16 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 			}
 		}
 
-		synchronized (tiles) {
-			if(tiles.size() == 0) {
-				tiles.add(tile);
-			} else if(tiles.size() == CACHE_SIZE) {
-				tiles.remove(CACHE_SIZE - 1);
-				tiles.add(0,tile);
-			} else {
-				tiles.add(0,tile);
+		if (bufferTiles) {
+			synchronized (tiles) {
+				if(tiles.size() == 0) {
+					tiles.add(tile);
+				} else if(tiles.size() == CACHE_SIZE) {
+					tiles.remove(CACHE_SIZE - 1);
+					tiles.add(0,tile);
+				} else {
+					tiles.add(0,tile);
+				}
 			}
 		}
 		BufferedImage image = ImageIO.read(new ByteArrayInputStream(tile.jpeg));

@@ -63,7 +63,11 @@ public class PoleMapServer {
 	public static void setAlternateURL( String altURL , int whichPole ) {
 		alt[whichPole] = altURL;
 	}
+	
 	public static boolean getImage(Rectangle2D rect, MapOverlay overlay, int whichPole) {
+		return getImage(rect, overlay, whichPole, base[whichPole], true);
+	}
+	public static boolean getImage(Rectangle2D rect, MapOverlay overlay, int whichPole, String path, boolean bufferTiles) {
 		double zoom = overlay.getXMap().getZoom();
 		int res = 1;
 		while(zoom > res) {
@@ -113,7 +117,7 @@ public class PoleMapServer {
 						y1 = Math.max( y0, yA);
 						y2 = Math.min( y0+320, yA+heightA);
 						try {
-							tile = getTile(resA, tileX, tileY, whichPole);
+							tile = getTile(resA, tileX, tileY, path, bufferTiles);
 							if(tile == null )continue;
 						} catch( Exception ex ) {
 							continue;
@@ -180,7 +184,7 @@ public class PoleMapServer {
 					continue;
 				}
 				try {
-					tile = getTile(res, tileX, tileY, whichPole);
+					tile = getTile(res, tileX, tileY, path, bufferTiles);
 					if(tile == null )continue;
 				} catch( Exception ex ) {
 				//	ex.printStackTrace();
@@ -201,19 +205,27 @@ public class PoleMapServer {
 		return true;
 	}
 
+	
 	public static BufferedImage getTile( int res, int x, int y, int whichPole) 
+			throws IOException {
+		return getTile(res, x, y, base[whichPole], true);
+		
+	}
+	public static BufferedImage getTile( int res, int x, int y, String path, boolean bufferTiles) 
 					throws IOException {
 		Tile tile;
 		URL url = null;
 
-		for( int i=0 ; i<tiles.size() && !DRAW_TILE_LABELS; i++) {
-			tile = (Tile)tiles.get(i);
-			if((res==tile.res) && (x==tile.x) && (y==tile.y) && res >=8) { //cached up to i4
-				if(i!=0) {
-					tiles.remove(i);
-					tiles.add(0,tile);
+		if (bufferTiles) {
+			for( int i=0 ; i<tiles.size() && !DRAW_TILE_LABELS; i++) {
+				tile = (Tile)tiles.get(i);
+				if((res==tile.res) && (x==tile.x) && (y==tile.y) && res >=8) { //cached up to i4
+					if(i!=0) {
+						tiles.remove(i);
+						tiles.add(0,tile);
+					}
+					return ImageIO.read(new ByteArrayInputStream(tile.jpeg));
 				}
-				return ImageIO.read(new ByteArrayInputStream(tile.jpeg));
 			}
 		}
 
@@ -234,7 +246,7 @@ public class PoleMapServer {
 		}
 		name += "/"+ getName( x, y ) +".jpg";
 
-		url = URLFactory.url(base[whichPole] + name );
+		url = URLFactory.url(path + name );
 		
 		//System.out.println(url);
 		try {
@@ -264,13 +276,16 @@ public class PoleMapServer {
 					throw ex2;
 			}
 		}
-		if(tiles.size() == 0) {
-			tiles.add(tile);
-		} else if(tiles.size() == 20) {
-			tiles.remove(19);
-			tiles.add(0,tile);
-		} else {
-			tiles.add(0,tile);
+		
+		if (bufferTiles) {
+			if(tiles.size() == 0) {
+				tiles.add(tile);
+			} else if(tiles.size() == 20) {
+				tiles.remove(19);
+				tiles.add(0,tile);
+			} else {
+				tiles.add(0,tile);
+			}
 		}
 		BufferedImage image = ImageIO.read(new ByteArrayInputStream(tile.jpeg));
 

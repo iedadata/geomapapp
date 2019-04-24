@@ -211,7 +211,7 @@ public class RenderingTools extends JPanel implements ActionListener {
 		else 
 			sb = bothB;
 
-		if (grid.toString().equals(GridDialog.DEM)) {
+		if (grid.toString().equals(GridDialog.DEM) || grid.toString().equals(GridDialog.DEV) ) {
 			if (!bothB.isSelected()) {
 				if (!oceanB.isEnabled()) {
 					landB.setSelected(true);
@@ -450,6 +450,7 @@ public class RenderingTools extends JPanel implements ActionListener {
 		bothB.setBorder( border );
 		bothB.addActionListener( stateChange);
 		if ( !grid.toString().equals(GridDialog.DEM) && 
+				!grid.toString().equals(GridDialog.DEV) &&
 				!grid.toString().equals(GridDialog.TOPO_9) &&
 				!grid.toString().equals(GridDialog.NASA_ELEV_MODEL)) {
 			bothB.setSelected(true);

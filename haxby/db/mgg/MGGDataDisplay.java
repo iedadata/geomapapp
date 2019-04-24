@@ -4,7 +4,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -24,6 +23,7 @@ import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -54,7 +54,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 	protected JLabel cruises;
 	protected MGG tracks;
 	protected XMap map;
-	protected JList cruiseL;
+	protected JList<String> cruiseL;
 	protected MGGData data;
 	protected XYGraph[] xy;
 	protected JButton loadProfile;
@@ -93,7 +93,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 	public MGGDataDisplay(MGG tracks, XMap map) {
 		this.tracks = tracks;
 		this.map = map;
-		cruiseL = new JList(tracks.model);
+		cruiseL = new JList<String>(tracks.model);
 
 		
 //		1.4.4: Allow multiple cruises to be selected so that many cruises can be downloaded at once
@@ -206,7 +206,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 	}
 	// Info Button from the header file
 	void showInfo() {
-		String leg = (String)cruiseL.getSelectedValue();
+		String leg = cruiseL.getSelectedValue();
 		try {
 			BufferedReader in;
 			java.net.URL headerFileURL = null;
@@ -220,22 +220,23 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 				
 				File h77File = MGG_h77t_file.exists() ? MGG_h77t_file : MGG_h77_file;
 				in = new BufferedReader(new InputStreamReader( new FileInputStream(h77File)));
-				
+
 				// check if this file has M77T formatting
 				// by convention, we can tell this is the second field in the first line is
 				// "FORMAT_77" or "MGD77T"
 				String[] firstLine = in.readLine().split("\t");
 				in.close();
-				
+				in = new BufferedReader(new InputStreamReader( new FileInputStream(h77File)));
 				if (firstLine.length > 1 && 
 						(firstLine[1].equals("FORMAT_77") || firstLine[1].equals("MGD77T"))) {
 					// if the header file is h77t, then format the output in rows of fields
-					readAsH77T(text, h77File);
-				} else readAsH77(text, h77File);
+					readAsH77T(text, in);
+				} else readAsH77(text, in);
 										
 			}
 			// if not an imported file, then look for header file on the server
 			else {
+				boolean isH77T = false;
 				if ( tracks.mggSel.loadedControlFiles.compareTo( "LDEO" ) == 0 ) {
 					headerFileURL = haxby.util.URLFactory.url(MGD77_PATH + MGGSelector.LAMONT_CONTROL_LOADED.toLowerCase() + "-mgd77/header/" + leg + ".hldeo");
 				}
@@ -252,13 +253,18 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 					headerFileURL = haxby.util.URLFactory.url( MGD77_PATH + MGGSelector.USAP_LOADED.toLowerCase() + "-mgd77/header/" + leg + ".info");
 				}
 	
-				in = new BufferedReader(new InputStreamReader( headerFileURL.openStream() ));
-				text.append( in.readLine() );
-				String s;
-				while( (s=in.readLine())!=null ) {
-					text.append("\n"+s);
+				//look for h77 file, if not found, see if there is a h77t file
+				if (!URLFactory.checkWorkingURL(headerFileURL)) {
+					String h77tFile = headerFileURL.toString().replaceAll(".h77", ".h77t");
+					headerFileURL = URLFactory.url(h77tFile);
+					isH77T = URLFactory.checkWorkingURL(headerFileURL);
 				}
-				in.close();
+				
+				in = new BufferedReader(new InputStreamReader( headerFileURL.openStream() ));
+				if (isH77T) 
+					readAsH77T(text, in); 
+				else 
+					readAsH77(text, in);
 			}
 			
 			JPanel p = new JPanel( new BorderLayout() );
@@ -273,10 +279,9 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 	}
 
 	/*
-	 * read in an H77 non-tabbed text file
+	 * read in an H77 non-tabbed text
 	 */
-	public void readAsH77 (JTextArea text, File h77File) throws IOException {
-		BufferedReader in = new BufferedReader(new InputStreamReader( new FileInputStream(h77File)));
+	public void readAsH77 (JTextArea text, BufferedReader in) throws IOException {
 		text.append( in.readLine() );
 		String s;
 		while( (s=in.readLine())!=null ) {
@@ -286,10 +291,9 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 	}
 	
 	/*
-	 * read in an H77T tabbed text file
+	 * read in an H77T tabbed text
 	 */
-	public void readAsH77T (JTextArea text, File h77File) throws IOException {
-		BufferedReader in = new BufferedReader(new InputStreamReader( new FileInputStream(h77File)));
+	public void readAsH77T (JTextArea text, BufferedReader in) throws IOException {
 		// read in each line and split into fields
 		ArrayList<String[]> lines = new ArrayList<String[]>();
 		String l;
@@ -345,7 +349,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			map.repaint();
 //			***** GMA 1.6.4
 
-			String leg = (String)cruiseL.getSelectedValue();
+			String leg = cruiseL.getSelectedValue();
 //			System.out.println( tracks.types & tracks.tracks[cruiseL.getSelectedIndex()].getTypes() );
 			loadedLeg = leg;
 			if( leg==null ) {
@@ -487,8 +491,8 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 		}
 //		1.4.4: Added functionality to allow user to download MGD-77 data files for currently selected legs
 		else if ( evt.getSource() == getData ) {
-			String cruiseName = (String)cruiseL.getSelectedValue();
-			
+			String cruiseName = cruiseL.getSelectedValue();
+			List<String> cruiseList = cruiseL.getSelectedValuesList();
 			if (cruiseName.equals("---Imported Files---")) return;
 			
 			if ( cruiseL.getSelectedValues().length < 1 ) {
@@ -599,6 +603,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+					MapApp.sendLogMessage("Saving_or_Downloading&portal="+tracks.getDBName()+"&what=Download_Data&cruise="+cruiseList.get(i));
 				} catch (MalformedURLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -725,6 +730,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 				saveViewport(out, fmt);
 				out.close();
 				JOptionPane.showMessageDialog(dialog, "Save Successful");
+				MapApp.sendLogMessage("Saving_or_Downloading&portal="+tracks.getDBName()+"&what=profile_viewport&cruise="+ loadedLeg + "&dataType=" + dataType + "&format=" + fmt);
 			}
 			catch(IOException ex) {
 				JOptionPane.showMessageDialog(dialog, ex.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
@@ -754,6 +760,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 				saveFull(out, fmt);
 				out.close();
 				JOptionPane.showMessageDialog(dialog, "Save Successful");
+				MapApp.sendLogMessage("Saving_or_Downloading&portal="+tracks.getDBName()+"&what=profile_full&cruise=" + loadedLeg + "&dataType=" + dataType + "&format=" + fmt);
 			}
 			catch(IOException ex) { 
 				JOptionPane.showMessageDialog(dialog, ex.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);

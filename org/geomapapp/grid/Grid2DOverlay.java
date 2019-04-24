@@ -838,6 +838,15 @@ public class Grid2DOverlay extends MapOverlay {
 	 * Get the data type for the grid
 	 */
 	public String getDataType() {
+				
+		//for contributed grid, need to find the units from the ESRIShapefile object
+		for (LayerPanel layerPanel : ((MapApp)map.getApp()).layerManager.getLayerPanels()) {
+			if (layerPanel.layer instanceof ESRIShapefile && ((ESRIShapefile)layerPanel.layer).equals(this)) {
+				ESRIShapefile esf = (ESRIShapefile)(layerPanel.layer);
+				return esf.getGridDataType();
+			}
+		}
+		
 		String units = getUnits();
 		if ( name.equals(GridDialog.GEOID) ) {
 			return "Geoid Height";
@@ -854,15 +863,8 @@ public class Grid2DOverlay extends MapOverlay {
 			return "Percentage";
 		}else if ( units.equals("mm/a") ) {
 			return "Rate";
-		}else {
-			//for contributed grid, need to find the units from the ESRIShapefile object
-			for (LayerPanel layerPanel : ((MapApp)map.getApp()).layerManager.getLayerPanels()) {
-				if (layerPanel.layer instanceof ESRIShapefile && ((ESRIShapefile)layerPanel.layer).equals(this)) {
-					ESRIShapefile esf = (ESRIShapefile)(layerPanel.layer);
-					return esf.getGridDataType();
-				}
-			}
 		}
+
 		return "";
 	}
 }

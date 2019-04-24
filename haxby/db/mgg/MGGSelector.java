@@ -117,7 +117,7 @@ public class MGGSelector implements ActionListener {
 		alignComponent(label1);
 		panel1.add(label1);
 		cruiseDataSource = new JRadioButton[4];
-		cruiseDataSource[0] = new JRadioButton("NGDC Tracks");
+		cruiseDataSource[0] = new JRadioButton("NCEI (NGDC) Tracks");
 		cruiseDataSource[1] = new JRadioButton("LDEO Tracks");
 		cruiseDataSource[2] = new JRadioButton("USAP Antarctic Tracks");
 		cruiseDataSource[3] = new JRadioButton("SIO Explorer Tracks");
@@ -443,7 +443,7 @@ public class MGGSelector implements ActionListener {
 				JOptionPane.showMessageDialog(tracks.getDataDisplay(), "The following file(s) have been imported: " + filesString);
 				
 			}
-		} else if ( cmd.equals("LDEO Tracks") || cmd.equals("NGDC Tracks") ||
+		} else if ( cmd.equals("LDEO Tracks") || cmd.equals("NCEI (NGDC) Tracks") ||
 					cmd.equals("Display ADGRAV Tracks") || cmd.equals("SIO Explorer Tracks") ||
 					cmd.equals("USAP Antarctic Tracks")) {
 

@@ -2,7 +2,6 @@ package haxby.db.custom;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridLayout;
@@ -10,8 +9,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.lang.reflect.Field;
-import java.util.List;
 import java.util.Vector;
 
 import javax.swing.ButtonGroup;
@@ -24,10 +21,8 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
-import javax.swing.JSeparator;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
 
 import org.geomapapp.image.ColorModPanel;
 
@@ -577,11 +572,5 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 
 		super.dispose();
 
-		try {
-			final Field field = Dialog.class.getDeclaredField("modalDialogs");
-			field.setAccessible(true);
-			final List<?> list = (List<?>) field.get(null);
-			list.remove(this);
-		} catch (final Exception ex) {}
 	}
 }

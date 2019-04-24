@@ -3,9 +3,10 @@ package haxby.db.pdb;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import haxby.util.*;
-import haxby.map.*;
-public class PDBStationModel extends XBTableModel {
+
+import haxby.map.XMap;
+import haxby.util.SortableTableModel;
+public class PDBStationModel extends SortableTableModel {
 	public XMap map;
 	public PDB pdb;
 	public int[] stations;
@@ -39,24 +40,36 @@ public class PDBStationModel extends XBTableModel {
 			String obj0 = getValueAt(s0, lastSortedCol).toString();
 			String obj1 = getValueAt(s1, lastSortedCol).toString();
 
-			// Try to make them numbers
-			double d0,d1;
-			try {
-				d0 = Double.parseDouble(obj0);
-				d1 = Double.parseDouble(obj1);
-			} catch (NumberFormatException ex) {
-				d0 = d1 = Double.NaN;
-			}
-
-			if (Double.isNaN(d0) || Double.isNaN(d1))
+			if (colClass[lastSortedCol] == String.class) {
 				cmp = obj0.compareToIgnoreCase(obj1);
-			else
-				cmp = d0 - d1 > 0 ? 1 : -1;
-
+			} else {
+				// Try to make them numbers
+				double d0,d1;
+				try {
+					d0 = Double.parseDouble(obj0);
+					d1 = Double.parseDouble(obj1);
+					cmp = d0 - d1 > 0 ? 1 : -1;
+				} catch (NumberFormatException ex) {
+					cmp = obj0.compareToIgnoreCase(obj1);
+				}
+			}
 			return ascent ? cmp : -cmp;
 		}
 	};
 
+	
+	private Comparator<Integer> rowSorter = new Comparator<Integer>() {
+		public int compare(Integer arg0, Integer arg1) {
+
+			PDBStation s0 = PDBStation.get((arg0).intValue());
+			PDBStation s1 = PDBStation.get((arg1).intValue());
+
+			int cmp = s0.getID().compareToIgnoreCase(s1.getID());
+
+			return ascent ? cmp : -cmp;
+		}
+	};
+	
 	public PDBStationModel(XMap map, PDB pdb, double wrap) {
 		super();
 		this.map = map;
@@ -85,24 +98,20 @@ public class PDBStationModel extends XBTableModel {
 		dataFlags = 0xffff;
 		rockFlags = 0xffff;
 		altFlags = 0xffff;
-		colName = new String[] { "Number of Samples",
+		colName = new String[] { 
+					"Number of Samples",
 					"Material",
 					"Data Available",
 					"Rock Type",
 					"Longitude",
-					"Latitude",
-					"Alteration",
-					"Min Depth",
-					"Max Depth",
-					"Samp. Tech." };
-		colClass = new Class[] { Integer.class,
-					String.class,
-					String.class,
-					String.class,
-					String.class,
+					"Latitude" };
+		colClass = new Class[] { 
 					Integer.class,
-					Integer.class,
-					String.class };
+					String.class,
+					String.class,
+					String.class,
+					Double.class,
+					Double.class};
 	}
 	int[] plot = null;
 	public int[] getPlot() {
@@ -245,6 +254,20 @@ public class PDBStationModel extends XBTableModel {
 		updateStationIndexMap();
 		fireTableDataChanged();
 	}
+	
+	public synchronized void sortRows() {
+		ascent = !ascent;
+
+		Integer[] tmp = new Integer[current.length];
+		for (int i = 0; i < current.length; i++)
+			tmp[i] = new Integer(current[i]);
+		Arrays.sort(tmp, rowSorter);
+		for (int i = 0; i < current.length; i++)
+			current[i] = tmp[i].intValue();
+
+		updateStationIndexMap();
+		fireTableDataChanged();
+	}
 
 	private Object getValueAt(PDBStation s, int col) {
 		if( col==0 ) {
@@ -288,17 +311,6 @@ public class PDBStationModel extends XBTableModel {
 					if(tf) sb.append("; ");
 					tf = true;
 					sb.append(PDBRockType.rockCode[i][0]);
-				}
-			}
-			return sb.toString();
-		} else if( col==4 ) {
-			StringBuffer sb = new StringBuffer();
-			boolean tf = false;
-			for( int i=0 ; i<PDBAlteration.size() ; i++) {
-				if( s.hasAlterations( 1<<i ) ) {
-					if(tf) sb.append("; ");
-					tf = true;
-					sb.append(PDBAlteration.alterationCode[i][0]);
 				}
 			}
 			return sb.toString();

@@ -204,22 +204,22 @@ public class MBTracks implements Database, Overlay, MouseListener {
 				// Determine which map assign correct control file and cache file
 				String remoteHash;
 				switch (mapType) {
-				case MapApp.MERCATOR_MAP:
-				default:
-					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_MERC");
-					remoteHash = hashSha1Map.get("MERCATOR");
-					inf = new File(portalCacheFile.getAbsolutePath());
-					break;
-				case MapApp.SOUTH_POLAR_MAP:
-					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_SP");
-					remoteHash = hashSha1Map.get("SP");
-					inf = new File(portalCacheFileS.getAbsolutePath());
-					break;
-				case MapApp.NORTH_POLAR_MAP:
-					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_NP");
-					remoteHash = hashSha1Map.get("NP");
-					inf = new File(portalCacheFileN.getAbsolutePath());
-					break;
+					case MapApp.MERCATOR_MAP:
+					default:
+						mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_MERC");
+						remoteHash = hashSha1Map.get("MERCATOR");
+						inf = new File(portalCacheFile.getAbsolutePath());
+						break;
+					case MapApp.SOUTH_POLAR_MAP:
+						mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_SP");
+						remoteHash = hashSha1Map.get("SP");
+						inf = new File(portalCacheFileS.getAbsolutePath());
+						break;
+					case MapApp.NORTH_POLAR_MAP:
+						mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_NP");
+						remoteHash = hashSha1Map.get("NP");
+						inf = new File(portalCacheFileN.getAbsolutePath());
+						break;
 				}
 				// Format of file will change in GMRT release 3.6.
 				// Can remove old code once that has been released. 
@@ -284,6 +284,19 @@ public class MBTracks implements Database, Overlay, MouseListener {
 			} else {
 				URL url = URLFactory.url( control );
 				in = new DataInputStream(new BufferedInputStream(url.openStream()));
+
+				switch (mapType) {
+					case MapApp.MERCATOR_MAP:
+					default:
+						inf = new File(portalCacheFile.getAbsolutePath());
+						break;
+					case MapApp.SOUTH_POLAR_MAP:
+						inf = new File(portalCacheFileS.getAbsolutePath());
+						break;
+					case MapApp.NORTH_POLAR_MAP:
+						inf = new File(portalCacheFileN.getAbsolutePath());
+						break;
+				}
 			}
 
 			Point2D.Double pt = new Point2D.Double();
@@ -703,7 +716,7 @@ public class MBTracks implements Database, Overlay, MouseListener {
 					uidMap.put(split[0], split[1] + "," + split[2]);
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				//e.printStackTrace();
 			}
 			loadedCruises.add(cruise.getName());
 		}

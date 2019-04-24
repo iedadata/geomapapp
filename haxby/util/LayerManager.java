@@ -315,17 +315,17 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 								FilesUtil.writeLayerToFile(colorLayer, xmlFile);
 							}
 
-							if(itemsLP!=null) {
-								//Save the session to xmlFile
-								XML_Menu.saveSessionLayer(itemsLP, xmlFile);
-							}
-
-							if(layerPanels.get(i).layerName != null && layerPanels.get(i).layerName.matches(MapApp.baseFocusName)) {
+							if (layerPanels.get(i).layerName != null && layerPanels.get(i).layerName.matches(MapApp.baseFocusName)) {
 								String baseLayer = ("\r\t<layer\r\t" +
 										"\tname=" + '"' + MapApp.baseFocusName + '"' +"\r\t" +
 										"\tindex=" + '"' + i + '"' + ">" + '\r'+ '\t' +  "</layer>");
 								FilesUtil.writeLayerToFile(baseLayer, xmlFile);
+							} 
+							else if (itemsLP != null) {
+								//Save the session to xmlFile
+								XML_Menu.saveSessionLayer(itemsLP, xmlFile);
 							}
+							
 							//Write close layer tag to xmlFile once
 							if(i==numLayerPanels-1) {
 								String loadAllLayer =("\r" + '\t' + "<layer " + '\r' + '\t' +
@@ -1305,10 +1305,10 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 				Dimension size = new Dimension(
 						getMaximumSize().width+20,
 						getMaximumSize().height+ 40);
-				Dimension maxSize = lmFrame.getMaximumSize();
+//				Dimension maxSize = lmFrame.getMaximumSize();
 
-				size.height = Math.min(size.height, maxSize.height);
-				size.width = Math.min(size.width, maxSize.width);
+//				size.height = Math.min(size.height, maxSize.height);
+//				size.width = Math.min(size.width, maxSize.width);
 
 				lmFrame.setMinimumSize(size);
 				lmFrame.setSize(size);

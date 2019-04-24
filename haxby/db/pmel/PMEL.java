@@ -348,9 +348,7 @@ public class PMEL implements Database, ActionListener {
 		dialog.add( pmelB, "North");
 		pmelB.addActionListener( new ActionListener() {
 			public void actionPerformed(ActionEvent evt) {
-				BrowseURL.browseURL("http://www.pmel.noaa.gov/"
-						+"vents/acoustics/seismicity/"
-						+"seismicity.html");
+				BrowseURL.browseURL(PathUtil.getPath("PORTALS/PMEL_PATH", "https://www.pmel.noaa.gov/acoustics/"));
 			}
 		});
 

@@ -15,22 +15,14 @@ public class PDBSelectionDialog extends JPanel
 		this.pdb = pdb;
 		basic = new BasicDialog(pdb);
 		tb = new JTabbedPane(JTabbedPane.TOP);
-		tb.add( "Make Your Selections Below", basic);
+		tb.add( "Filter Parameters", basic);
 		add( tb, "Center");
-	//	frame = new JFrame("Selection Dialog");
-	//	frame.getContentPane().add( this, "Center");
-	//	JButton button = new JButton("Close");
-	//	frame.getContentPane().add( button, "South");
-	//	button.addActionListener(this);
 		setPreferredSize(new Dimension(450,500) );
 	}
 	public JTabbedPane getPane() {
 		return tb;
 	}
 	public void showDialog(int x, int y) {
-	//	frame.pack();
-	//	if(x>=0 && y>=0) frame.setLocation(x, y);
-	//	frame.show();
 	}
 	public void actionPerformed( ActionEvent evt ) {
 		frame.dispose();

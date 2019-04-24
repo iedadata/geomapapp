@@ -79,8 +79,10 @@ public class GrdProperties {
 //			System.out.println("Next global attribute: " + v.getStringValue());
 //			***** GMA 1.6.4
 
-			String value = getPrintable( v.getStringValue() );
-			global.add( new String[] {v.getName(), value } );
+			if (v.getStringValue() != null) {
+				String value = getPrintable( v.getStringValue() );
+				global.add( new String[] {v.getName(), value } );
+			}
 		//	byte[] b = v.getStringValue().getBytes();
 		//	StringBuffer sb = new StringBuffer();
 		//	for( int k=0 ; k<b.length ; k++) {

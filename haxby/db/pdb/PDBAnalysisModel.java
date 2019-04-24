@@ -2,7 +2,7 @@ package haxby.db.pdb;
 
 import haxby.util.*;
 import java.util.*;
-public class PDBAnalysisModel extends XBTableModel {
+public class PDBAnalysisModel extends SortableTableModel {
 	PDB pdb;
 
 	Vector analyses;
@@ -41,6 +41,13 @@ public class PDBAnalysisModel extends XBTableModel {
 		}
 	};
 
+	private Comparator<PDBAnalysis> rowSorter = new Comparator<PDBAnalysis>() {
+		public int compare(PDBAnalysis a0, PDBAnalysis a1) {
+			int cmp = a0.getName().compareToIgnoreCase(a1.getName());
+			return ascent ? cmp : -cmp;
+		}
+	};
+	
 	public PDBAnalysisModel(PDB pdb) {
 		super();
 		this.pdb = pdb;
@@ -74,9 +81,8 @@ public class PDBAnalysisModel extends XBTableModel {
 			int[] snum = st.getSampleNums();
 			for( int j=0 ; j<snum.length ; j++) {
 				int jj = snum[j];
-				if(snum[j]>PDBSample.sample.length || PDBSample.sample[jj]==null) continue;
-
-				PDBSample samp = PDBSample.sample[jj];
+				PDBSample samp = PDBSample.sample.get(jj);
+				if (samp == null) continue;
 
 				if( !samp.hasRockType(rock) ) continue;
 				for( int k=0 ; k<samp.batch.length ; k++) {
@@ -161,6 +167,15 @@ public class PDBAnalysisModel extends XBTableModel {
 		lastSortedCol = col;
 
 		Collections.sort(analyses, columnSorter);
+
+		updateAnalysisIndexMap();
+		fireTableDataChanged();
+	}
+	
+	public synchronized void sortRows() {
+		ascent = !ascent;
+
+		Collections.sort(analyses, rowSorter);
 
 		updateAnalysisIndexMap();
 		fireTableDataChanged();

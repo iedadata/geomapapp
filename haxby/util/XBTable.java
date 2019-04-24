@@ -1,15 +1,27 @@
 package haxby.util;
 
-import javax.swing.event.*;
-import javax.swing.*;
-import javax.swing.table.*;
-
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.Font;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
-import java.awt.event.*;
-import java.util.*;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.Vector;
+
+import javax.swing.JList;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.SwingConstants;
+import javax.swing.event.TableModelEvent;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableModel;
 
 import org.geomapapp.image.ColorComponent;
 import org.geomapapp.image.ColorEditor;
@@ -29,7 +41,7 @@ public class XBTable extends JTable implements FocusListener,
 		super( model );
 		if(model instanceof XBTableModel ) {
 			rowHeader = new XBRowHeader(this);
-			corner = new MyCellRenderer();
+			corner = new CornerCellRenderer(this);
 		}
 		initListeners();
 	}
@@ -64,6 +76,9 @@ public class XBTable extends JTable implements FocusListener,
 	//	getSelectionModel().addListSelectionListener( rowHeader );
 		addMouseListener( rowHeader );
 		addKeyListener( rowHeader );
+		if (corner instanceof CornerCellRenderer) {
+			((CornerCellRenderer)corner).addMouseListener((CornerCellRenderer)corner);
+		}
 		rowHeader.addMouseListener( rowHeader );
 		rowHeader.setFixedCellHeight(getRowHeight());
 		rowHeader.addFocusListener( this );

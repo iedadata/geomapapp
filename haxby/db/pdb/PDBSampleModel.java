@@ -1,12 +1,13 @@
 package haxby.db.pdb;
 
-import haxby.util.XBTableModel;
-
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Vector;
-public class PDBSampleModel extends XBTableModel {
+
+import haxby.util.SortableTableModel;
+public class PDBSampleModel extends SortableTableModel {
 	PDB pdb;
 	Vector samples;
 	HashMap sampleToIndex; // PDBSample to index in table
@@ -44,6 +45,13 @@ public class PDBSampleModel extends XBTableModel {
 		}
 	};
 
+	private Comparator<PDBSample> rowSorter = new Comparator<PDBSample>() {
+		public int compare(PDBSample a0, PDBSample a1) {
+			int cmp = a0.getName().compareToIgnoreCase(a1.getName());
+			return ascent ? cmp : -cmp;
+		}
+	};
+	
 	public PDBSampleModel(PDB pdb) {
 		super();
 		this.pdb = pdb;
@@ -76,8 +84,10 @@ public class PDBSampleModel extends XBTableModel {
 			int[] snum = st.getSampleNums();
 			for( int j=0 ; j<snum.length ; j++) {
 				int jj = snum[j];
-				if(snum[j]>PDBSample.sample.length || PDBSample.sample[jj]==null) continue;
-				PDBSample samp = PDBSample.sample[jj];
+
+				PDBSample samp = PDBSample.sample.get(jj);
+				if (samp == null) continue;
+				
 				if( !samp.hasRockType(rock) ) continue;
 				boolean compiled = false;
 				for( int k=0 ; k<samp.batch.length ; k++) {
@@ -161,7 +171,16 @@ public class PDBSampleModel extends XBTableModel {
 			ascent = true;
 		lastSortedCol = col;
 
-		Collections.sort(samples, columnSorter);;
+		Collections.sort(samples, columnSorter);
+
+		updateSampleIndexMap();
+		fireTableDataChanged();
+	}
+	
+	public synchronized void sortRows() {
+		ascent = !ascent;
+
+		Collections.sort(samples, rowSorter);
 
 		updateSampleIndexMap();
 		fireTableDataChanged();
@@ -217,22 +236,21 @@ public class PDBSampleModel extends XBTableModel {
 
 	// methods implementing TableModel 47730
 	public int getRowCount() {
-		if( samples.size()>47555 ) return 1;
+//		if( samples.size()>47555 ) return 1;
 		return samples.size();
 	}
 
 	public Object getValueAt(int row, int col) {
 //System.out.println("r " + row + " c " + col + " s " + samples.size());
 
-		if( samples.size()>47555 ) return "";
+//		if( samples.size()>47555 ) return "";
 		PDBSample samp = (PDBSample)samples.get(row);
-		System.out.println(samp.getName());
 		return getValueAt(samp, col);
 	}
 	public String getColumnName( int col ) {
-		if( samples.size()>47555 ) {
-			return "?";
-		}
+//		if( samples.size()>47555 ) {
+//			return "?";
+//		}
 		String units = PDBDataType.getUnits(cols[col]);
 		if(units==null || units.equals("null") ) units="";
 		else units = " ("+units+")";
@@ -240,7 +258,7 @@ public class PDBSampleModel extends XBTableModel {
 		return name + units;
 	}
 	public int getColumnCount() {
-		if( samples.size()>47555 ) return 1;
+//		if( samples.size()>47555 ) return 1;
 		if(cols==null)return 0;
 		return cols.length;
 	}
@@ -248,7 +266,7 @@ public class PDBSampleModel extends XBTableModel {
 		return false;
 	}
 	public String getRowName( int row ) {
-		if( samples.size()>47555 ) return "Too many samples (>47730). Please zoom in.";
+//		if( samples.size()>47555 ) return "Too many samples (>47730). Please zoom in.";
 		return ((PDBSample)samples.get(row)).getName();
 	}
 

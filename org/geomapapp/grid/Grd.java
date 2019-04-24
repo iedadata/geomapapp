@@ -308,7 +308,7 @@ public class Grd {
 		boolean coardsCompliant = false;
 		List coardsList = nc.getGlobalAttributes();
 		Iterator coardsIterator = coardsList.iterator();
-		if ( coardsIterator.hasNext() ) {
+		while ( coardsIterator.hasNext() ) {
 			Attribute coardsAttribute = (Attribute)coardsIterator.next();
 			if ( coardsAttribute.isString() ) {
 				if ( coardsAttribute.getStringValue().toLowerCase().indexOf("coards") != -1 ) {

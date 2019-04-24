@@ -1,5 +1,11 @@
 package org.geomapapp.grid;
 
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+
 import haxby.map.GetGrid;
 import haxby.map.MapOverlay;
 import haxby.map.XMap;
@@ -8,20 +14,15 @@ import haxby.proj.Projection;
 import haxby.proj.ProjectionFactory;
 import haxby.util.PathUtil;
 
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-
 public class GridComposer extends GetGrid {
 //	static String base = "/local/data/home/bill/db/merc_320_1024/";
 
 	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
+	public static String mbPath = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
 	public static String vo_base = PathUtil.getPath("GMRT_LATEST/VO_GRID_TILE_PATH");
 	static String spBase = PathUtil.getPath("GMRT_LATEST/SP_GRID_TILE_PATH");
 	static String npBase = PathUtil.getPath("GMRT_LATEST/NP_GRID_TILE_PATH");
-
+	
 	static int oceanGridMaxResLevel = 512;
 	static HiResGrid[] hiRes;
 
@@ -179,6 +180,14 @@ public class GridComposer extends GetGrid {
 	public static boolean getGrid(Rectangle2D rect,
 			Grid2DOverlay overlay,
 			int mapRes, double zoom, boolean reset) {
+		return getGrid( rect, overlay, mapRes, zoom, reset, base, mbPath);
+	}
+	
+	public static boolean getGrid(Rectangle2D rect,
+			Grid2DOverlay overlay,
+			int mapRes, double zoom, boolean reset, String baseUrl, String mbPath) {
+		
+
 			if( zoom>mbResLevels[0][0] * 1.5 ) {
 				if( getHiRes(rect, overlay, mapRes) )return true;
 			}
@@ -196,7 +205,7 @@ public class GridComposer extends GetGrid {
 			Projection proj = ProjectionFactory.getMercator( 320*2*res );
 			Rectangle bounds = new Rectangle(x, y, width, height);
 
-			Grid2D.Float grid = GetGrid.getGrid( bounds, res, false );
+			Grid2D.Float grid = GetGrid.getGrid( bounds, res, false, baseUrl, mbPath);
 			Grid2D.Boolean land = new Grid2D.Boolean(bounds, proj);
 			boolean hasOcean = false;
 			boolean hasLand = false;
@@ -212,8 +221,8 @@ public class GridComposer extends GetGrid {
 					}
 				}
 			}
-				overlay.setGrid(grid, land, hasLand, hasOcean, reset);
-				return true;
+			overlay.setGrid(grid, land, hasLand, hasOcean, reset);
+			return true;
 		}
 /*public static boolean getGrid(Rectangle2D rect,
 							Grid2DOverlay overlay,
@@ -646,8 +655,14 @@ public class GridComposer extends GetGrid {
 		}
 
 		public static boolean getGridSP(Rectangle2D rect,
+				Grid2DOverlay overlay,
+				int mapRes, double zoom, boolean reset) {
+			return getGridSP(rect, overlay, mapRes, zoom, reset, spBase);
+		}
+		
+		public static boolean getGridSP(Rectangle2D rect,
 								Grid2DOverlay overlay,
-								int mapRes, double zoom, boolean reset) {
+								int mapRes, double zoom, boolean reset, String baseUrl) {
 			int res = 1;
 			while (res < zoom)
 			res *= 2;
@@ -674,7 +689,7 @@ public class GridComposer extends GetGrid {
 
 		Grid2D.Short grid = new Grid2D.Short( bounds, proj);
 		TileIO.Short tileIO = new TileIO.Short( proj,
-				spBase + "multibeam/z_" + res,
+				baseUrl + "multibeam/z_" + res,
 				320, nLevel);
 		TiledGrid tiler = new TiledGrid( proj, 
 					r0,
@@ -712,7 +727,7 @@ public class GridComposer extends GetGrid {
 			}
 			Grid2D.Short g0 = new Grid2D.Short( bounds0, proj0);
 			TileIO t0 = new TileIO.Short( proj0,
-					spBase + "multibeam/z_" + res0,
+					baseUrl + "multibeam/z_" + res0,
 					320, nLevel);
 			tiler = new TiledGrid( proj0, 
 					r0,
@@ -762,8 +777,14 @@ public class GridComposer extends GetGrid {
 		}
 
 		public static boolean getGridNP(Rectangle2D rect,
+				Grid2DOverlay overlay,
+				int mapRes, double zoom, boolean reset) {
+			return getGridNP( rect, overlay, mapRes, zoom, reset, npBase);
+		}
+		
+		public static boolean getGridNP(Rectangle2D rect,
 							Grid2DOverlay overlay,
-							int mapRes, double zoom, boolean reset) {
+							int mapRes, double zoom, boolean reset, String baseUrl) {
 			int res = 1;
 			while (res < zoom)
 			res *= 2;
@@ -790,7 +811,7 @@ public class GridComposer extends GetGrid {
 
 			Grid2D.Short grid = new Grid2D.Short( bounds, proj);
 			TileIO.Short tileIO = new TileIO.Short( proj,
-					npBase + "multibeam/z_" + res,
+					baseUrl + "multibeam/z_" + res,
 					320, nLevel);
 			TiledGrid tiler = new TiledGrid( proj, 
 					r0,
@@ -829,7 +850,7 @@ public class GridComposer extends GetGrid {
 
 				Grid2D.Short g0 = new Grid2D.Short( bounds0, proj0);
 				TileIO t4 = new TileIO.Short( proj0,
-						npBase + "multibeam/z_" + res0,
+						baseUrl + "multibeam/z_" + res0,
 						320, nLevel);
 				tiler = new TiledGrid( proj0, 
 						r0,
