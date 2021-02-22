@@ -172,14 +172,10 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.10"; // 04/17/2019
+	public final static String VERSION = "3.6.11"; // 02/18/2021
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
-	public final static boolean DEV_MODE = false; 
+	public final static boolean DEV_MODE = true; 
 	
-	
-//	***** GMA 1.6.2: Switch from new.geomapapp.org to www.geomapapp.org.  Add development
-//	server, dev.geomapapp.org.  Add hard-coded password to prevent casual users from using
-//	dev.geomapapp.org.
 	public static final String PRODUCTION_URL = "http://app.geomapapp.org/";
 	public static String DEFAULT_URL = "http://app.geomapapp.org/";
 	public static final String DEV_URL = "http://app-dev.geomapapp.org/"; // was new-dev.geomapapp.org
@@ -886,6 +882,7 @@ public class MapApp implements ActionListener,
 
 	protected void SPInit2() {
 		sendLogMessage("Switching_To_SP");
+		mapScale = null;
 		JWindow startup = new JWindow();
 		startSP = new StartUp(SOUTH_POLAR_MAP);
 		Container c = startup.getContentPane();
@@ -957,6 +954,7 @@ public class MapApp implements ActionListener,
 
 	protected void NPInit2() {
 		sendLogMessage("Switching_To_NP");
+		mapScale = null;
 		JWindow startup2 = new JWindow();
 		startNP = new StartUp(NORTH_POLAR_MAP);
 		Container c = startup2.getContentPane();
@@ -1100,6 +1098,7 @@ public class MapApp implements ActionListener,
 
 	protected void MInit2() {
 		sendLogMessage("Switching_To_Mercator");
+		mapScale = null;
 		JWindow startup = new JWindow();
 		start = new StartUp();
 		//startup.getContentPane().add(start, "Center");
@@ -3062,7 +3061,7 @@ public class MapApp implements ActionListener,
 		// Portal Cache Options
 		JPanel portalOptions = new JPanel();
 		portalOptions.setLayout(new javax.swing.BoxLayout(portalOptions, javax.swing.BoxLayout.Y_AXIS));
-		mbPortalCache.setSelected(true);
+
 		portalOptions.add(mbPortalCache);
 		//portalOptions.add(pPortalCache);
 		JPanel portalLabels = new JPanel();
@@ -4066,6 +4065,9 @@ public class MapApp implements ActionListener,
 				name, infoURLString, xml_item);
 			}
 		}
+		//resort the layers when loading a session file
+		if (xml_item.index != null) layerManager.sortLayers();
+		
 		if (map.getZoom() <= 1.5) {
 			map.repaint();
 		}
@@ -4237,6 +4239,7 @@ public class MapApp implements ActionListener,
 		BufferedWriter outMB = new BufferedWriter( new FileWriter(portalSelectFile, false) );
 		outMB.write(portalUpdatedTime);
 		outMB.close();
+		mbPortalCache.setSelected(true);
 	}
 
 	// Get default_portals.txt file to determine which portals to cache.
@@ -4298,6 +4301,10 @@ public class MapApp implements ActionListener,
 					}
 				}
 				cacheSelectIn.close();
+			}
+			else if (menusCacheDir.exists() && !portalSelectFile.exists()) {
+				// portal file has been deleted - set to false
+				mbPortalCache.setSelected(false);
 			}
 		// FIRST TIME for portals cache set default to be true.
 			else {
@@ -4450,8 +4457,17 @@ public class MapApp implements ActionListener,
 					// If the use system do not allow permission to make.
 					ReadMenusCache = false;
 				}
+
 				if(!portalCacheDir.exists()) {
 					portalCacheDir.mkdir();
+				}
+				if( !portalSelectFile.exists() ) { // make sure this is in place
+					//System.out.println("creating new cache");
+					// Start as default cache MB portal get new time.
+					URL urlPortals = URLFactory.url(PathUtil.getPath("PORTALS_CACHE_TEXT_PATH"));
+					BufferedReader inPortals = new BufferedReader(new InputStreamReader(urlPortals.openStream()));
+					String portalUpdatedTime = inPortals.readLine();
+					updatePortal(portalUpdatedTime);
 				}
 			// Check on creation of file
 				boolean isCreated = false;
@@ -4870,7 +4886,7 @@ public class MapApp implements ActionListener,
 		if (AT_SEA) return;
 		message = message.replace(" ", "_");
 		String logURL = PathUtil.getPath("LOG_PATH", "http://app.geomapapp.org/gma_logs/gma_logs") + "?log=" + message 
-				+ "&proj=" + CURRENT_PROJECTION;
+				+ "&proj=" + CURRENT_PROJECTION + "&gma_version=" + VERSION;
 		try {
 			HttpURLConnection con = (HttpURLConnection) new URL( logURL ).openConnection();
 			con.getResponseCode();

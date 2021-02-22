@@ -147,6 +147,7 @@ public class ImportGrid implements Runnable {
 		   dataType;
 	String areaText;
 	boolean applyForAll;
+	boolean[] flipGrid;
 	DecimateXBG dec;
 	ShapeSuite suite;
 	int currentIndex,
@@ -329,6 +330,9 @@ public class ImportGrid implements Runnable {
 		if (applyForAll && inputPrj != null) {
 			zScale[currentIndex] = pd.getZScale();
 			add_offset[currentIndex] = pd.getOffset();
+			if (flipGrid != null) {
+				flipGrid[currentIndex] = pd.getFlipGrid();
+			}
 			return  pd.getProjection( wesn, width, height );
 		}
 
@@ -343,15 +347,18 @@ public class ImportGrid implements Runnable {
 		zUnits = pd.getZUnits();
 		add_offset[currentIndex] = pd.getOffset();
 		applyForAll = pd.getApplyForAll();
+		if (flipGrid != null) {
+			flipGrid[currentIndex] = pd.getFlipGrid();
+		}
 		return prj;
 	}
 
-	MapProjection getPolarProjection(String name, double cell_size) {
+	MapProjection getPolarProjection(String name, double cell_size, int width, int height) {
 		MapProjection prj = pd.getPolarProjection( frame,
 							cell_size,
 							currentIndex == 0 ? 1 : zScale[currentIndex - 1],
 							name,
-							mapType == MapApp.SOUTH_POLAR_MAP);
+							mapType == MapApp.SOUTH_POLAR_MAP, width, height);
 		zScale[currentIndex] = pd.getZScale();
 		dataType = pd.getDataType();
 		zUnits = pd.getZUnits();
@@ -494,12 +501,13 @@ public class ImportGrid implements Runnable {
 		wesn = new double[] { Double.MAX_VALUE, - Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE};
 		zMin = Double.MAX_VALUE;
 		zMax = -Double.MAX_VALUE;
+		pd.showFlipGridCheckBox(false);
 
 		for( int k=0 ; k<files.length ; k++) {
 			ASC_PolarGrid gridFile = new ASC_PolarGrid(files[k]);
 			gridFile.readHeader();
 
-			final MapProjection proj = getPolarProjection(files[k].getName(), gridFile.cell_size);
+			final MapProjection proj = getPolarProjection(files[k].getName(), gridFile.cell_size, gridFile.width, gridFile.height);
 			if (proj == null)
 				return;
 
@@ -551,6 +559,7 @@ public class ImportGrid implements Runnable {
 		GridFile[] grids = new GridFile[files.length];
 		zScale = new double[files.length];
 		zScale[0] = 1;
+		flipGrid = new boolean[files.length];
 		add_offset = new double[files.length];
 		applyForAll = false;
 		currentIndex = 0;
@@ -558,6 +567,8 @@ public class ImportGrid implements Runnable {
 		wesn = new double[] { Double.MAX_VALUE, - Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE};
 		zMin = Double.MAX_VALUE;
 		zMax = -Double.MAX_VALUE;
+		//allow user to flip grid in case it comes out upside down
+		pd.showFlipGridCheckBox(true);
 
 		/* If more then one grid file is selected then compute the ceiling
 		 * and floor Z value for all the selected files.
@@ -684,10 +695,11 @@ public class ImportGrid implements Runnable {
 			}
 			
 			final File file = files[k];
+			boolean thisFlipGrid = flipGrid[k];
 			grids[k] = new GridFile() {
 				public Grid2D getGrid() throws IOException {
-					GrdProperties gridP = new GrdProperties(file.getPath());
-					Grid2D grid = Grd.readGrd( file.getPath(), null, gridP );
+					GrdProperties gridP = new GrdProperties(file.getPath(), thisFlipGrid);
+					Grid2D grid = Grd.readGrd(file.getPath(), null, gridP, thisFlipGrid);
 					if (grid == null) {
 						return null;
 					}
@@ -726,6 +738,7 @@ public class ImportGrid implements Runnable {
 		wesn = new double[] { Double.MAX_VALUE, - Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE};
 		zMin = Double.MAX_VALUE;
 		zMax = -Double.MAX_VALUE;
+		pd.showFlipGridCheckBox(false);
 
 
 		/* If more then one grid file is selected then compute the ceiling
@@ -779,10 +792,10 @@ public class ImportGrid implements Runnable {
 		zMaxTemp = new Double[files.length];
 
 		for( int k=0 ; k<files.length ; k++) {
-			
 			ASC_Grid gridFile = new ASC_Grid(files[k]);
 
-			Grid2D grid = gridFile.getGrid();
+			gridFile.readHeader();
+			gridFile.readGrid();
 			double gridWESN[] = new double[] { gridFile.x0, gridFile.x0 + (gridFile.width - 1) * gridFile.dx,
 					gridFile.y0, gridFile.y0 + (gridFile.height - 1) * gridFile.dx};
 
@@ -798,6 +811,8 @@ public class ImportGrid implements Runnable {
 			displayWaitingDots();
 
 			gridFile.proj = proj;
+			Grid2D grid = gridFile.getGrid();
+				
 			if (gridFile.proj instanceof UTMProjection) {
 				double dx = (grid.getWESN()[1] - grid.getWESN()[0]) / gridFile.width;
 				dxMin = Math.min(dx, dxMin);
@@ -864,6 +879,7 @@ public class ImportGrid implements Runnable {
 		wesn = new double[] { Double.MAX_VALUE, - Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE};
 		zMin = Double.MAX_VALUE;
 		zMax = -Double.MAX_VALUE;
+		pd.showFlipGridCheckBox(false);
 
 		currentIndex = 0;
 		zMinTemp = new Double[files.length];
@@ -958,6 +974,7 @@ public class ImportGrid implements Runnable {
 		wesn = new double[] { Double.MAX_VALUE, - Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE};
 		zMin = Double.MAX_VALUE;
 		zMax = -Double.MAX_VALUE;
+		pd.showFlipGridCheckBox(false);
 
 		/* If more then one grid98 file is selected then compute the ceiling
 		 * and floor Z value for all the selected files.
@@ -1098,11 +1115,14 @@ public class ImportGrid implements Runnable {
 		if (!gridProj.isCylindrical())
 			wrap = -1;
 
-		double mapWrap = 360 * ((CylindricalProjection) mapProj).getScale();
+		// I think we only need to use mapWrap in Mercator
+		double mapWrap = Double.MAX_VALUE;
 
 		ul = mapProj.getMapXY(ul);
 		lr = mapProj.getMapXY(lr);
 		if( gridProj.isCylindrical() && mapType == MapApp.MERCATOR_MAP) {
+			mapWrap = 360 * ((CylindricalProjection) mapProj).getScale();
+			
 			x1 = (int)Math.floor(ul.getX());
 			y1 = (int)Math.floor(ul.getY());
 			x2 = (int)Math.ceil(lr.getX());
@@ -1131,6 +1151,7 @@ public class ImportGrid implements Runnable {
 				x2 = 2 * res * 320;
 			}
 		} else {
+//			mapWrap = 360 * ((PolarStereo) mapProj).getScale();
 			double [] mapWESN = getMapWESN(gridProj, mapProj, bounds.x, bounds.y, bounds.width, bounds.height);
 			x1 = (int) Math.floor(mapWESN[0]);
 			y1 = (int) Math.floor(mapWESN[2]);

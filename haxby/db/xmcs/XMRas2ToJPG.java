@@ -31,7 +31,7 @@ public class XMRas2ToJPG {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		if (args.length != 2) {
+		if (args.length < 1) {
 			System.err.println("Ussage: java haxby.db.xmcs.XMRas2ToJPG cruiseID radar");
 			System.err.println("\tShould be run with extra heap space allocated (-Xmx256m)");
 			System.exit(0);
@@ -41,17 +41,23 @@ public class XMRas2ToJPG {
 		XMCruise.MULTI_CHANNEL_PATH = "http://www.geomapapp.org/MCS/";
 
 		String cruiseID = args[0];
-		final String isRadar = args[1];
+		final String isRadar = args.length > 1 ? args[1] : "";
+		Boolean loadFromFile = args.length == 1;
+		
 		XMCruise cruise = new XMCruise(null, map, cruiseID);
 		XMLine[] lines;
 		try {
-			lines = cruise.loadLines();
+			if (loadFromFile) {
+				lines = cruise.loadLinesFromFile();
+			} else {
+				lines = cruise.loadLines();
+			}
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			return;
 		}
-		XMImage oImage = new XMImage(null);
-		XMImage image = new XMImage(null) {
+		XMImage oImage = new XMImage();
+		XMImage image = new XMImage() {
 			public void saveJPEG(OutputStream out) throws IOException {
 				if(image==null) throw new IOException("no image loaded");
 				xAvg = yAvg = xRep = yRep = 1;
@@ -131,7 +137,11 @@ public class XMRas2ToJPG {
 
 		for (int i = 0; i < lines.length; i++) {
 			try {
-				image.loadImage(lines[i]);
+				if (loadFromFile) {
+					image.loadImageFromFile(lines[i]);
+				} else {
+					image.loadImage(lines[i]);
+				}
 				BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(new File(cruiseID+"-"+lines[i].lineID+".jpg")));
 				image.saveJPEG(out);
 				System.out.println(cruiseID+"-"+lines[i].lineID+".jpg");

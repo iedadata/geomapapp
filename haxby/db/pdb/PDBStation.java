@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.HashMap;
 
 public class PDBStation {
 	public static PDBStation[] stations = null;
@@ -25,6 +26,7 @@ public class PDBStation {
 	byte alterationFlags;
 	short rockTypes;
 	static boolean loaded = false;
+	public static HashMap<String, PDBStation> idToStation = new HashMap<String, PDBStation>();
 
 	static String PETDB_PATH = PathUtil.getPath("PORTALS/PETDB_PATH",
 			MapApp.BASE_URL+"/data/portals/petdb/");
@@ -130,6 +132,7 @@ public class PDBStation {
 			stations = tmp;
 		}
 		stations[index] = station;
+		idToStation.put(station.id, station);
 	}
 	static int trimToSize() {
 		int k;
@@ -185,8 +188,7 @@ public class PDBStation {
 					if (results.length != 11) continue;
 					index = Integer.parseInt(results[0]);
 					id = results[1];
-
-					expedition = Integer.parseInt(results[2]);
+					expedition =  results[2].length() > 0 ? Integer.parseInt(results[2]) : 0;
 					location = Integer.parseInt(results[3]);
 					samples = new long[Short.parseShort(results[4])];
 					String [] sampleItems = results[5].split(",");

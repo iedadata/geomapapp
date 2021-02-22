@@ -393,6 +393,24 @@ public class GMAProfile implements Overlay, XYPoints {
 				graph.addMouseListener(z);
 				graph.addKeyListener(z);
 				graphs.add((XYMultiGraph) graph);
+				
+				if (dialog == null || !dialog.isVisible()) {
+					dialog = new JFrame("Profile");
+					dialog.setDefaultCloseOperation( dialog.HIDE_ON_CLOSE);
+					dialog.addWindowListener(new WindowAdapter() {
+						public void windowClosing(WindowEvent e) {
+							multiPlotBtn.setSelected(true);
+							graphs = null;
+							path = null;
+							map.repaint();
+						}
+					});
+					// make sure multiplot is set to true
+					multiPlotBtn.doClick();
+					multiPlotBtn.doClick();
+				}
+				
+				
 			} else {
 				GMAProfile[] points = (GMAProfile[]) ((XYMultiGraph)graph).xyArray;
 				for (int i=0; i<gridsToPlot.size(); i++) {
@@ -449,6 +467,7 @@ public class GMAProfile implements Overlay, XYPoints {
 							map.repaint();
 						}
 					});
+
 					graphPanel = new JPanel();
 					graphPanel.setLayout(new GridLayout(graphs.size(),1));
 					for (XYGraph plotGraph : graphs) {
@@ -915,7 +934,7 @@ public class GMAProfile implements Overlay, XYPoints {
 	public Boolean isMultiPlot() {
 		int count = 0;
 		for (Grid2DOverlay thisGrid : gridsToPlot) {
-			if (thisGrid instanceof CruiseGridViewer || thisGrid instanceof GridViewer ) count ++;
+			if (thisGrid instanceof CruiseGridViewer || thisGrid instanceof GridViewer) count ++;
 		}
 		return (count >= 1);
 	}
@@ -1380,8 +1399,6 @@ public class GMAProfile implements Overlay, XYPoints {
 			verticalExgTs[i] = thisVerticalExgT;
 
 			panel.add(thisYPanel);
-			
-			
 
 		}
 		if (isMultiPlot()) {
@@ -1392,12 +1409,15 @@ public class GMAProfile implements Overlay, XYPoints {
 					int nGraphs = 1;
 					graphs = null;
 					doProfile( (Line2D.Double)line);
+					int panelHeight = 305;
 					
 					if (multiPlotBtn.isSelected()) {
 						multiPlotBtn.setText("Plot on separate graphs");
+						panelHeight += 100;
 					} else {
 						multiPlotBtn.setText("Plot on one graph");
 						nGraphs = graphs.size();
+						panelHeight *= nGraphs;
 					}
 
 					dialog.remove(graphPanel);
@@ -1406,9 +1426,10 @@ public class GMAProfile implements Overlay, XYPoints {
 					for (XYGraph plotGraph : graphs) {
 						if (plotGraph != null) graphPanel.add(plotGraph);
 					}
+					
 					dialog.getContentPane().add( graphPanel, "Center" );
 					dialog.pack();
-					dialog.setSize(650, 170 + graphPanel.getHeight());
+					dialog.setSize(650, 170 + panelHeight);
 				}
 			});
 		

@@ -70,6 +70,7 @@ import javax.swing.JToggleButton;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+
 public class SCSImage2 extends haxby.util.ScaledComponent
 		implements Zoomable,
 				ActionListener, 
@@ -290,11 +291,13 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 							Vector points = new Vector();
 							for( i=0 ; i<n ; i++) {
 								st = new StringTokenizer( in.readLine());
-								double x = xAtTime( Double.parseDouble(st.nextToken()));
+								String t = st.nextToken();
+								double x = xAtTime( Double.parseDouble(t));
 								String nextTokenS = st.nextToken();
 								nextTokenS = st.nextToken();
 								double y = Double.parseDouble(st.nextToken())/.0075;
-								points.add( new double[] {x, y, 0.} );
+								if (!t.equals("0")) 
+									points.add( new double[] {x, y, 0.} );
 							}
 							line.setPoints( points );
 							line.setColor(Color.GREEN);
@@ -479,30 +482,40 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 			Vector objects = dig.getObjects();
 			Vector points;
 			double[] xy, lonlat;
+			NumberFormat latLonFormat = NumberFormat.getInstance();
+			latLonFormat.setMaximumFractionDigits(6);
+			latLonFormat.setMinimumFractionDigits(6);
 			for( int k=0 ; k<objects.size() ; k++ ) {
 				LineSegmentsObject obj = (LineSegmentsObject)objects.get(k);
 				points = (Vector)obj.getPoints();
+				int badPoints = 0;
+				for( int i=0 ; i<points.size() ; i++ ) {
+					double x = ((double[])points.get(i))[0];					
+					long t = (long)timeAtX( x );
+					lonlat = cruise.xyAtTime( t );
+					if (Double.isNaN(lonlat[0]) || Double.isNaN(lonlat[1])){
+						badPoints++;
+					}
+				}
+				
+				int goodPoints = points.size() - badPoints; 
 				if( obj instanceof AnnotationObject ) {
-					out.println(">\t" + obj.toString() +"\t"+ points.size() 
+					out.println(">\t" + obj.toString() +"\t"+ goodPoints 
 							+"\t"+  ((AnnotationObject)obj).getAnnotation() );
 				} else {
-					out.println(">\t" + obj.toString() +"\t"+ points.size() );
+					out.println(">\t" + obj.toString() +"\t"+ goodPoints );
 				}
 				if( points.size()==0 ) continue;
 			
 				NumberFormat fmt = NumberFormat.getInstance();
 				for( int i=0 ; i<points.size() ; i++ ) {
-					NumberFormat latLonFormat = NumberFormat.getInstance();
-					latLonFormat.setMaximumFractionDigits(6);
-					latLonFormat.setMinimumFractionDigits(6);
-					
 					xy = (double[])points.get(i);
 					double x = xy[0];
 					double y = xy[1];
 					
 					long t = (long)timeAtX( x );
 					lonlat = cruise.xyAtTime( t );
-
+					if (Double.isNaN(lonlat[0]) || Double.isNaN(lonlat[1])) continue;
 					double[] newAgeDepth = new double[2];
 					newAgeDepth = ageDepthAtTime((int)t);
 					double age = newAgeDepth[0];

@@ -141,11 +141,17 @@ public class GetGrid {
      * be a power of 2)
      * @param grid the grid to be populated
      */
-
+    public static void fillShortGrid(String tilesPrefix,
+		     int gridRes,
+		     int fillRes, 
+		     String basePath) {
+    	fillShortGrid(tilesPrefix, gridRes, fillRes, basePath, false);
+    }
+    
     public static void fillShortGrid(String tilesPrefix,
 				     int gridRes,
 				     int fillRes, 
-				     String basePath) {
+				     String basePath, boolean isGMRT) {
 		// DEBUG
 	//	System.out.println("Filling from " + baseUrl + tilesPrefix + fillRes);
 	
@@ -179,8 +185,8 @@ public class GetGrid {
 		// scale
 	
 		// DEBUG
-		int gridNaNs = 0;
-		int fillVals = 0;
+//		int gridNaNs = 0;
+//		int fillVals = 0;
 	
 		if (gridRes == fillRes) {
 		    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
@@ -190,9 +196,9 @@ public class GetGrid {
 				    if (Double.isNaN(old_z)) {
 						finalGrid.setValue(x, y, new_z);
 						// DEBUG
-						if (!Double.isNaN(new_z))
-						    fillVals++;
-						gridNaNs++;
+//						if (!Double.isNaN(new_z))
+//						    fillVals++;
+//						gridNaNs++;
 				    }
 				}
 		    }
@@ -200,14 +206,14 @@ public class GetGrid {
 		    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
 				for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
 				    // induces bicubic interpolation
-				    double new_z = fillGrid.valueAt(scaleFactor * x, scaleFactor * y);
+				    double new_z = fillGrid.valueAt(scaleFactor * x, scaleFactor * y, isGMRT);
 				    double old_z = finalGrid.valueAt(x, y);
 				    if (Double.isNaN(old_z)) {
 						finalGrid.setValue(x, y, new_z);
 						// DEBUG
-						if (!Double.isNaN(new_z))
-						    fillVals++;
-						gridNaNs++;
+//						if (!Double.isNaN(new_z))
+//						    fillVals++;
+//						gridNaNs++;
 				    }
 				}
 		    }
@@ -233,9 +239,16 @@ public class GetGrid {
      * @param basePath the basepath to use
      */
     public static void fillFloatGrid(String tilesPrefix,
+		     int gridRes,
+		     int fillRes, 
+            String basePath) {
+    	fillFloatGrid (tilesPrefix, gridRes, fillRes, basePath, false);
+    }
+    
+    public static void fillFloatGrid(String tilesPrefix,
 				     int gridRes,
 				     int fillRes, 
-                     String basePath) {
+                     String basePath, boolean isGMRT) {
 
 		// DEBUG
 		//System.out.println("Filling from " + base + tilesPrefix + fillRes);
@@ -291,7 +304,7 @@ public class GetGrid {
 		    for (int x = gridBounds.x; x < gridBounds.x + gridBounds.width; x++) {
 				for (int y = gridBounds.y; y < gridBounds.y + gridBounds.height; y++) {
 				    // induces bicubic interpolation
-				    double new_z = fillGrid.valueAt(scaleFactor * x, scaleFactor * y);
+				    double new_z = fillGrid.valueAt(scaleFactor * x, scaleFactor * y, isGMRT);
 				    double old_z = finalGrid.valueAt(x, y);
 				    if (Double.isNaN(old_z)) {
 						finalGrid.setValue(x, y, new_z);
@@ -405,6 +418,10 @@ public class GetGrid {
      * @param masked whether to mask the composed grid
      */
     public static Grid2D.Float getGrid(Rectangle projectedBounds, int res, boolean masked, String basePath, String mbPath) {
+    	return getGrid(projectedBounds, res, masked, basePath, mbPath, false);
+    }
+    
+    public static Grid2D.Float getGrid(Rectangle projectedBounds, int res, boolean masked, String basePath, String mbPath, boolean isGMRT) {
 		// A record of the current state of the live tiles
 		// String[] tilePrefixes_Short = {"gdem/z_", "ocean/z", "grids/z_"};
 		// String[] tilePrefixes_Float = {"z_"};
@@ -426,21 +443,21 @@ public class GetGrid {
 		
 	    int cGridsFinalRes = (res>512) ? 64 : 1;
 		for (int res0 = res; res0 >= cGridsFinalRes; res0 /= 2) {
-	        fillFloatGrid( cGridsDir , res , res0, basePath );
+	        fillFloatGrid( cGridsDir , res , res0, basePath, isGMRT );
 	    }
 	    
 		// gdem @ res and at 8192/2048 if required
 		if (res >= 128) {
-			fillShortGrid( landDir , res , res, basePath );
-			if (res > 8192) fillShortGrid( landDir , res, 8192, basePath );
-			if (res > 2048) fillShortGrid( landDir , res , 2048, basePath );
+			fillShortGrid( landDir , res , res, basePath, isGMRT );
+			if (res > 8192) fillShortGrid( landDir , res, 8192, basePath, isGMRT );
+			if (res > 2048) fillShortGrid( landDir , res , 2048, basePath, isGMRT );
 		}
 	
 		// multibeam from scale down to 64
 	    if (res >= 512) {
 	        for (int res0 = res; res0 >= 512; res0 /= 2) {
-	            fillFloatGrid( "" , res , res0 ,  mbPath );
-	            if (!basePath.equals(mbPath)) fillFloatGrid( "" , res , res0, basePath );
+	            fillFloatGrid( "" , res , res0 ,  mbPath, isGMRT );
+	            if (!basePath.equals(mbPath)) fillFloatGrid( "" , res , res0, basePath, isGMRT );
 		    }
 	    } else {
 	        //Bypasses normal workflow if res is 64 or less
@@ -449,8 +466,8 @@ public class GetGrid {
 	        //Using the swathDir eliminates interpolation overshoots
 	        //    introduced by burning in GEBCO
 	        String fillDir = ((res >= 128)?"":swathDir);
-			fillFloatGrid( fillDir , res , res , mbPath );
-	        if (!basePath.equals(mbPath)) fillFloatGrid( fillDir , res , res , basePath);
+			fillFloatGrid( fillDir , res , res , mbPath, isGMRT );
+	        if (!basePath.equals(mbPath)) fillFloatGrid( fillDir , res , res , basePath, isGMRT);
 		}
 	
 		
@@ -462,7 +479,7 @@ public class GetGrid {
 		} else {
 		// fill in remaining NaNs with GEBCO
 	        int basemapRes = Math.min(res,64);
-			fillFloatGrid(basemapDir, res, basemapRes, basePath);
+			fillFloatGrid(basemapDir, res, basemapRes, basePath, isGMRT);
 		}
 	                
 		return finalGrid;

@@ -33,6 +33,7 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -206,6 +207,22 @@ public class XMImage extends haxby.util.ScaledComponent
 		mi4.addActionListener(this);
 		pm.add(mi4);
 	}
+	
+	public XMImage() {
+		// cut down constructor which doesn't use UI, for use with XMRas2ToJPG, etc.
+		border = null;
+		image = null;
+		cdpInterval = null;
+		tRange = null;
+		scroller = null;
+		width = 100;
+		height = 50;
+		xRep = yRep = xAvg = yAvg = 1;
+		scroller = null;
+		line = null;
+		otherImage = null;
+	}
+	
 	void disposeImage() {
 		image = null;
 	}
@@ -217,6 +234,32 @@ public class XMImage extends haxby.util.ScaledComponent
 	public void setOtherImage( XMImage other ) {
 		otherImage = other;
 	}
+	
+	public void loadImageFromFile( XMLine line ) throws IOException {
+		if( line.getZRange()==null ) throw new IOException(" no data for "+line.getID());
+		this.line = line;
+		border = new XMBorder(this);
+		xRep = yRep = 1;
+		xAvg = yAvg = 8;
+		image = null;
+		System.gc();
+		width = 100;
+		height = 50;
+		invalidate();
+		DataInputStream in = null;
+		border.setTitle();
+		cdpInterval = line.getCDPRange();
+		tRange = line.getZRange();
+	
+		File f = new File("img/" + line.getCruiseID().trim() +"-" + line.getID().trim() + ".r2.gz" );
+		in = new DataInputStream(
+			new GZIPInputStream(
+			new BufferedInputStream(
+			new FileInputStream(f))));
+		
+		loadImageFromDataStream(in);
+	}
+	
 	public void loadImage( XMLine line ) throws IOException {
 		if( line.getZRange()==null ) throw new IOException(" no data for "+line.getID());
 		this.line = line;
@@ -252,8 +295,12 @@ public class XMImage extends haxby.util.ScaledComponent
 			urlIn = url.openStream();
 		}
 		in = new DataInputStream(
-			new GZIPInputStream(
-			new BufferedInputStream(urlIn)));
+				new GZIPInputStream(
+				new BufferedInputStream(urlIn)));
+		loadImageFromDataStream(in);
+	}
+
+	private void loadImageFromDataStream(DataInputStream in) throws IOException {
 		if( in.readInt() != R2.MAGIC ) throw new IOException("unknown format");
 		width = in.readInt();
 		height = in.readInt();

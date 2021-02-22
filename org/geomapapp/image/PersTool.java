@@ -135,6 +135,9 @@ public class PersTool extends JPanel
 	}
 	
 	public void setGrid(Grid2DOverlay grid, boolean isSelected) {
+		setGrid(grid, isSelected, false);
+	}
+	public void setGrid(Grid2DOverlay grid, boolean isSelected, boolean isGMRT) {
 		this.grid = grid;
 		Grid2D g = grid.getGrid();
 		if( g==null ) return;
@@ -146,7 +149,7 @@ public class PersTool extends JPanel
 		Point2D f = proj.getRefXY( new Point(bnds.x+bnds.width/2,
 					bnds.y+bnds.height/2));
 		Point2D p = proj.getMapXY( f );
-		double z0 = g.valueAt(p.getX(), p.getY());
+		double z0 = g.valueAt(p.getX(), p.getY(), isGMRT);
 		if( Double.isNaN(z0) )z0=0.;
 		Point2D vp = proj.getRefXY( new Point(bnds.x-bnds.width/2,
 					bnds.y+bnds.height*2));

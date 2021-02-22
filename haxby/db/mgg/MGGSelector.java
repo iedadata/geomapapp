@@ -3,20 +3,24 @@ package haxby.db.mgg;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -28,6 +32,8 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.SwingConstants;
+import javax.swing.border.EtchedBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import haxby.map.MapApp;
@@ -42,6 +48,7 @@ import haxby.util.URLFactory;
 public class MGGSelector implements ActionListener {
 	MGG tracks;
 	JPanel dialogPane;
+	JLabel textDate;
 
 	// 1.4.4: Add radio buttons to allow the user to switch the currently loaded
 	// control file(s)
@@ -93,6 +100,7 @@ public class MGGSelector implements ActionListener {
 		panel2a.setLayout(new BoxLayout(panel2a, BoxLayout.Y_AXIS));
 		JPanel panel2b = new JPanel();
 		panel2b.setLayout(new BoxLayout(panel2b, BoxLayout.Y_AXIS));
+			
 		
 		JButton b;
 		// ***** 1.4.4: Add new button to allow creation of user control files
@@ -110,6 +118,25 @@ public class MGGSelector implements ActionListener {
 		// GMA 1.4.8: Use new panel
 		panel1.add(b);
 		
+		try {
+			String updateURL = PathUtil.getPath("PORTALS/MGD77_PATH")  + "last_NCEI_update_date.txt";
+			URL url = URLFactory.url(updateURL);
+			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
+
+			if(in.ready()) {
+				// Get Dataset Information
+				String updateDate = in.readLine();
+				String dateText = "<html>NCEI Content Last Updated:<br><p style='text-align:center'>" + updateDate + "</p></html>";
+				textDate = new JLabel(dateText, SwingConstants.CENTER);
+				textDate.setFont( new Font( "SansSerif", Font.PLAIN, 13));
+				textDate.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
+
+				panel1.add(textDate);
+			}
+			in.close();
+		} catch(Exception e) {
+			System.out.println("NCEI update date file not found");
+		}
 
 		// ***** 1.4.4: Add radio buttons that allow user to switch control
 		// files
@@ -451,6 +478,7 @@ public class MGGSelector implements ActionListener {
 			url[0] = null;
 			boolean loadNewControlFile = false;
 			if (cmd.equals("LDEO Tracks")) {
+				textDate.setVisible(false);
 				if (loadedControlFiles.compareTo(LAMONT_CONTROL_LOADED) != 0) {
 					try {
 						url[0] = URLFactory.url(MGD77_PATH + MGGSelector.LAMONT_CONTROL_LOADED.toLowerCase() + "-mgd77/control/mgg_control_" + MGGSelector.LAMONT_CONTROL_LOADED);
@@ -485,6 +513,7 @@ public class MGGSelector implements ActionListener {
 				}
 			}
 			else if (cmd.equals("Display ADGRAV Tracks")) {
+				textDate.setVisible(false);
 				if (loadedControlFiles.compareTo(ADGRAV_CONTROL_LOADED) != 0) {
 					try {
 						url[0] = URLFactory.url(MGD77_PATH + MGGSelector.ADGRAV_CONTROL_LOADED.toLowerCase() + "-mgd77/control/mgg_control_" + MGGSelector.ADGRAV_CONTROL_LOADED);
@@ -519,6 +548,7 @@ public class MGGSelector implements ActionListener {
 				}
 			}
 			else if (cmd.equals("SIO Explorer Tracks")) {
+				textDate.setVisible(false);
 				if (loadedControlFiles.compareTo(SIOEXPLORER_LOADED) != 0) {
 					try {
 						url[0] = URLFactory.url(MGD77_PATH + MGGSelector.SIOEXPLORER_LOADED.toLowerCase() + "-mgd77/control/mgg_control_" + MGGSelector.SIOEXPLORER_LOADED);
@@ -552,6 +582,7 @@ public class MGGSelector implements ActionListener {
 				}
 			}
 			else if (cmd.equals("USAP Antarctic Tracks")) {
+				textDate.setVisible(false);
 				if (loadedControlFiles.compareTo(USAP_LOADED) != 0) {
 					try {
 						url[0] = URLFactory.url(MGD77_PATH + MGGSelector.USAP_LOADED.toLowerCase() + "-mgd77/control/mgg_control_" + MGGSelector.USAP_LOADED);
@@ -589,6 +620,7 @@ public class MGGSelector implements ActionListener {
 			}
 			else {
 				if (loadedControlFiles.compareTo(NGDC_CONTROL_LOADED) != 0) {
+					textDate.setVisible(true);
 					try {
 						url[0] = URLFactory.url(MGD77_PATH + MGGSelector.NGDC_CONTROL_LOADED.toLowerCase() + "-mgd77/control/mgg_control_" + MGGSelector.NGDC_CONTROL_LOADED );
 					} catch (MalformedURLException e) {

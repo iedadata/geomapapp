@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -144,6 +143,7 @@ public class XML_Menu {
 				grid_alt,
 				grid_contours,
 				grid_cont_int,
+				grid_cont_bolding,
 				grid_cont_min,
 				grid_cont_max,
 				separator_bar,
@@ -184,6 +184,28 @@ public class XML_Menu {
 	public static Hashtable<String, String> attributeToVariableHash = new Hashtable<String, String>();
 	public static XML_Menu template = new XML_Menu();
 
+	private static void clearMenus() {
+		menuItemToMenu.clear();
+		
+		//If we are switching projections due to a session load, then we want to keep the
+		//Layer Sessions menu items so we can load them up after the switch.
+		Map<XML_Menu, JMenuItem> menuToMenuItemTmp = new HashMap<XML_Menu, JMenuItem>();
+		Set<XML_Menu> keys = menuToMenuItem.keySet();
+		Iterator<XML_Menu> itr = keys.iterator();
+		while (itr.hasNext()) {
+			XML_Menu m = itr.next();
+			JMenuItem mi = menuToMenuItem.get(m);
+			try {
+				if (m.parent.parent.name.equals("My Layer Sessions")) {
+					menuItemToMenu.put(mi, m);
+					menuToMenuItemTmp.put(m, mi);
+				}
+			} catch(Exception e){}	
+		}
+		menuToMenuItem.clear();
+		menuToMenuItem.putAll(menuToMenuItemTmp);
+	}
+	
 	public static void initAttributeToVariableHash() {
 		attributeToVariableHash.put("checkbox", template.checkbox);
 		attributeToVariableHash.put("lonX", template.lonX);
@@ -258,6 +280,7 @@ public class XML_Menu {
 		attributeToVariableHash.put("grid_az", template.grid_az);
 		attributeToVariableHash.put("grid_contours", template.grid_contours);
 		attributeToVariableHash.put("grid_cont_int", template.grid_cont_int);
+		attributeToVariableHash.put("grid_cont_bolding", template.grid_cont_bolding);
 		attributeToVariableHash.put("grid_cont_min", template.grid_cont_min);
 		attributeToVariableHash.put("grid_cont_max", template.grid_cont_max);
 		attributeToVariableHash.put("style", template.style);
@@ -561,6 +584,9 @@ public class XML_Menu {
 				if ( (attribute = attributes.getNamedItem("grid_cont_int")) != null ) {
 					sub_layer.grid_cont_int = attribute.getNodeValue();
 				}
+				if ( (attribute = attributes.getNamedItem("grid_cont_bolding")) != null ) {
+					sub_layer.grid_cont_bolding = attribute.getNodeValue();
+				}
 				if ( (attribute = attributes.getNamedItem("grid_cont_min")) != null ) {
 					sub_layer.grid_cont_min = attribute.getNodeValue();
 				}
@@ -810,6 +836,9 @@ public class XML_Menu {
 
 	// Calls one XML list to load menus to main menu bar.
 	public static JMenuBar createMainMenuBar(List<XML_Menu> menuLayers) {
+		//clear old menu hash tables (if switching projection)
+		clearMenus();
+		
 		JMenuBar mainMenuBar = new JMenuBar();
 		for (XML_Menu sub_menu : menuLayers) {
 			if ( mapApp.start != null ) {
@@ -1127,6 +1156,7 @@ public class XML_Menu {
 		String grid_alt = "";
 		boolean grid_contours = false;
 		String grid_cont_int = "";
+		String grid_cont_bolding = "";
 		String grid_cont_min = "";
 		String grid_cont_max = "";
 		int lpIndex = 0;
@@ -1164,6 +1194,7 @@ public class XML_Menu {
 					grid_alt = Double.toString(grid.lut.getSunTool().getInclination());
 					grid_contours = grid.lut.isContourSelected();
 					grid_cont_int = Double.toString(grid.getInterval());
+					grid_cont_bolding = Double.toString(grid.getBolding());
 					grid_cont_min = Integer.toString(grid.cb[0]);
 					grid_cont_max = Integer.toString(grid.cb[1]);
 				}
@@ -1364,6 +1395,8 @@ public class XML_Menu {
 				gridLayer = ('\t' + "\t" + "grid_contours=" + '"' + grid_contours + '"' + "\r");
 				FilesUtil.writeLayerToFile(gridLayer, xmlFile);
 				gridLayer = ('\t' + "\t" + "grid_cont_int=" + '"' + grid_cont_int + '"' + "\r");
+				FilesUtil.writeLayerToFile(gridLayer, xmlFile);
+				gridLayer = ('\t' + "\t" + "grid_cont_bolding=" + '"' + grid_cont_bolding + '"' + "\r");
 				FilesUtil.writeLayerToFile(gridLayer, xmlFile);
 				gridLayer = ('\t' + "\t" + "grid_cont_min=" + '"' + grid_cont_min + '"' + "\r");
 				FilesUtil.writeLayerToFile(gridLayer, xmlFile);

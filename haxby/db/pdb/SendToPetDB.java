@@ -10,9 +10,11 @@ import haxby.util.XBTable;
 
 public class SendToPetDB extends JButton {
 
-	static String PETDB_SQL_ROOT_PATH = PathUtil.getPath("PORTALS/PETDB_SQL_ROOT_PATH",
-	"http://www.earthchem.org/petdbWeb/search/");
+	private static final long serialVersionUID = 1L;
 
+	static String PETDB_SEARCH_STATION_PATH = PathUtil.getPath("PORTALS/PETDB_SEARCH_STATION_PATH");
+	static String PETDB_SEARCH_SPECIMEN_PATH = PathUtil.getPath("PORTALS/PETDB_SEARCH_SPECIMEN_PATH");
+	
 	JTabbedPane pane;
 	static String  buttonText = "<html><body><center>"
 			+"View one selection in detail<br>"
@@ -30,8 +32,6 @@ public class SendToPetDB extends JButton {
 	}
 	void showURL() {
 		XBTable table = (XBTable) ((JScrollPane) pane.getSelectedComponent()).getViewport().getView();
-	//if (pane.getSelectedIndex() == 2)
-		//	table = (XBTable) pane.getComponentAt(1);
 
 		TableModel model = table.getModel();
 
@@ -59,23 +59,18 @@ public class SendToPetDB extends JButton {
 
 //		***** GMA 1.6.2: Bring up the new, correct PetDB URL for the selected item
 		if (model instanceof PDBStationModel) {
-			url = "http://www.earthchem.org/petdbWeb/search/"
-				+"statn_info.jsp?"
-				+"&station_id="+id
-				+"&referrer=MAP_APP";
+			PDBStation station = PDBStation.idToStation.get(id);			
+			url = PETDB_SEARCH_STATION_PATH + station.location;
+
 		} else {
 			if(model instanceof PDBAnalysisModel){
 				// No Analysis url id yet for search url. Just use Compile url which is id2[0] 
 				String id2[] = id.split(":");
 				id = id2[0];
 			}
-			//  url = "http://129.236.40.161:7001/loadpetdb/search/"+
-			url = "http://www.earthchem.org/petdbWeb/search/"
-					+ "view_samples2.jsp?"
-					+ "srch_value=" + id
-					+ "&type=srch_id";
+			PDBSample sample = PDBSample.idToSample.get(id);
+			url = PETDB_SEARCH_SPECIMEN_PATH + sample.specimenNumber;
 		} 
 		BrowseURL.browseURL(url);
-	//	selectedIndices[0] = model.current[selectedIndices[0]];
 	}
 }

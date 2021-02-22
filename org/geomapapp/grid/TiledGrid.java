@@ -189,6 +189,7 @@ public class TiledGrid extends Grid2D
 		try {
 			return tileIO.readGridTile(x, y);
 		} catch (IOException ex) {
+//			System.out.println(ex.toString());
 			if( parent!=null) return null;
 			return tileIO.createGridTile(x, y);
 		}

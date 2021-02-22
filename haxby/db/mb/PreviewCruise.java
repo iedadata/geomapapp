@@ -24,19 +24,23 @@ import javax.imageio.ImageIO;
 import org.geomapapp.geom.MapProjection;
 import org.geomapapp.grid.Grid2D;
 import org.geomapapp.grid.Grid2DOverlay;
+import org.geomapapp.grid.GridComposer;
 import org.geomapapp.grid.GridDialog;
 import org.geomapapp.grid.TileIO;
 import org.geomapapp.grid.TiledGrid;
 
 import haxby.map.FocusOverlay;
+import haxby.map.MMapServer;
 import haxby.map.MapApp;
 import haxby.map.MapOverlay;
 import haxby.map.Overlay;
+import haxby.map.PoleMapServer;
 import haxby.map.Tile;
 import haxby.map.XMap;
 import haxby.proj.PolarStereo;
 import haxby.proj.Projection;
 import haxby.proj.ProjectionFactory;
+import haxby.util.PathUtil;
 import haxby.util.URLFactory;
 
 public class PreviewCruise
@@ -45,22 +49,39 @@ public class PreviewCruise
   
   public static void main(String[] inputArgs)
   {
-    if ((inputArgs.length != 1) && (inputArgs.length != 2))
+    if ((inputArgs.length < 1) || (inputArgs.length > 3))
     {
-      System.err.println("Usage: PreviewCruise cruiseDir [maxRes]");
+      System.err.println("Usage: PreviewCruise cruiseDir [maxRes] [tilesPath]");
       System.exit(-1);
     }
     while (inputArgs[0].endsWith("/")) {
       inputArgs[0] = inputArgs[0].substring(0, inputArgs[0].length() - 1);
     }
-    int maxRes = inputArgs.length == 2 ? Integer.parseInt(inputArgs[1]) : 512;
+    int maxRes = inputArgs.length >= 2 ? Integer.parseInt(inputArgs[1]) : 512;
     String cruiseID = inputArgs[0].substring(inputArgs[0].lastIndexOf("/") + 1);
     String cruiseDir = inputArgs[0];
     if ((!cruiseDir.startsWith("http://")) && (!cruiseDir.startsWith("file:/"))) {
       cruiseDir = "file://" + new File(cruiseDir).getPath();
     }
-    System.setProperty("geomapapp.menus_url", "http://new.geomapapp.org/gma_menus/simple_menu.xml");
+    
+    if (inputArgs.length >= 3) {
+    	String tilesPath = inputArgs[2];
+    	GridComposer.base = tilesPath + "/merc_320/";
+    	GridComposer.mbPath = tilesPath + "/merc_320/";
+    	GridComposer.spBase = tilesPath + "/SP_320/";
+    	GridComposer.npBase = tilesPath + "/NP_320/";
+    	MMapServer.base = tilesPath + "/merc_320/";
+    	PoleMapServer.base[0] = tilesPath + "/SP_320/";
+    	PoleMapServer.base[1] = tilesPath + "/NP_320/";
+      }
+    
+    
+    
+//    System.setProperty("geomapapp.menus_url", "http://app.geomapapp.org/gma_menus/simple_menu.xml");
     MapApp mapApp = MapApp.createMapApp(new String[0]);
+    
+
+    
     XMap map = mapApp.getMap();
     final MBTracks tracks = new MBTracks(map, 4000, cruiseDir + "/mb_control");
     mapApp.addProcessingTask(tracks.getDBName(), new Runnable()
@@ -81,7 +102,9 @@ public class PreviewCruise
     CruiseBounds cruiseBounds = new CruiseBounds(cruiseDir, map);
     map.addOverlay(cruiseID + " bounds", cruiseBounds);
     CruiseImageViewer cruiseImageViewer = new CruiseImageViewer(map, cruiseDir, maxRes);
+    //load images layer, but set to unchecked as default
     mapApp.addFocusOverlay(cruiseImageViewer, cruiseID + " images");
+    mapApp.layerManager.setLayerVisible(cruiseImageViewer, false);
     String gridName = cruiseID + " grid";
     CruiseGridViewer cruiseGridViewer = new CruiseGridViewer(map, gridName, cruiseDir, maxRes);
     GridDialog.GRID_LOADERS.put(gridName, cruiseGridViewer);
@@ -188,6 +211,8 @@ public class PreviewCruise
       super(map, name);
       this.base = base;
       this.maxRes = maxRes;
+      // set the background to be transparent
+      this.background = 0;
     }
     
     public void loadGrid(Grid2DOverlay grid)

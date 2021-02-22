@@ -677,6 +677,17 @@ public class MGGData implements Overlay,
 		
 			legFound = false;
 			if ( leg != null )	{
+				
+				// For imported files, load from data file stored on user's hard drive
+				// Try this first
+				if (!legFound) {
+					try {
+						MGGData data = loadFromDataFile(map, leg);
+						if (data != null) return data;
+					} catch (IOException e) {
+					}
+				}
+				
 				dataFileURL = null;
 				if ( inputLoadedControlFile.compareTo( "LDEO" ) == 0 ) {
 					dataFileURL = URLFactory.url(MGD77_DATA_LDEO + leg + ".a77");
@@ -745,14 +756,7 @@ public class MGGData implements Overlay,
 			e.printStackTrace();
 		}
 
-		// For imported files, load from data file stored on user's hard drive
-		if (!legFound) {
-			try {
-				return loadFromDataFile( map, leg);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+
 		
 //		1.4.4: Parse the MGD-77 file and load it into data structure
 		if (isM77T) {
@@ -902,45 +906,16 @@ public class MGGData implements Overlay,
 		String temp = "";
 		boolean dataPresent = false;
 		while ( ( s = inDataFile.readLine() ) != null ) { // reading in the .a77 files
+			
 			// split the line up into its tab-delimited elements
 			String[] elements = s.split("\t");
 
-			// check for header lines by seeing if column 2 can be parsed as an
-			// int
+			// check for header lines by seeing if lat field can be parsed as double
 			try {
-				Integer.parseInt(elements[MGD77T_DATE_FIELD]);
+				Double.parseDouble(elements[MGGData.MGD77T_LAT_FIELD]);
 			} catch (Exception e) {
 				continue;
 			}
-
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-
-			// get the date field data and split in to year, month and day
-			String tempDate = elements[MGD77T_DATE_FIELD];
-
-			int val = Integer.parseInt(tempDate.substring(0, 4));
-			if (val > 90 && val < 1000) {
-				val += 1900;
-			} else if (val < 25 && val > -1) {
-				val += 2000;
-			}
-			cal.set(Calendar.YEAR, val);
-			val = Integer.parseInt(tempDate.substring(4, 6));
-			cal.set(Calendar.MONTH, val - 1);
-			val = Integer.parseInt(tempDate.substring(6, 8));
-			cal.set(Calendar.DAY_OF_MONTH, val);
-
-			// get the time field and split in to hours, minutes and seconds
-			String tempTime = elements[MGD77T_TIME_FIELD];
-			val = Integer.parseInt(tempTime.substring(0, 2));
-			cal.set(Calendar.HOUR_OF_DAY, val);
-			val = Integer.parseInt(tempTime.substring(2, 4));
-			cal.set(Calendar.MINUTE, val);
-			if (tempTime.contains(".")) {
-				float decSec = Float.parseFloat(tempTime.substring(tempTime.indexOf(".")));
-				cal.set(Calendar.SECOND, (int) (decSec * 60));
-			} else
-				cal.set(Calendar.SECOND, 0);
 
 			// get the lat and lon fields
 			try {

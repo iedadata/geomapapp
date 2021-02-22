@@ -179,7 +179,9 @@ public class Grid2DOverlay extends MapOverlay {
 				else 
 					interval = Math.pow(10, i - 1);
 			}
-			bolding_interval = 5 * interval;
+			if (bolding_interval <= 0) {
+				bolding_interval = 5 * interval;
+			}
 		} else {
 			interval = this.interval;
 			bolding_interval = this.bolding_interval;
@@ -223,13 +225,19 @@ public class Grid2DOverlay extends MapOverlay {
 	public double getInterval() {
 		return contour.getInterval();
 	}
+	public double getBolding() {
+		return contour.getBolding();
+	}
 	public boolean isVisible() {
 		return contour.isVisible();
+	}
+	public void setGrid( Grid2D grid, Grid2D.Boolean landMask, boolean hasLand, boolean hasOcean, boolean reset ) {
+		setGrid( grid, landMask, hasLand, hasOcean, reset, false);
 	}
 	public void setGrid( Grid2D grid, Grid2D.Boolean landMask, boolean hasLand, boolean hasOcean ) {
 		setGrid( grid, landMask, hasLand, hasOcean, true);
 	}
-	public void setGrid( Grid2D grid, Grid2D.Boolean landMask, boolean hasLand, boolean hasOcean, boolean reset ) {
+	public void setGrid( Grid2D grid, Grid2D.Boolean landMask, boolean hasLand, boolean hasOcean, boolean reset, boolean isGMRT ) {
 		this.landMask = landMask;
 		land = hasLand;
 		ocean = hasOcean;
@@ -255,7 +263,7 @@ public class Grid2DOverlay extends MapOverlay {
 				return;
 			}
 		}
-		lut.setNewGrid();
+		lut.setNewGrid(isGMRT);
 		//if (toString().equals(GridDialog.DEM))
 	//	lut.showDialog();
 	}
@@ -318,7 +326,13 @@ public class Grid2DOverlay extends MapOverlay {
 			while( x>r.x+r.width ) x-=wrap;
 			pt.setLocation( x, pt.getY() );
 		}
-		float z = (float)grid.valueAt( pt.getX(), pt.getY());
+		float z;
+		if (name.equals(org.geomapapp.grid.GridDialog.DEM)) {
+			z = (float)grid.valueAt( pt.getX(), pt.getY(), true);
+		}
+		else {
+			z = (float)grid.valueAt( pt.getX(), pt.getY());
+		}
 //	System.out.println( pt.getX() +"\t"+ pt.getY() 
 //			+"\t"+ grid.contains( (int)pt.getX(), (int)pt.getY())+"\t"+ z);
 		return z;
@@ -770,6 +784,9 @@ public class Grid2DOverlay extends MapOverlay {
 			interval = Double.parseDouble(inputXML_Menu.grid_cont_int);
 			cb[0] = Integer.parseInt(inputXML_Menu.grid_cont_min);
 			cb[1] = Integer.parseInt(inputXML_Menu.grid_cont_max);
+		}
+		if (inputXML_Menu.grid_cont_bolding != null) {
+			bolding_interval = Double.parseDouble(inputXML_Menu.grid_cont_bolding);
 		}
 		
 		lut.setFitToStDev(false);

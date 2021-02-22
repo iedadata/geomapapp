@@ -67,6 +67,7 @@ public class ESRIPolygon extends ESRIPolyLine {
 						}
 					}
 					else {
+						p1.moveTo( (float)pts[i-1].getX(), (float)pts[i-1].getY() );
 						p1.lineTo( (float)pts[i].getX(), (float)pts[i].getY() );
 					}
 					

@@ -243,9 +243,13 @@ public abstract class Grid2D {
 			|| y>bounds.y+bounds.height-1 );
 	}
 	public abstract double valueAt( int x, int y);
-
+	
 	public double valueAt( double x, double y ) {
-		return Interpolate2D.bicubic(this, x, y);
+		return valueAt(x, y, false);
+	}
+	
+	public double valueAt( double x, double y, boolean isGMRT ) {
+		return Interpolate2D.bicubic(this, x, y, isGMRT);
 	}
 	public int getIndex(int x, int y) {
 		return x-bounds.x + bounds.width*(y-bounds.y);

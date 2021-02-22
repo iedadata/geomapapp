@@ -19,11 +19,13 @@ public class PDBSample {
 	boolean suffix;
 	PDBBatch[] batch;
 	short rockType;
+	int specimenNumber;
+	public static HashMap<String, PDBSample> idToSample = new HashMap<String, PDBSample>();
 
 	static String PETDB_PATH = PathUtil.getPath("PORTALS/PETDB_PATH",
 			MapApp.BASE_URL+"/data/portals/petdb/");
 
-	public PDBSample( int station, String ID, short rockType ) {
+	public PDBSample( int station, String ID, short rockType, int snum) {
 		parent = station;
 		if( ID==null ) ID="";
 		if(ID.startsWith("@")) {
@@ -35,6 +37,8 @@ public class PDBSample {
 		}
 		batch = new PDBBatch[0];
 		this.rockType = rockType;
+		this.specimenNumber = snum;
+		idToSample.put(ID, this);
 	}
 	public int getStationNum() {
 		return (int)parent;
@@ -104,7 +108,7 @@ public class PDBSample {
 
 			short rock = Short.parseShort(substrings[index++]);
 //System.out.println(station + " " + id + " " + rock + " snum " + snum);
-			PDBSample samp = new PDBSample(station, id, rock);
+			PDBSample samp = new PDBSample(station, id, rock, snum);
 			sample.put(snum, samp);
 			
 			int nb = Short.parseShort(substrings[index++]);

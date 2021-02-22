@@ -46,7 +46,7 @@ public class PoleMapServer {
 	static ClassLoader loader = null;
 	static boolean loaded = true;
 
-	static String base[] = {
+	public static String base[] = {
 		PathUtil.getPath("GMRT_LATEST/SP_TILE_PATH"),
 		PathUtil.getPath("GMRT_LATEST/NP_TILE_PATH"),
 	};

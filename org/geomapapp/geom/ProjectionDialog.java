@@ -51,7 +51,8 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 				dataType,
 				zScale;
 	JCheckBox applyForAll,
-			  editSingle;
+			  editSingle,
+			  flipGrid;
 	JButton resetToOriginalZ,
 			fileInfo;
 	JLabel name,
@@ -63,7 +64,9 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		   minFloorLabel,
 		   maxCeilingLabel,
 		   maxMinE,
-		   fileName;
+		   fileName,
+		   nxLabel,
+		   nyLabel;
 	JLabel minZTitle = new JLabel("Min z: ");				// single grid import
 	JLabel maxZTitle = new JLabel("Max z: ");				// single grid import
 	JLabel floorZTitle = new JLabel("Min Z:    ");			// multi grid import
@@ -104,6 +107,7 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 	ButtonGroup hemisphereBG = null;
 	JLabel hemisphereLabel = null;
 	JLabel emptyLabel = null;
+
 //	***** GMA 1.6.6
 
 	public ProjectionDialog() {
@@ -158,6 +162,10 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		panelUTM.setVisible(false);
 		panel1.add(panelUTM);
 		
+		flipGrid = new JCheckBox("Tick to flip grid along horizontal axis", false);
+		flipGrid.setVisible(false);
+		panel1.add(flipGrid);
+		
 		panel1f = new JPanel( new GridLayout(0,2,22,0) );
 		panel1f.add ( new JLabel("Data type:") );
 		panel1f.add ( new JLabel("Units for Z values:") );
@@ -209,6 +217,14 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		panel1.add(panel1d);
 		panel1.add(panel1b);
 
+		nxLabel = new JLabel("");
+		nyLabel = new JLabel("");
+		JPanel nodePanel = new JPanel( new GridLayout(0, 3));
+		nodePanel.add(new JLabel("Number of Nodes:"));
+		nodePanel.add(nxLabel);
+		nodePanel.add(nyLabel);
+		panel1.add(nodePanel);
+		
 		//Edit z actions on select and unselect
 		editSingle.addActionListener( new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -435,6 +451,14 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 	
 	public String getDataType() {
 		return dataType.getText();
+	}
+	
+	public Boolean getFlipGrid() {
+		return flipGrid.isSelected();
+	}
+	
+	public void showFlipGridCheckBox(Boolean tf) {
+		flipGrid.setVisible(tf);
 	}
 	
 	public void setInitialZScale( String inputInitialZScale ) {
@@ -759,6 +783,9 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 			floorZ = 0.0;
 		}
 
+		nxLabel.setText("nx: " + width);
+		nyLabel.setText("ny: " + height);
+		
 		this.width = width;
 		this.height = height;
 		this.zScale.setText(defaultZScale+"");
@@ -821,7 +848,7 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 	public static void main(String[] args) {
 		ProjectionDialog d = new ProjectionDialog();
 		d.getProjection( (Component)null, new double[] {400000., 550000., -6000000., -2000000.}, 1, 1500, 4000, null);
-		d.getPolarProjection(null, 100, "ABC");
+		d.getPolarProjection(null, 100, 1, "ABC", false, 18000, 18000);
 		System.exit(0);
 	}
 
@@ -846,11 +873,11 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		}
 	}
 
-	public MapProjection getPolarProjection(Component comp, double dx, String name) {
-		return getPolarProjection(comp, dx, 1, name, false);
-	}
-
 	public MapProjection getPolarProjection(Component comp, double dx, double defaultZScale, String name, boolean southPole) {
+		return getPolarProjection(comp, dx, defaultZScale, name, southPole, 0, 0);
+	}
+	
+	public MapProjection getPolarProjection(Component comp, double dx, double defaultZScale, String name, boolean southPole, int width, int height) {
 		if (name == null)
 			this.name.setText("");
 		else
@@ -921,6 +948,13 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 			minZ = 0.0;
 			maxZ = 0.0;
 		}
+		
+		if (width != 0 && height != 0) {
+			p.add(new JLabel("Number of Nodes: "));
+			p.add(new JLabel("nx: " + width));
+			p.add(new JLabel("ny: " + height));
+		}
+		
 		int ok = JOptionPane.showConfirmDialog( comp, p, "Confirm Projection & Bounds: " + this.name.getText(), JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE );
 		// No action on cancel or close
 		if( ok==JOptionPane.CANCEL_OPTION || ok==JOptionPane.CLOSED_OPTION){

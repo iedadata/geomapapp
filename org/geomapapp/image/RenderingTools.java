@@ -164,8 +164,11 @@ public class RenderingTools extends JPanel implements ActionListener {
 		renderer.setBackground( argb );
 	}
 	public void setNewGrid() {
+		setNewGrid(false);
+	}
+	public void setNewGrid(boolean isGMRT) {
 		pers.setGrid( grid, parentGridDialog == null ? false
-				: parentGridDialog.getContentPane().isAncestorOf(pers));
+				: parentGridDialog.getContentPane().isAncestorOf(pers), isGMRT);
 
 		oceanSlopeDist = landSlopeDist = totalSlopeDist = new int[90];
 		oceanSlopeHist = landSlopeHist = bothSlopeHist = null;

@@ -58,16 +58,28 @@ public class Interpolate2D {
 		}
 		return cubic(z1, 0, y-y0);
 	}
+	
 	public static double cubic(float[] z, int offset, double x) {
+		return cubic(z, offset, x, false);
+	}
+	
+	public static double cubic(float[] z, int offset, double x, boolean isGMRT) {
 		double[] z1 = new double[4];
 		for(int i=0 ; i<4 ; i++) {
 			z1[i] = (double) z[i+offset];
 		}
-		return cubic(z1, 0, x);
+		return cubic(z1, 0, x, isGMRT);
 	}
+	
+	public static double bicubic(Grid2D grid, 
+			double x, 
+			double y ) {
+		return bicubic(grid, x, y, false);
+	}
+	
 	public static double bicubic(Grid2D grid, 
 				double x, 
-				double y ) {
+				double y, boolean isGMRT ) {
 		if( !grid.contains( x, y ) ) return Double.NaN;
 		java.awt.Rectangle bounds = grid.getBounds();
 		int width = bounds.width;
@@ -87,10 +99,16 @@ public class Interpolate2D {
 				z[k] = grid.valueAt( bounds.x + (int)(x0-1+k), 
 						(int)(bounds.y + y0-1+i) );
 			}
-			z1[i] = cubic(z, 0, x-x0);
+			z1[i] = cubic(z, 0, x-x0, isGMRT);
 		}
-		return cubic(z1, 0, y-y0);
+		return cubic(z1, 0, y-y0, isGMRT);
 	}
+	
+	public static double cubic(double[] z, int offset, double x, boolean isGMRT) {
+		if (isGMRT) return cubicGMRT(z, offset, x);
+		return cubic(z, offset, x);
+	}
+	
 	public static double cubic(double[] z, int offset, double x) {
 		for(int i=offset+1 ; i<offset+3 ; i++) {
 			if(Double.isNaN(z[i])) return Double.NaN;
@@ -124,6 +142,33 @@ public class Interpolate2D {
 		return y;
 */
 	}
+	
+	//use this version for the GMRT grid
+	public static double cubicGMRT(double[] z, int offset, double x) {
+		for(int i=offset ; i<offset+4 ; i++) {
+			if(Double.isNaN(z[i])) return Double.NaN;
+		}
+		double x1 = 1-x;
+		if( x<=-1. ) {
+			return z[offset] + (x+1.)*( -1.5*z[offset] +2.*z[offset+1] -z[offset+2]*.5);
+		} else if( x<=0. ) {
+			return z[offset+1] + x*.5 * (z[offset+2] - z[offset]
+					+ x * (z[offset+2] + z[offset] - 2*z[offset+1]));
+		} else if( x>=2. ) {
+			return z[offset+3] + (x-2.)*( .5*z[offset+1] -2.*z[offset+2] +1.5*z[offset+3]);
+		} else if( x>=1. ) {
+			return z[offset+2] + x1*.5 * (z[offset+1] - z[offset+3]
+					+ x1 * (z[offset+1] + z[offset+3] - 2*z[offset+2]));
+		}
+		double y = x1 * ( z[offset+1] +
+				x*.5 * (z[offset+2] - z[offset]
+				+ x * (z[offset+2] + z[offset] - 2*z[offset+1])))
+			+ x * (z[offset+2] +
+				x1*.5 * (z[offset+1] - z[offset+3]
+				+ x1 * (z[offset+1] + z[offset+3] - 2*z[offset+2])));
+		return y;
+	}
+	
 	public static double[] linearMultiZ(double[][] xz, double x) {
 		int i=0;
 		for( i=0 ; i<xz.length ; i++ ) {

@@ -506,6 +506,7 @@ public class ViewShapes {
 			}
 			synchronized (map.getTreeLock()) {
 				shape.draw(map.getGraphics2D());
+				map.repaint();
 			}
 		}
 	}
@@ -521,6 +522,7 @@ public class ViewShapes {
 		}
 		dbfTable.getSelectionModel().setSelectionInterval( i, i);
 		dbfTable.ensureIndexIsVisible( i );
+		map.repaint();
 	}
 	void sort( MouseEvent e ) {
 		int col = dbfTable.columnAtPoint( e.getPoint());
