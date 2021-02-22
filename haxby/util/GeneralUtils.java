@@ -54,6 +54,7 @@ public class GeneralUtils {
 	 * @return
 	 */
 	public static double[] arrayList2doubles(ArrayList<Double> doubles) {
+		if (doubles == null) return null;
 	    double[] ret = new double[doubles.size()];
 	    for(int i = 0; i < ret.length; i++) ret[i] = doubles.get(i).doubleValue();
 	    return ret;
@@ -65,6 +66,7 @@ public class GeneralUtils {
 	 * @return
 	 */
 	public static float[] arrayList2floats(ArrayList<Float> floats) {
+		if (floats == null) return null;
 	    float[] ret = new float[floats.size()];
 	    for(int i = 0; i < ret.length; i++) ret[i] = floats.get(i).floatValue();
 	    return ret;
@@ -76,13 +78,14 @@ public class GeneralUtils {
 	 * @return
 	 */
 	public static int[] arrayList2ints(ArrayList<Integer> ints) {
+		if (ints == null) return null;
 	    int[] ret = new int[ints.size()];
 	    for(int i = 0; i < ret.length; i++) ret[i] = ints.get(i).intValue();
 	    return ret;
 	}
 
 	/**
-	 * convert an array of flaots to a CSV string
+	 * convert an array of floats to a CSV string
 	 * @param array
 	 * @return
 	 */

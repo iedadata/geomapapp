@@ -1,4 +1,6 @@
 package haxby.db.mb;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -24,6 +26,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -46,6 +51,7 @@ import javax.swing.JProgressBar;
 import javax.swing.JTextArea;
 
 import haxby.db.Database;
+import haxby.db.mgg.MGG;
 import haxby.map.MapApp;
 import haxby.map.Overlay;
 import haxby.map.XMap;
@@ -149,6 +155,7 @@ public class MBTracks implements Database, Overlay, MouseListener {
 		mbSel.cruisesListModel.clear();
 		loaded = false;
 	}
+	
 	public boolean loadDB() {
 		if( loaded ) return true;
 		int mapType = ((MapApp) map.getApp()).getMapType();
@@ -159,7 +166,7 @@ public class MBTracks implements Database, Overlay, MouseListener {
 		progressPanel.setBorder(BorderFactory.createEmptyBorder(5, 1, 5, 1));
 		dialogProgress.setLocationRelativeTo(map);
 		pb = new JProgressBar(0,100);
-		progressLabel = new JLabel("Proccessing Files");
+		progressLabel = new JLabel("Processing Files");
 		progressPanel.add(progressLabel, BorderLayout.NORTH);
 		progressPanel.add(pb);
 		dialogProgress.getContentPane().add(progressPanel);
@@ -183,18 +190,9 @@ public class MBTracks implements Database, Overlay, MouseListener {
 				try {
 					BufferedReader inFile = new BufferedReader(new InputStreamReader(new URL(hashSha1File).openStream()));
 					String str = null;
-					// Format of file will change in GMRT release 3.6.
-					// Can remove old code once that has been released. 
-					if (versionGMRT < 3.6 ) {
-						while ( (str = inFile.readLine()) != null) {
-							String[] splitStr = str.split(":");
-							hashSha1Map.put(splitStr[0], splitStr[1]);
-						}
-					} else {
-						while ( (str = inFile.readLine()) != null) {
-							String[] splitStr = str.split("  ");
-							hashSha1Map.put(splitStr[1], splitStr[0]);
-						}
+					while ( (str = inFile.readLine()) != null) {
+						String[] splitStr = str.split("  ");
+						hashSha1Map.put(splitStr[1], splitStr[0]);
 					}
 					inFile.close();
 				} catch (IOException e) {
@@ -204,87 +202,58 @@ public class MBTracks implements Database, Overlay, MouseListener {
 				// Determine which map assign correct control file and cache file
 				String remoteHash;
 				switch (mapType) {
-					case MapApp.MERCATOR_MAP:
-					default:
-						mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_MERC");
-						remoteHash = hashSha1Map.get("MERCATOR");
-						inf = new File(portalCacheFile.getAbsolutePath());
-						break;
-					case MapApp.SOUTH_POLAR_MAP:
-						mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_SP");
-						remoteHash = hashSha1Map.get("SP");
-						inf = new File(portalCacheFileS.getAbsolutePath());
-						break;
-					case MapApp.NORTH_POLAR_MAP:
-						mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_NP");
-						remoteHash = hashSha1Map.get("NP");
-						inf = new File(portalCacheFileN.getAbsolutePath());
-						break;
-				}
-				// Format of file will change in GMRT release 3.6.
-				// Can remove old code once that has been released. 
-				if (versionGMRT >= 3.6 ) {
-					String controlFile = mggControl.substring(mggControl.lastIndexOf("/") + 1);
-					remoteHash = hashSha1Map.get(controlFile);
+				case MapApp.MERCATOR_MAP:
+				default:
+					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_MERC");
+					inf = new File(portalCacheFile.getAbsolutePath());
+					break;
+				case MapApp.SOUTH_POLAR_MAP:
+					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_SP");
+					inf = new File(portalCacheFileS.getAbsolutePath());
+					break;
+				case MapApp.NORTH_POLAR_MAP:
+					mggControl = PathUtil.getPath("GMRT_LATEST/MB_CONTROL_NP");
+					inf = new File(portalCacheFileN.getAbsolutePath());
+					break;
 				}
 				
+				String controlFile = mggControl.substring(mggControl.lastIndexOf("/") + 1);
+				remoteHash = hashSha1Map.get(controlFile);
 				URL url = URLFactory.url(mggControl);
 
 				// No cache get from server
 				if(MapApp.getMbPortalCache() == false || MapApp.AT_SEA) {
+					System.out.println("load from server");
 					in = new DataInputStream(new BufferedInputStream(url.openStream()));
-					// Make cache file
-					makeCache(inf, mggControl);	//System.out.println("finish");
 				} else if (MapApp.getMbPortalCache() == true) {
-					// Cache get from local
+					// read in from local cache file
 					try {
 						System.out.println("load from cache");
 						String localHash = null;
 						localHash = FilesUtil.createSha1(inf);
 
-						switch (mapType) {
-						// Get Projection type
-						case MapApp.MERCATOR_MAP:
-							default:
-							// Check to see if local file is corrupt
-							if(localHash.matches(remoteHash)) {
-								in = new DataInputStream(new BufferedInputStream(new FileInputStream(portalCacheFile)));
-							} else {
-								in = new DataInputStream(new BufferedInputStream(url.openStream()));
-								makeCache(inf, mggControl);
-							}
-							break;
-						case MapApp.SOUTH_POLAR_MAP:
-							if(localHash.matches(remoteHash)) {
-								in = new DataInputStream(new BufferedInputStream(new FileInputStream(portalCacheFileS)));
-							} else {
-								in = new DataInputStream(new BufferedInputStream(url.openStream()));
-								makeCache(inf, mggControl);
-							}
-							break;
-						case MapApp.NORTH_POLAR_MAP:
-							if(localHash.matches(remoteHash)) {
-								in = new DataInputStream(new BufferedInputStream(new FileInputStream(portalCacheFileN)));
-							} else {
-								in = new DataInputStream(new BufferedInputStream(url.openStream()));
-								makeCache(inf, mggControl);
-							}
-							break;
-						}
+						if (!localHash.matches(remoteHash)) {
+							System.out.println("updating cached file");
+							makeCache(inf, mggControl);
+						}	
+					}
+					catch (Exception e) {
+						System.out.println("no cache file found, creating new one");
+						makeCache(inf, mggControl);
+					}
+					
+					try {
+						in = new DataInputStream(new BufferedInputStream(new FileInputStream(portalCacheFile)));
 					} catch(IOException io) {
-						System.out.println("no cache file found");
+						System.out.println("no cache file found, read from server");
 						in = new DataInputStream(new BufferedInputStream(url.openStream()));
-						makeCache(inf, mggControl);
-					} catch (Exception e) {
-						System.out.println("corrupt cache file found");
-						in = new DataInputStream(new BufferedInputStream(url.openStream()));
-						makeCache(inf, mggControl);
 					}
 				}
 			} else {
+				System.out.println("using control url");
 				URL url = URLFactory.url( control );
 				in = new DataInputStream(new BufferedInputStream(url.openStream()));
-
+				
 				switch (mapType) {
 					case MapApp.MERCATOR_MAP:
 					default:
@@ -312,7 +281,7 @@ public class MBTracks implements Database, Overlay, MouseListener {
 			// Update progress labels
 			int lengthFile = (int)inf.length();
 			pb.setMaximum(lengthFile);
-			progressLabel.setText("Loading " + (lengthFile / 1024) + " kb file");
+			progressLabel.setText("Loading Tracks");
 			pb.setIndeterminate(false);
 			dialogProgress.pack();
 			while( true ) {
@@ -432,6 +401,7 @@ public class MBTracks implements Database, Overlay, MouseListener {
 //	trim();
 		return loaded;
 	}
+	
 	public void add(MBTrack track) {
 	//	if(size==tracks.length) {
 	//		MBTrack[] tmp = new MBTrack[size+10];
@@ -501,42 +471,18 @@ public class MBTracks implements Database, Overlay, MouseListener {
 		try {
 			URL urlCopy = URLFactory.url(mggControl);
 			InputStream oriFile = urlCopy.openStream();
-
-			// If fetching from server check for existing cache file and delete
-			if(inf.exists()) {
-				progressLabel.setText("Gathering Data Files");
-				pb.setMaximum((int) inf.length());
-				pb.setValue(pb.getValue() + 30);
-				inf.delete();
-			}
-
+			
 			portalCacheDir2.mkdirs();
-			inf.createNewFile();
-
-			// Put in cache
-			FileOutputStream out = new FileOutputStream(inf);
-			int oneChar, count=0;
-			String k;
-			pb.setIndeterminate(true);
-			dialogProgress.pack();
-			while ((oneChar=oriFile.read()) != -1) {
-				if ((count % 1000) == 0 ) {
-					progressLabel.setText("Gathering Data " + count);
-				}
-				out.write(oneChar);
-				count++;
-				}
-			out.close();
+			
+			Files.copy(oriFile, inf.toPath(), REPLACE_EXISTING);
 			oriFile.close();
-			// Update progress bar text
-			progressLabel.setText("Updating");
-			dialogProgress.pack();
-			//System.out.println("updated cache");
+			
 		} catch (IOException e){
 			System.out.println("cache not allowed");
 		}
 	}
-
+	
+	
 	public void setEnabled( boolean tf ) {
 		if( tf && enabled ) return;
 		if( tf ) {

@@ -34,6 +34,10 @@ public class GrdProperties {
 //	***** GMA 1.6.4
 
 	public GrdProperties(String fileName) throws IOException {
+		this(fileName, false);
+	}
+	
+	public GrdProperties(String fileName, Boolean flipGrid) throws IOException {
 		file = fileName;
 		NetcdfFile nc = null;
 		try {
@@ -59,6 +63,9 @@ public class GrdProperties {
 				}
 			}
 		}
+		
+		if (flipGrid) coardsCompliant = !coardsCompliant;
+		
 		if ( coardsCompliant ) {
 			process(nc);
 			nc.close();

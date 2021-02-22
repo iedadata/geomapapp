@@ -86,7 +86,7 @@ public class CapabilitiesParser {
 
 				if (sc != HttpStatus.SC_OK)
 					throw new IOException("Status Code: " + sc);
-
+				
 				dom = db.parse(method.getResponseBodyAsStream());
 				method.releaseConnection();
 				break;
@@ -235,11 +235,12 @@ public class CapabilitiesParser {
 
 		if (srsNodes.size() != 0) {
 			for (Iterator iter = srsNodes.iterator(); iter.hasNext();) {
-				StringTokenizer st = new StringTokenizer( 
-						getText((Node) iter.next()));
-
-				while (st.hasMoreTokens()) {
-					srsTypes.add(st.nextToken());
+				String srsText = getText((Node) iter.next());
+				if (srsText != null) {
+					StringTokenizer st = new StringTokenizer(srsText);	
+					while (st.hasMoreTokens()) {
+						srsTypes.add(st.nextToken());
+					}
 				}
 			}
 

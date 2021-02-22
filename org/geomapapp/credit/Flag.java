@@ -39,7 +39,7 @@ public class Flag {
 			MapApp.BASE_URL+"/gma_credit/flags/displayFlags.properties");
 	static String[] names = {
 		"United_States",		// 0
-		"Denmark",
+		"Germany",
 		"Italy",
 		"United_Kingdom",
 		"France",
@@ -140,7 +140,7 @@ public class Flag {
 		"Galicia",
 		"Gambia",				//100
 		"Georgia",
-		"Germany",
+		"Denmark",
 		"Ghana",
 		"Gibraltar",
 		"Greenland",			//105

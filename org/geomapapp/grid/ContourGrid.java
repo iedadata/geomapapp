@@ -86,6 +86,9 @@ public class ContourGrid {
 	public double getInterval() {
 		return interval;
 	}
+	public double getBolding() {
+		return bolding_interval;
+	}
 	public void contour(double interval, double bolding_interval, int[] range) {
 		if(grid==null) return;
 		this.interval = interval;

@@ -20,8 +20,8 @@ public class GridComposer extends GetGrid {
 	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
 	public static String mbPath = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
 	public static String vo_base = PathUtil.getPath("GMRT_LATEST/VO_GRID_TILE_PATH");
-	static String spBase = PathUtil.getPath("GMRT_LATEST/SP_GRID_TILE_PATH");
-	static String npBase = PathUtil.getPath("GMRT_LATEST/NP_GRID_TILE_PATH");
+	public static String spBase = PathUtil.getPath("GMRT_LATEST/SP_GRID_TILE_PATH");
+	public static String npBase = PathUtil.getPath("GMRT_LATEST/NP_GRID_TILE_PATH");
 	
 	static int oceanGridMaxResLevel = 512;
 	static HiResGrid[] hiRes;
@@ -149,7 +149,7 @@ public class GridComposer extends GetGrid {
 		boolean hasLand = false;
 		for( x=bounds.x ; x<bounds.x+bounds.width ; x++) {
 			for( y=bounds.y ; y<bounds.y+bounds.height ; y++) {
-				double z = grid.valueAt(x, y);
+				double z = grid.valueAt(x, y, true);
 				if( Double.isNaN(z) )continue;
 				if( z>=0 ) {
 					hasLand = true;
@@ -161,7 +161,7 @@ public class GridComposer extends GetGrid {
 		}
 //	System.out.println( hasLand +"\t"+ hasOcean);
 		if( !hasLand && !hasOcean ) return false;
-		overlay.setGrid(grid, land, hasLand, hasOcean);
+		overlay.setGrid(grid, land, hasLand, hasOcean, true, true);
 		return true;
 	}
 
@@ -205,11 +205,12 @@ public class GridComposer extends GetGrid {
 			Projection proj = ProjectionFactory.getMercator( 320*2*res );
 			Rectangle bounds = new Rectangle(x, y, width, height);
 
-			Grid2D.Float grid = GetGrid.getGrid( bounds, res, false, baseUrl, mbPath);
+			Grid2D.Float grid = GetGrid.getGrid( bounds, res, false, baseUrl, mbPath, true);
 			Grid2D.Boolean land = new Grid2D.Boolean(bounds, proj);
 			boolean hasOcean = false;
 			boolean hasLand = false;
-
+			int oceanPixels = 0; //need at least 2 ocean pixels to calculate color palette range
+			
 			for( x=bounds.x ; x<bounds.x+bounds.width ; x++) {
 				for( y=bounds.y ; y<bounds.y+bounds.height ; y++) {
 					boolean tf = grid.floatValue(x,y)>=0;
@@ -217,11 +218,12 @@ public class GridComposer extends GetGrid {
 					if( tf ) {
 						hasLand=true;
 					} else {
-						hasOcean=true;
+						oceanPixels++;
 					}
 				}
 			}
-			overlay.setGrid(grid, land, hasLand, hasOcean, reset);
+			hasOcean = oceanPixels > 1;
+			overlay.setGrid(grid, land, hasLand, hasOcean, reset, true);
 			return true;
 		}
 /*public static boolean getGrid(Rectangle2D rect,
@@ -741,7 +743,7 @@ public class GridComposer extends GetGrid {
 			for( x=bounds.x ; x<bounds.x+bounds.width ; x++) {
 				for( y=bounds.y ; y<bounds.y+bounds.height ; y++) {
 					if( grid.shortValue(x,y) != grid.NaN )continue;
-					double z = g0.valueAt(factor*x, factor*y);
+					double z = g0.valueAt(factor*x, factor*y, true);
 					if (Double.isNaN(z))
 						isFull = false;
 					else 
@@ -765,7 +767,7 @@ public class GridComposer extends GetGrid {
 			}
 		}
 		
-		overlay.setGrid(grid, land, hasLand, hasOcean, reset);
+		overlay.setGrid(grid, land, hasLand, hasOcean, reset, true);
 		return true;
 	}
 
@@ -864,7 +866,7 @@ public class GridComposer extends GetGrid {
 				for( x=bounds.x ; x<bounds.x+bounds.width ; x++) {
 					for( y=bounds.y ; y<bounds.y+bounds.height ; y++) {
 						if( grid.shortValue(x,y) != grid.NaN )continue;
-						double z = g0.valueAt(factor*x, factor*y);
+						double z = g0.valueAt(factor*x, factor*y, true);
 						if (Double.isNaN(z))
 							isFull = false;
 						else 
@@ -884,7 +886,7 @@ public class GridComposer extends GetGrid {
 					else hasOcean = true;
 				}
 			}
-			overlay.setGrid(grid, land, hasLand, hasOcean, reset);
+			overlay.setGrid(grid, land, hasLand, hasOcean, reset, true);
 			return true;
 		}
 
@@ -1054,7 +1056,7 @@ public class GridComposer extends GetGrid {
 						if( grid.shortValue(x,y) != grid.NaN )continue;
 						if( hasLand && land.booleanValue(x,y) ) continue;
 						grid.setValue(x, y, 
-							g4.valueAt(factor*x, factor*y));
+							g4.valueAt(factor*x, factor*y, true));
 					}
 				}
 			}
@@ -1102,7 +1104,7 @@ public class GridComposer extends GetGrid {
 						}
 						if( hasLand && land.booleanValue(x,y) ) continue;
 						grid.setValue(x, y,
-							g4.valueAt(factor*x, factor*y));
+							g4.valueAt(factor*x, factor*y, true));
 					}
 				}
 			}
@@ -1129,7 +1131,7 @@ public class GridComposer extends GetGrid {
 			}
 		};
 		overlay.setResolution(scale);
-		overlay.setGrid(grid, land, hasLand, hasOcean, true);
+		overlay.setGrid(grid, land, hasLand, hasOcean, true, true);
 		return overlay;
 	}
 }

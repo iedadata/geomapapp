@@ -20,6 +20,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
+
 /**
  * FileUtil checks if selected file is in parameter. Constructs
  * a temporary file excluding the omitted line. The temp
@@ -210,7 +212,7 @@ public class FilesUtil{
 		String tstamp = sdf.format(cal.getTime());
 		return tstamp;
 	}
-
+	
 	public static String createSha1(File oriFileLocal) {
 		try {
 			MessageDigest md = MessageDigest.getInstance("SHA1");
@@ -218,14 +220,13 @@ public class FilesUtil{
 			byte[] buffer=new byte[8192];
 			int read=0;
 
-		while( (read = is.read(buffer)) > 0) {
-			md.update(buffer, 0, read);
-		}
-
-		byte[] readBytes = md.digest();
-		BigInteger bi=new BigInteger(1, readBytes);
-
-		return bi.toString(16);
+			while( (read = is.read(buffer)) > 0) {
+				md.update(buffer, 0, read);
+			}
+			is.close();
+			
+			byte[] readBytes = md.digest();
+			return new HexBinaryAdapter().marshal(readBytes).toLowerCase();
 
 		} catch(IOException io) {
 			return null;
@@ -234,6 +235,26 @@ public class FilesUtil{
 		}
 	}
 
+	public static String createSha1(InputStream is) {
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA1");
+			byte[] buffer=new byte[8192];
+			int read=0;
+
+		while( (read = is.read(buffer)) > 0) {
+			md.update(buffer, 0, read);
+		}
+
+		byte[] readBytes = md.digest();
+		return new HexBinaryAdapter().marshal(readBytes).toLowerCase();
+
+		} catch(IOException io) {
+			return null;
+		} catch (NoSuchAlgorithmException e) {
+			return null;
+		}
+	}
+	
 	/* Creates the necessary directories if it doesn't already exist,
 	 * Writes the XML layer information into a saved file.
 	 */

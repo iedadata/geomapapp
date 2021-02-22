@@ -290,7 +290,7 @@ public class SCS implements Database,
 		progressPanel.setBorder(BorderFactory.createEmptyBorder(5, 1, 5, 1));
 		dialogProgress.setLocationRelativeTo(map);
 		pb = new JProgressBar(0,100);
-		progressLabel = new JLabel("Proccessing Files");
+		progressLabel = new JLabel("Processing Files");
 		progressPanel.add(progressLabel, BorderLayout.NORTH);
 		progressPanel.add(pb);
 		dialogProgress.getContentPane().add(progressPanel);

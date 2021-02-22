@@ -280,7 +280,7 @@ public class Grd {
 
 //	***** GMA 1.6.4: TESTING
 
-	public static Grid2D.Float readGrd( String fileName, MapProjection proj, GrdProperties grdP ) throws IOException {
+	public static Grid2D.Float readGrd( String fileName, MapProjection proj, GrdProperties grdP, boolean flipGrid) throws IOException {
 		double[] x_range = grdP.x_range;
 		double[] y_range = grdP.y_range;
 		double[] z_range = grdP.z_range;
@@ -291,6 +291,7 @@ public class Grd {
 		double add_offset = grdP.add_offset;
 		int node_offset = grdP.node_offset;
 		NetcdfFile nc = null;
+		String fileType;
 		MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
 
 //		System.out.println( x_range[0] + " " + x_range[1] );
@@ -299,6 +300,8 @@ public class Grd {
 
 		try {
 			nc = NetcdfFile.open(fileName);
+			String fileTypeDesc = nc.getFileTypeDescription();
+			fileType = nc.getFileTypeId();
 		} catch(java.lang.IllegalArgumentException ex) {
 			IOException e = new IOException("Not a netcdf file");
 			e.fillInStackTrace();
@@ -322,7 +325,8 @@ public class Grd {
 		Iterator variableListIterator = variableList.iterator();
 		while ( variableListIterator.hasNext() ) {
 			Variable variable = (Variable)variableListIterator.next();
-			if ( variable.getName().equals("z") || variable.getName().equals("z") ) {
+
+			if ( variable.getName().equals("z") ) {
 				List variableAttributeList = variable.getAttributes();
 				Iterator variableAttributeListIterator = variableAttributeList.iterator();
 
@@ -421,9 +425,16 @@ public class Grd {
 
 //		In the COARDS compliant GMT version 4 format, the row order is flipped as compared to GMT-3, thus,
 //		this loop flips the row order of the z array
-//		System.out.println("Before test");
-		if ( coardsCompliant ) {
-//			System.out.println("After test");
+
+//		NSS 2020-08-12: found an example where the row order was not flipped if the fileType is HDF5.
+//		Don't know if this is a general rule for HDF5 (NetCDF-4) files, but if we come across it again,
+//      may need to add the following check on fileType:
+//		if ( coardsCompliant && fileType != "HDF5") {
+		
+		// allow user to manually flip the grid 
+		if (flipGrid) coardsCompliant = ! coardsCompliant;
+		
+		if (coardsCompliant) {
 			int nx = dimension[0];
 			float [] zTmp = new float[z.length];
 			int l = 0;

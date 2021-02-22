@@ -133,4 +133,9 @@ public class PolarStereo extends PolarProjection {
 		if(!super.equals(p))return false;
 		return scale==p.scale;
 	}
+	
+	public double getScale() {
+		return scale;
+	}
+	
 }

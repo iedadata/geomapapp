@@ -217,7 +217,6 @@ public class MGG implements Database,
 							}
 							if (!isValidBounds(bounds))
 								continue;
-//							if( !bounds.intersects(0., 0., mapDim.getWidth(), mapDim.getHeight()) ) continue;
 							add( new MGGTrack( new TrackLine( name, bounds, cpt , start, end, types, (int)wrap)));
 							k++;
 						}

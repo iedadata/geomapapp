@@ -266,8 +266,9 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 				else 
 					readAsH77(text, in);
 			}
-			
+						
 			JPanel p = new JPanel( new BorderLayout() );
+			text.setCaretPosition(0);
 			p.add( new JScrollPane(text) );
 			p.setPreferredSize( new Dimension(600, 400) );
 			JOptionPane.showMessageDialog( map.getTopLevelAncestor(), 
@@ -507,17 +508,23 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 				}
 			}
 			int confirm = JOptionPane.NO_OPTION;
-//			File newDataFile = null;
-			File[] newDataFile = new File[cruiseL.getSelectedValues().length];
-			for ( int i = 0; i < cruiseL.getSelectedValues().length; i++ ) {
-				newDataFile[i] = new File( (String)cruiseL.getSelectedValues()[i] + ".a77" );
+
+			File[] newDataFile = new File[cruiseL.getSelectedValuesList().size()];
+
+			for ( int i = 0; i < cruiseL.getSelectedValuesList().size(); i++ ) {
+				try {
+					newDataFile[i] = getDataFile((String)cruiseL.getSelectedValuesList().get(i));
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
+					e.printStackTrace();
+				}
 			}
+			
 			JFileChooser jfc = MapApp.getFileChooser();
 			jfc.setMultiSelectionEnabled( true );
 			
 			jfc.setDialogTitle( "Download MGD77 Files" );
 			while ( confirm == JOptionPane.NO_OPTION ) {
-//				jfc.setSelectedFile( new File( loadedLeg + ".a77" ));
 				jfc.setSelectedFiles( newDataFile );
 				int c = jfc.showSaveDialog(jfc);
 			if ( c==JFileChooser.CANCEL_OPTION || c == JFileChooser.ERROR_OPTION ) return;
@@ -532,12 +539,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 
 				for ( int i = 0; i < newDataFile.length; i++ ) {
 					if ( selectedDir != null )	{
-						if ( newDataFile[i].getName().indexOf( ".a77") == -1 ) {
-							newDataFile[i] = new File( selectedDir + newDataFile[i].getName() + ".a77" );
-						}
-						else {
-							newDataFile[i] = new File( selectedDir + newDataFile[i].getName() );
-						}
+						newDataFile[i] = new File( selectedDir + newDataFile[i].getName() );
 					}
 				}
 
@@ -551,61 +553,33 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 				}
 			}
 			for ( int i = 0; i < newDataFile.length; i++ ) {
-//				newDataFile[i] = new File( newDataFile[i].getAbsolutePath() + ".a77" );
 				newDataFile[i] = new File( newDataFile[i].getAbsolutePath() );
 
 				try {
-					String MGGurl = MGD77_PATH ;
-					URL url = URLFactory.url( MGGurl + "control_files_list.txt");
-					URL dataDirURL;
 					URL dataFileURL;
-
-					BufferedReader in;
-					BufferedReader inDataDir;
 					BufferedReader inDataFile;
 					try {
-						in = new BufferedReader(
-								new InputStreamReader( url.openStream() ));
-						String s = "";
-						String sDataDir = "";
-						String sDataFile = "";
 						String sData = "";
 						String leg = newDataFile[i].getName();
 						if ( leg != null ) {
-							while (( s = in.readLine() ) != null ) {
-								if ( s.indexOf( "[DIR]" ) != -1 && s.indexOf( "Parent Directory" ) == -1 ) {
-									String dirName = s.substring( s.indexOf( "a href=\"" ) + 8, s.indexOf( "\">", s.indexOf( "a href=\"" ) ) );
-									dataDirURL = URLFactory.url(MGGurl + dirName + "data/");
-									inDataDir = new BufferedReader(
-											new InputStreamReader( dataDirURL.openStream() ));
-									while ( ( sDataDir = inDataDir.readLine() ) != null ) {
-										if ( sDataDir.indexOf( leg ) != -1 ) {
-											 // online version contain html markup, AT SEA is just a list of files.  Need to remove the markup.
-											if (sDataDir.contains("a href=")) {
-												sDataFile = sDataDir.substring( sDataDir.indexOf( "a href=\"" ) + 8, sDataDir.indexOf( "\">", sDataDir.indexOf( "a href=\"" ) ) );
-											} else sDataFile = sDataDir;
-											dataFileURL = URLFactory.url(MGGurl + dirName + "data/" + sDataFile);
-											inDataFile = new BufferedReader(
-													new InputStreamReader( dataFileURL.openStream() ) );
-											BufferedWriter out = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( newDataFile[i] ) ) );
+							dataFileURL = getDataFileURL(leg);
+							inDataFile = new BufferedReader(
+									new InputStreamReader( dataFileURL.openStream() ) );
+							BufferedWriter out = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( newDataFile[i] ) ) );
 
-											while ( ( sData = inDataFile.readLine() ) != null ) {
-												out.write(sData + "\n");
-											}
-											out.flush();
-											out.close();
-										}
-									}
-								}
+							while ( ( sData = inDataFile.readLine() ) != null ) {
+								out.write(sData + "\n");
 							}
+							out.flush();
+							out.close();
 						}
 					} catch (IOException e) {
-						// TODO Auto-generated catch block
+						JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
 						e.printStackTrace();
 					}
 					MapApp.sendLogMessage("Saving_or_Downloading&portal="+tracks.getDBName()+"&what=Download_Data&cruise="+cruiseList.get(i));
-				} catch (MalformedURLException e) {
-					// TODO Auto-generated catch block
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
 					e.printStackTrace();
 				}
 		 	}
@@ -797,4 +771,60 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 		}
 		
 	}
+
+	private File getDataFile(String leg) {
+		try {
+			URL dataFileURL = getDataFileURL(leg);
+			String fileName = dataFileURL.getFile().substring(dataFileURL.getFile().lastIndexOf('/') + 1);
+			return new File(fileName);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+		
+	private URL getDataFileURL(String leg) {
+		String dataSource = tracks.mggSel.loadedControlFiles;
+		String dataDir = null;
+		switch (dataSource) {
+			case "LDEO":
+				dataDir = MGGData.MGD77_DATA_LDEO;
+				break;
+			case "NGDC":
+				dataDir = MGGData.MGD77_DATA_NGDC;
+				break;
+			case "USAP":
+				dataDir = MGGData.MGD77_DATA_ADGRAV;
+				break;
+			case "SIOExplorer":
+				dataDir = MGGData.MGD77_DATA_SIO;
+				break;
+			default:
+				System.out.println("Unrecognized data source: " + dataSource);
+				return null;
+		}
+		
+		URL dataDirURL;
+		try {
+			dataDirURL = URLFactory.url(dataDir);		
+			BufferedReader inDataDir = new BufferedReader(new InputStreamReader( dataDirURL.openStream() ));
+			String sDataDir = "";
+			String sDataFile = "";
+			URL dataFileURL = null;
+			while ( ( sDataDir = inDataDir.readLine() ) != null ) {
+				if ( sDataDir.indexOf( leg ) != -1 ) {
+					 // online version contain html markup, AT SEA is just a list of files.  Need to remove the markup.
+					if (sDataDir.contains("a href=")) {
+						sDataFile = sDataDir.substring( sDataDir.indexOf( "a href=\"" ) + 8, sDataDir.indexOf( "\">", sDataDir.indexOf( "a href=\"" ) ) );
+					} else sDataFile = sDataDir;
+					dataFileURL = URLFactory.url(dataDir + sDataFile);
+				}
+			}
+			return dataFileURL;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
 }

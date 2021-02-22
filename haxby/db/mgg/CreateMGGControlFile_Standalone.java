@@ -9,6 +9,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -26,25 +27,20 @@ import haxby.proj.Projection;
 import haxby.proj.ProjectionFactory;
 
 /*
- * CreateMGGControlFile.java
+ * This is the stand-alone version of CreateMGGControlFile.java
  *
- *	CreateMGGControlFile( File[] inputFiles, File inputDir, File outputFile )
- *	inputFiles: MGD-77 files to create MGG control file from
- *	inputDir: Directory in which MGG control file is created
- *	outputFile: MGG control file
- *
- * Creates MGG control file from MGD-77 data files. 
- * 
- * Use this version to import mgd77 files within GMA.  Use CreatMGGControlFile_Standalone
- * when you want to update the control files on the server.
- * 
- * 
+ * CreateMGGControlFile.java should be used for importing files within GMA.  This stand-alone version
+ * should be used to create a control file on the server for all input files in a directory.  
+ * This version is independent of the GMA application.
+ * Use the Debug Configurations to set the arguments for the main method.
+ * 	args[0] = mgd77 directory name,
+ *	eg /Users/Neville/Desktop/seafloor/data/mgds/web/app.geomapapp.org/htdocs/data/portals/mgd77/nevtest-mgd77
+ *	args[1] = tracks name, eg NGDC
  */
-public class CreateMGGControlFile {
+public class CreateMGGControlFile_Standalone {
 
 	static double[] testLon = new double[5000];
 	static double[] testLat = new double[5000];
-	// static String[] MGD77data = new String[5000];
 	public File MGD77file;
 	public File mggDir;
 	public File outputControlFile;
@@ -53,7 +49,7 @@ public class CreateMGGControlFile {
 	int ng = 0;
 	int nm = 0;
 
-	public CreateMGGControlFile(File inputFile, File inputDir, File outputFile) {
+	public CreateMGGControlFile_Standalone(File inputFile, File inputDir, File outputFile) {
 		MGD77file = inputFile;
 		mggDir = inputDir;
 		outputControlFile = outputFile;
@@ -62,7 +58,7 @@ public class CreateMGGControlFile {
 	public boolean createControlFile() {
 		return createControlFile(false);
 	}
-	
+
 	public boolean createControlFile(boolean append) {
 		try {
 			Projection proj = ProjectionFactory.getMercator(20000);
@@ -146,26 +142,26 @@ public class CreateMGGControlFile {
 
 			//int nraw = nav.getSize();
 			nav.computeControlPoints(proj, 20000., 15.);
-			
+
 			Vector cpts = nav.getControlPoints();
 
 			if (cpts.size() == 0) {
+				System.out.println("No control points found for " + leg);
+				out.flush();
+				out.close();
 				return false;
 			}
 
 			int start = ((ControlPoint) ((Vector) cpts.get(0)).get(0)).time;
 			Vector seg = (Vector) cpts.get(cpts.size() - 1);
 			int end = ((ControlPoint) seg.get(seg.size() - 1)).time;
-			out.writeUTF(leg);
+			out.writeUTF(leg.toUpperCase());
 			out.writeInt(cpts.size());
 
 			// GMA: 1.4.8: TESTING
-//			System.out.println("Types loaded:");
-//			System.out.println(nt + "\t" + ng + "\t" + nm);
+			// System.out.println("Types loaded:");
+			// System.out.println(nt + "\t" + ng + "\t" + nm);
 
-			// out.writeInt(count[0]);
-			// out.writeInt(count[1]);
-			// out.writeInt(count[2]);
 			out.writeInt(nt);
 			out.writeInt(ng);
 			out.writeInt(nm);
@@ -209,11 +205,11 @@ public class CreateMGGControlFile {
 			out.close();
 			return true;
 		} catch (Exception ex) {
+			ex.printStackTrace();
 			JOptionPane.showMessageDialog(null, "Not able to import: " + MGD77file, "Import Error",
 					JOptionPane.ERROR_MESSAGE);
 			outputControlFile.delete();
 			outputDataFile.delete();
-			ex.printStackTrace();
 			return false;
 		}
 	}
@@ -221,10 +217,13 @@ public class CreateMGGControlFile {
 	public void readMGD77(File mgd77leg) throws IOException {
 
 		String extension = mgd77leg.getName().substring(mgd77leg.getName().lastIndexOf('.'));
-		String leg = MGD77file.getName().replace(extension, "");
+		String leg = MGD77file.getName().replace(extension, "").toUpperCase();
 		// check if the file extension implies the file is an MGD77T file
 		if (extension.equals(".m77t")) {
 			readMGD77T(mgd77leg);
+			return;
+		} else if (extension.equals(".mgd77")) {
+			readMGD77Conv(mgd77leg);
 			return;
 		}
 
@@ -251,7 +250,7 @@ public class CreateMGGControlFile {
 		nm = 0;
 
 		while ((s = in.readLine()) != null) {
-			while (s.length() < 20) {
+			while (s.length() < 100) {
 				s = in.readLine();
 				if (s == null) {
 					break;
@@ -475,6 +474,293 @@ public class CreateMGGControlFile {
 	}
 
 	/*
+	 * Read in .mgd77 files that have been created by converting .m77t files using
+	 * the command mgd77convert -Fm -Ta *m77t -V
+	 */
+	public void readMGD77Conv(File mgd77leg) throws IOException {
+
+		String extension = mgd77leg.getName().substring(mgd77leg.getName().lastIndexOf('.'));
+		String leg = MGD77file.getName().replace(extension, "").toUpperCase();
+
+		BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(mgd77leg)));
+		String s;
+
+		// save the data from the mgd77 file in a data file in the
+		// mgg_data_files directory
+		MGG.MGG_data_dir.mkdir();
+		outputDataFile = new File(MGG.MGG_data_dir, "mgg_data_" + leg);
+
+		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputDataFile)));
+
+		// remove header and save as .a77 file
+		File fixedFile = new File(this.mggDir.getPath(), leg + ".a77");
+		FileWriter fr = new FileWriter(fixedFile);
+		BufferedWriter br = new BufferedWriter(fr);
+
+		// create mgd77 directory to store the .mgd77 files once we have saved them as
+		// .a77 files
+		File mgd77Dir = new File(MGG.MGG_header_dir.getPath().replace("header", "mgd77"));
+		mgd77Dir.mkdir();
+
+		double[] lon = new double[5000];
+		double[] lat = new double[5000];
+		float[] topo = new float[5000];
+		float[] grav = new float[5000];
+		float[] mag = new float[5000];
+		String temp = "";
+		boolean dataPresent = false;
+		int lineNum = 0;
+		nt = 0;
+		ng = 0;
+		nm = 0;
+
+		while ((s = in.readLine()) != null) {
+			while (s.length() < 100) {
+				s = in.readLine();
+				if (s == null) {
+					break;
+				}
+			}
+
+			if (s == null) {
+				break;
+			}
+
+			// check again if data file is in tabbed format
+			if (lineNum == 0) {
+				String[] elements = s.split("\t");
+				if (elements.length > 2) {
+					System.out.println("Looks like this is an MGD77T file");
+					in.close();
+					out.close();
+					readMGD77T(mgd77leg);
+					return;
+				}
+			}
+
+			if (lineNum == lon.length) {
+				int len = lon.length;
+				double[] tmp = new double[len * 2];
+				System.arraycopy(lon, 0, tmp, 0, len);
+				lon = tmp;
+				tmp = new double[len * 2];
+				System.arraycopy(lat, 0, tmp, 0, len);
+				lat = tmp;
+				float[] tmp1 = new float[len * 2];
+				System.arraycopy(topo, 0, tmp1, 0, len);
+				topo = tmp1;
+				tmp1 = new float[len * 2];
+				System.arraycopy(grav, 0, tmp1, 0, len);
+				grav = tmp1;
+				tmp1 = new float[len * 2];
+				System.arraycopy(mag, 0, tmp1, 0, len);
+				mag = tmp1;
+			}
+
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+			String tempDate = s.substring(12, 16).trim();
+
+			int val = Integer.parseInt(tempDate);
+			if (val > 90 && val < 1000) {
+				val += 1900;
+			} else if (val < 25 && val > -1) {
+				val += 2000;
+			}
+			cal.set(Calendar.YEAR, val);
+			val = Integer.parseInt(s.substring(16, 18).trim());
+			cal.set(Calendar.MONTH, val - 1);
+			val = Integer.parseInt(s.substring(18, 20).trim());
+			cal.set(Calendar.DAY_OF_MONTH, val);
+			val = Integer.parseInt(s.substring(20, 22).trim());
+			cal.set(Calendar.HOUR_OF_DAY, val);
+			val = Integer.parseInt(s.substring(22, 27).trim());
+			cal.set(Calendar.MINUTE, val / 1000);
+			double tempVal = val;
+			tempVal /= 1000;
+			tempVal %= 1;
+			tempVal *= 60;
+			val = (int) tempVal;
+			cal.set(Calendar.SECOND, val);
+
+			try {
+				temp = s.substring(MGGData.MGD77_LON_START_POS, MGGData.MGD77_LON_END_POS + 1);
+				for (int i = 0; i < temp.length(); i++) {
+					if (!(temp.substring(i, i + 1).equals("0")) && !(temp.substring(i, i + 1).equals("+"))) {
+						lon[lineNum] = Double.parseDouble(temp) * MGGData.MGD77_LON_SCALE;
+						dataPresent = true;
+						break;
+					}
+				}
+				temp = "";
+
+				temp = s.substring(MGGData.MGD77_LAT_START_POS, MGGData.MGD77_LAT_END_POS + 1);
+				for (int i = 0; i < temp.length(); i++) {
+					if (!(temp.substring(i, i + 1).equals("0")) && !(temp.substring(i, i + 1).equals("+"))) {
+						lat[lineNum] = Double.parseDouble(temp) * MGGData.MGD77_LAT_SCALE;
+						dataPresent = true;
+						break;
+					}
+				}
+				temp = "";
+
+				if (lon[lineNum] < 0) {
+					lon[lineNum] += 360.;
+				}
+			} catch (NumberFormatException ex) {
+				continue;
+			}
+			dataPresent = false;
+
+			try {
+				temp = s.substring(MGGData.MGD77_BATHY_START_POS, MGGData.MGD77_BATHY_END_POS + 1);
+
+				if (isValidValue(temp)) {
+					topo[lineNum] = -1 * Float.parseFloat(temp) / MGGData.MGD77_BATHY_SCALE;
+					dataPresent = true;
+				}
+
+				temp = "";
+				if (!Float.isNaN(topo[lineNum]) && dataPresent)
+					nt++;
+				else {
+					topo[lineNum] = Float.NaN;
+				}
+			} catch (NumberFormatException ex) {
+				topo[lineNum] = Float.NaN;
+			}
+			if (!dataPresent) {
+				// replace 0's with 9's for empty values
+				s = replace0sWith9s(s, MGGData.MGD77_BATHY_START_POS, MGGData.MGD77_BATHY_END_POS);
+			}
+
+			dataPresent = false;
+
+			if (s.length() > MGGData.MGD77_GRAVITY_START_POS) {
+				try {
+					temp = s.substring(MGGData.MGD77_GRAVITY_START_POS, MGGData.MGD77_GRAVITY_END_POS + 1);
+					if (isValidValue(temp)) {
+						grav[lineNum] = Float.parseFloat(temp) / MGGData.MGD77_GRAVITY_SCALE;
+						dataPresent = true;
+					}
+
+					temp = "";
+					if (!Float.isNaN(grav[lineNum]) && dataPresent)
+						ng++;
+					else {
+						grav[lineNum] = Float.NaN;
+					}
+				} catch (NumberFormatException ex) {
+					grav[lineNum] = Float.NaN;
+				}
+			}
+			if (!dataPresent) {
+				// replace 0's with 9's for empty values
+				s = replace0sWith9s(s, MGGData.MGD77_GRAVITY_START_POS, MGGData.MGD77_GRAVITY_END_POS);
+			}
+
+			dataPresent = false;
+
+			try {
+				temp = s.substring(MGGData.MGD77_MAGNETICS_START_POS, MGGData.MGD77_MAGNETICS_END_POS + 1);
+				if (isValidValue(temp)) {
+					grav[lineNum] = Float.parseFloat(temp) / MGGData.MGD77_MAGNETICS_SCALE;
+					dataPresent = true;
+				}
+				temp = "";
+				if (!Float.isNaN(mag[lineNum]) && dataPresent)
+					nm++;
+				else {
+					mag[lineNum] = Float.NaN;
+				}
+			} catch (NumberFormatException ex) {
+				mag[lineNum] = Float.NaN;
+			}
+			if (!dataPresent) {
+				// replace 0's with 9's for empty values
+				s = replace0sWith9s(s, MGGData.MGD77_MAGNETICS_START_POS, MGGData.MGD77_MAGNETICS_END_POS);
+			}
+
+			String lonString = Double.toString(lon[lineNum]);
+			String latString = Double.toString(lat[lineNum]);
+			String topoString = Double.toString(topo[lineNum]);
+			String gravString = Double.toString(grav[lineNum]);
+			String magString = Double.toString(mag[lineNum]);
+
+			if (lonString.length() > 11) {
+				lonString = lonString.substring(0, 11);
+			}
+
+			if (latString.length() > 8) {
+				latString = latString.substring(0, 8);
+			}
+
+			if (topoString.indexOf(".") != -1) {
+				topoString = topoString.substring(0, topoString.indexOf("."));
+			}
+
+			if (gravString.indexOf(".") != -1) {
+				gravString = gravString.substring(0, gravString.indexOf("."));
+			}
+
+			if (magString.indexOf(".") != -1) {
+				magString = magString.substring(0, magString.indexOf("."));
+			}
+
+			int defaultDateValue = 0;
+			if (cal.getTimeInMillis() / 1000 <= 2147483647 && cal.getTimeInMillis() / 1000 >= -2147483648) {
+
+				out.write((cal.getTimeInMillis() / 1000) + "\t" + lonString + "\t" + latString + "\t" + topoString
+						+ "\t" + gravString + "\t" + magString + "\n");
+			} else {
+
+				out.write(defaultDateValue + "\t" + lonString + "\t" + latString + "\t" + topoString + "\t" + gravString
+						+ "\t" + magString + "\n");
+			}
+			dataPresent = false;
+			lineNum++;
+
+			// write the non-header line to the .a77 file
+			br.write(s + "\n");
+		}
+		in.close();
+		out.flush();
+		out.close();
+		br.close();
+		fr.close();
+
+		// move .mgd77 file to mgd77 directory
+		File dest = new File(mgd77Dir.getPath(), mgd77leg.getName());
+		Files.move(mgd77leg.toPath(), dest.toPath(), REPLACE_EXISTING);
+	}
+
+	private String replace0sWith9s(String in, int startInd, int endInd) {
+		String nines = "";
+		for (int i = startInd; i < endInd + 1; i++) {
+			nines += "9";
+		}
+
+		String out = in.substring(0, startInd) + nines + in.substring(endInd + 1, in.length());
+		return out;
+	}
+
+	private Boolean isValidValue(String temp) {
+		String nines = "";
+		String zeros = "";
+		String plusNines = "+";
+		String plusZeros = "+";
+		for (int i = 0; i < temp.length(); i++) {
+			nines += "9";
+			zeros += "0";
+			if (i != temp.length() - 1) {
+				plusNines += "9";
+				plusZeros += "0";
+			}
+		}
+		return (!temp.contentEquals(nines) && !temp.contentEquals(zeros) && !temp.contentEquals(plusNines)
+				&& !temp.contentEquals(plusZeros));
+	}
+
+	/*
 	 * Read in tab-delimited MGD77 files
 	 */
 	public void readMGD77T(File mgd77leg) throws IOException {
@@ -483,6 +769,13 @@ public class CreateMGGControlFile {
 		String s;
 		String extension = mgd77leg.getName().substring(mgd77leg.getName().lastIndexOf('.'));
 		String leg = MGD77file.getName().replace(extension, "");
+		if (!leg.equals(leg.toUpperCase())) {
+			leg = leg.toUpperCase();
+			// rename file with uppercase leg name
+			File dest = new File(MGG.MGG_header_dir.getPath().replace("header", "data"), leg + extension);
+			Files.move(mgd77leg.toPath(), dest.toPath(), REPLACE_EXISTING);
+		}
+
 		// save the data from the mgd77 file in a data file in the
 		// mgg_data_files directory
 		MGG.MGG_data_dir.mkdir();
@@ -530,7 +823,7 @@ public class CreateMGGControlFile {
 				cal.set(Calendar.MONTH, val - 1);
 				val = Integer.parseInt(tempDate.substring(6, 8));
 				cal.set(Calendar.DAY_OF_MONTH, val);
-	
+
 				// get the time field and split in to hours, minutes and seconds
 				String tempTime = elements[MGGData.MGD77T_TIME_FIELD];
 				val = Integer.parseInt(tempTime.substring(0, 2));
@@ -542,7 +835,7 @@ public class CreateMGGControlFile {
 					cal.set(Calendar.SECOND, (int) (decSec * 60));
 				} else
 					cal.set(Calendar.SECOND, 0);
-			} catch (Exception ex) {				
+			} catch (Exception ex) {
 			}
 
 			// get the lat and lon fields
@@ -569,12 +862,13 @@ public class CreateMGGControlFile {
 				topo = -1 * Float.parseFloat(temp);
 				dataPresent = true;
 
-				temp = "";
-				if (!Float.isNaN(topo) && dataPresent)
+				if (!Float.isNaN(topo) && dataPresent && !temp.matches("0"))
 					nt++;
 				else {
 					topo = Float.NaN;
 				}
+
+				temp = "";
 			} catch (Exception ex) {
 				topo = Float.NaN;
 			}
@@ -586,12 +880,13 @@ public class CreateMGGControlFile {
 				mag = Float.parseFloat(temp);
 				dataPresent = true;
 
-				temp = "";
-				if (!Float.isNaN(mag) && dataPresent)
+				if (!Float.isNaN(mag) && dataPresent && !temp.matches("0"))
 					nm++;
 				else {
 					mag = Float.NaN;
 				}
+
+				temp = "";
 			} catch (Exception ex) {
 				mag = Float.NaN;
 			}
@@ -603,12 +898,13 @@ public class CreateMGGControlFile {
 				grav = Float.parseFloat(temp);
 				dataPresent = true;
 
-				temp = "";
-				if (!Float.isNaN(grav) && dataPresent)
+				if (!Float.isNaN(grav) && dataPresent && !temp.matches("0"))
 					ng++;
 				else {
 					grav = Float.NaN;
 				}
+
+				temp = "";
 			} catch (Exception ex) {
 				grav = Float.NaN;
 			}
@@ -642,6 +938,7 @@ public class CreateMGGControlFile {
 
 			// write to output data file
 			int defaultDateValue = 0;
+
 			if (cal.getTimeInMillis() / 1000 <= 2147483647 && cal.getTimeInMillis() / 1000 >= -2147483648) {
 				out.write((cal.getTimeInMillis() / 1000) + "\t" + lonString + "\t" + latString + "\t" + topoString
 						+ "\t" + gravString + "\t" + magString + "\n");
@@ -651,6 +948,7 @@ public class CreateMGGControlFile {
 			}
 			dataPresent = false;
 		}
+
 		in.close();
 		out.flush();
 		out.close();
@@ -663,9 +961,33 @@ public class CreateMGGControlFile {
 		// copy the file to the mgg_header_files directory
 
 		MGG.MGG_header_dir.mkdir();
-		File dest = new File(MGG.MGG_header_dir, mgd77leg.getName());
+		String extension = mgd77leg.getName().substring(mgd77leg.getName().lastIndexOf('.'));
+		String leg = MGD77file.getName().replace(extension, "").toUpperCase();
+		File dest = new File(MGG.MGG_header_dir, leg + extension);
 		Files.copy(mgd77leg.toPath(), dest.toPath(), REPLACE_EXISTING);
 
 	}
 
+	public static void main(String[] args) {
+		// args[0] = mgd77 directory name,
+		// eg
+		// /Users/Neville/Desktop/seafloor/data/mgds/web/app.geomapapp.org/htdocs/data/portals/mgd77/nevtest-mgd77
+		// args[1] = tracks name, eg NGDC
+
+		File sioexplorerDir = new File(args[0] + "/data/");
+		File[] inputFiles = sioexplorerDir.listFiles();
+		java.util.Arrays.sort(inputFiles);
+
+		// set header directory
+		MGG.MGG_header_dir = new File(args[0] + "/header/");
+
+		for (File inputFile : inputFiles) {
+			// System.out.println(inputFile.getName());
+			// if ((int)inputFile.getName().charAt(0) - (int)"S".charAt(0) != 0) continue;
+			CreateMGGControlFile_Standalone cmcf = new CreateMGGControlFile_Standalone(inputFile, sioexplorerDir,
+					new File(args[0] + "/control/mgg_control_" + args[1]));
+
+			cmcf.createControlFile(true);
+		}
+	}
 }
