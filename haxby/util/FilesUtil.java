@@ -1,26 +1,21 @@
 package haxby.util;
 
-import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.math.BigInteger;
+import java.io.PrintWriter;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 
 /**
  * FileUtil checks if selected file is in parameter. Constructs
@@ -215,46 +210,12 @@ public class FilesUtil{
 	
 	public static String createSha1(File oriFileLocal) {
 		try {
-			MessageDigest md = MessageDigest.getInstance("SHA1");
-			InputStream is= new FileInputStream(oriFileLocal);
-			byte[] buffer=new byte[8192];
-			int read=0;
-
-			while( (read = is.read(buffer)) > 0) {
-				md.update(buffer, 0, read);
-			}
-			is.close();
-			
-			byte[] readBytes = md.digest();
-			return new HexBinaryAdapter().marshal(readBytes).toLowerCase();
-
+     		return org.apache.commons.codec.digest.DigestUtils.sha1Hex(new FileInputStream(oriFileLocal));
 		} catch(IOException io) {
-			return null;
-		} catch (NoSuchAlgorithmException e) {
 			return null;
 		}
 	}
 
-	public static String createSha1(InputStream is) {
-		try {
-			MessageDigest md = MessageDigest.getInstance("SHA1");
-			byte[] buffer=new byte[8192];
-			int read=0;
-
-		while( (read = is.read(buffer)) > 0) {
-			md.update(buffer, 0, read);
-		}
-
-		byte[] readBytes = md.digest();
-		return new HexBinaryAdapter().marshal(readBytes).toLowerCase();
-
-		} catch(IOException io) {
-			return null;
-		} catch (NoSuchAlgorithmException e) {
-			return null;
-		}
-	}
-	
 	/* Creates the necessary directories if it doesn't already exist,
 	 * Writes the XML layer information into a saved file.
 	 */

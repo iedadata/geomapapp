@@ -81,14 +81,6 @@
 						memoryinitialsize="512m"
 						memorymaximumsize="1024m"/>
 
-		<!-- For Windows ant build or configure ant in IDE include AppleJavaExtensions.jar
-		<javac srcdir="${haxby_org}" 
-						fork="true"
-						destdir="${build}"
-						target="1.8"
-						classpath="${resources}/AppleJavaExtensions.jar"
-						memoryinitialsize="512m"
-						memorymaximumsize="1024m"/> -->
 	</target>
 
 	<target name="dist" depends="compile" description="generate the distribution" >
@@ -100,31 +92,7 @@
 			</manifest>
 		</jar>
 	</target>
-	
-
-    <taskdef name="bundleapp"
-             classname="com.oracle.appbundler.AppBundlerTask"   
-             classpath="lib/appbundler-1.0.jar" />
-
-    <target name="bundle-GeoMapApp">
-        <bundleapp outputdirectory="dist"
-            name="GeoMapApp"
-            displayname="GeoMapApp"
-            identifier="org.iedadata.GeoMapApp"
-        	icon="resources/org/geomapapp/resources/icons/GeoMapApp.icns"
-        	shortversion="3.6.11"
-        	copyright="GeoMapApp 3.6.11, Copyright © 2021 www.geomapapp.org"
-        	applicationCategory="Education"
-            mainclassname="haxby.map.MapApp">
-        	<option value="-Dapple.laf.useScreenMenuBar=false" />
-        	<option value="-Dgeomapapp.paths_location=http://app.geomapapp.org/gma_paths/GMA_paths.xml"/>
-        	<!-- comment out the line below to make the unbundled application -->
-        	<runtime dir="${env.JAVA_HOME}" />
-            <classpath file="dist/GeoMapApp.jar" />
-        </bundleapp>
-    </target>
-	
-	
+		
 	<!-- Clean up temp dirs-->
 	<target name="release" depends="dist" description="delete packages" >
 			<delete dir="${build}"/>
