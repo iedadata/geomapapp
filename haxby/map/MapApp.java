@@ -172,9 +172,9 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.11"; // 02/18/2021
+	public final static String VERSION = "3.6.12"; // 03/08/2021
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
-	public final static boolean DEV_MODE = true; 
+	public final static boolean DEV_MODE = false; 
 	
 	public static final String PRODUCTION_URL = "http://app.geomapapp.org/";
 	public static String DEFAULT_URL = "http://app.geomapapp.org/";
