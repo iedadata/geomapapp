@@ -510,9 +510,4 @@ public class XMLJTreeDialog extends JDialog implements ActionListener,
 		}
 	}
 
-	public static void main(String[] args) {
-		// A old example
-		//Vector v = XMLJTreeDialog.showXMLJTree("http://www.geomapapp.org/GMA/Layers/layers.xml", new JDialog());
-		//System.out.println(v.size());
-	}
 }

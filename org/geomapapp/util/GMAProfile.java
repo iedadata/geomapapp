@@ -44,6 +44,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.URL;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -596,6 +597,17 @@ public class GMAProfile implements Overlay, XYPoints {
 		dx = .05*(newPoints.yRange[1]-newPoints.yRange[0]);
 		newPoints.yRange[0] -= dx;
 		newPoints.yRange[1] += dx;
+		if (newPoints.yRange[1] == newPoints.yRange[0]) {
+			if (newPoints.yRange[0] == 0) {
+				newPoints.yRange[0] = -1;
+				newPoints.yRange[1] = 0.5;
+			}
+			else {
+				newPoints.yRange[0] = 0;
+				newPoints.yRange[1] *= 1.5;
+			}
+			 
+		}
 		newPoints.yScale = 250./(newPoints.yRange[1]-newPoints.yRange[0]);
 		// make some room for Grid name label at the bottom
 		double graphHeight = 250.;
@@ -908,10 +920,25 @@ public class GMAProfile implements Overlay, XYPoints {
 		data = (float[])xyz.get(k1);
 		path.moveTo( xs*(data[i]-x0), ys*(data[1]-y0) );
 		float x = data[0];
+		boolean gap = false;
 		for( int k=k1+1 ; k<=k2 ; k++) {
 			data = (float[])xyz.get(k);
-			if( data[0]-x>spacing || Float.isNaN(data[1])) path.moveTo( xs*(data[i]-x0), ys*(data[1]-y0) );
-			else path.lineTo( xs*(data[i]-x0), ys*(data[1]-y0) );
+	
+			if( Float.isNaN(data[1])) {
+				//leave a gap when the y-value is NaN
+				gap=true;
+				continue;
+			}
+			
+			if( data[0]-x>spacing) path.moveTo( xs*(data[i]-x0), ys*(data[1]-y0) );
+			
+			if (gap) {
+				path.moveTo( xs*(data[i]-x0), ys*(data[1]-y0) );
+				gap = false;
+			}
+			else { 
+				path.lineTo( xs*(data[i]-x0), ys*(data[1]-y0) );
+			}
 			x = data[0];
 		}
 		g.setColor( Color.white );
@@ -1837,6 +1864,9 @@ public class GMAProfile implements Overlay, XYPoints {
 			}
 			
 		} else if( saveToFile.isSelected() ) {
+			// determine number of decimal places based on the zoom level
+			double zoom = map.getZoom();
+			NumberFormat fmt = GeneralUtils.getZoomNumberFormat(zoom);
 			JFileChooser chooser = MapApp.getFileChooser();
 			ok = chooser.showSaveDialog(dialog);
 			if( ok==JFileChooser.CANCEL_OPTION ) return;
@@ -1896,13 +1926,13 @@ public class GMAProfile implements Overlay, XYPoints {
 
 					boolean tf = profileTypes != null && straightLine.isSelected();
 					if(tf) {
-							out.print( tempLon +"\t"+
-							data[3] +"\t"+
+							out.print( fmt.format(tempLon) +"\t"+
+							fmt.format(data[3]) +"\t"+
 							data[4] +"\t"+
 							data[1]);
 					}else {
-						out.print( tempLon +"\t"+
-								data[3] +"\t"+
+						out.print( fmt.format(tempLon) +"\t"+
+								fmt.format(data[3]) +"\t"+
 								data[0] +"\t"+
 								data[1]);
 					}
@@ -1923,6 +1953,9 @@ public class GMAProfile implements Overlay, XYPoints {
 						 JOptionPane.ERROR_MESSAGE);
 			}
 		} else if( saveToClipboard.isSelected() ) {
+			// determine number of decimal places based on the zoom level
+			double zoom = map.getZoom();
+			NumberFormat fmt = GeneralUtils.getZoomNumberFormat(zoom);
 			float[] data;
 			JTextArea text = new JTextArea();
 			ArrayList<String> yDataTypes = new ArrayList<String>();
@@ -1966,13 +1999,13 @@ public class GMAProfile implements Overlay, XYPoints {
 
 				boolean tf = profileTypes != null && straightLine.isSelected();
 				if(tf) {
-					text.append( tempLon +"\t"+
-						data[3] +"\t"+
+					text.append( fmt.format(tempLon) +"\t"+
+						fmt.format(data[3]) +"\t"+
 						data[4] +"\t"+
 						data[1]);
 				}else {
-					text.append( tempLon +"\t"+
-							data[3] +"\t"+
+					text.append( fmt.format(tempLon) +"\t"+
+							fmt.format(data[3]) +"\t"+
 							data[0] +"\t"+
 							data[1]);
 				}
@@ -2095,7 +2128,11 @@ public class GMAProfile implements Overlay, XYPoints {
 	}
 
 	String getLon(Point2D pt, JComboBox box){
-		DecimalFormat fmt = new DecimalFormat("#.#");
+		// determine number of decimal places based on the zoom level
+		double zoom = map.getZoom();
+		NumberFormat fmt = GeneralUtils.getZoomNumberFormat(zoom);
+		NumberFormat fmtMins = GeneralUtils.getZoomNumberFormatMins(zoom);
+		
 		String degStartX = (""+pt.getX()).split("\\.")[0];
 		String startRest = (""+pt.getX()).split("\\.")[1];
 
@@ -2124,12 +2161,15 @@ public class GMAProfile implements Overlay, XYPoints {
 		}else{
 			box.setSelectedIndex(0);
 		}
-		return (degStartX + " " + fmt.format(minStartX));
+		return (degStartX + "\u00B0" + fmtMins.format(minStartX))+"\u2032";
 	}
 
 
 	String getLat(Point2D pt, JComboBox box){	
-		DecimalFormat fmt = new DecimalFormat("#.#");
+		// determine number of decimal places based on the zoom level
+		double zoom = map.getZoom();
+		NumberFormat fmt = GeneralUtils.getZoomNumberFormat(zoom);
+		NumberFormat fmtMins = GeneralUtils.getZoomNumberFormatMins(zoom);
 
 		if(degreesOrMinutes.getSelectedIndex()==0)
 			return fmt.format(pt.getY());
@@ -2152,11 +2192,11 @@ public class GMAProfile implements Overlay, XYPoints {
 		else {
 			box.setSelectedIndex(0);
 		}
-		return (degStartX + " " + fmt.format(minStartX));
+		return (degStartX + "\u00B0" + fmtMins.format(minStartX))+"\u2032";
 	}
 
 	Double latToNumber(String lat, String ew){
-		String[] latTokens = lat.split(" ");
+		String[] latTokens = lat.replace("\u2032","").split("\u00B0");
 		String num = latTokens[0];
 		Double degToDec = (100.0/60.0)*Double.parseDouble(latTokens[1]);
 		String decStr = "."+((""+degToDec).split("\\.")[0]) + ((""+degToDec).split("\\.")[1]);
@@ -2167,7 +2207,7 @@ public class GMAProfile implements Overlay, XYPoints {
 	}
 
 	Double lonToNumber(String lon, String ew){
-		String[] latTokens = lon.split(" ");
+		String[] latTokens = lon.replace("\u2032","").split("\u00B0");
 		String num = latTokens[0];
 		num = ""+((int)(Double.parseDouble(num)));
 		Double degToDec = (100.0/60.0)*Double.parseDouble(latTokens[1]);
@@ -2184,7 +2224,10 @@ public class GMAProfile implements Overlay, XYPoints {
 	}
 
 	public void checkFormat(boolean deg, JTextField textToSet, JComboBox box ){
-		DecimalFormat fmt = new DecimalFormat("#.#");
+		// determine number of decimal places based on the zoom level
+		double zoom = map.getZoom();
+		NumberFormat fmt = GeneralUtils.getZoomNumberFormat(zoom);
+		NumberFormat fmtMins = GeneralUtils.getZoomNumberFormatMins(zoom);
 		if(deg){
 			if(!box.isEnabled())
 				return;
@@ -2194,7 +2237,7 @@ public class GMAProfile implements Overlay, XYPoints {
 				set = "-";
 			}
 
-			String[] boxText = textToSet.getText().split(" ");
+			String[] boxText = textToSet.getText().replace("\u2032","").split("\u00B0");
 			double decimalValue = Double.parseDouble(boxText[1])/60.0;
 			String dec = (""+decimalValue);
 			set  = set.concat(boxText[0]+dec.substring(1,dec.length()));
@@ -2217,11 +2260,11 @@ public class GMAProfile implements Overlay, XYPoints {
 			String newText;
 
 			if(boxText.length==1){
-				newText = firstPart+" "+fmt.format((Double.parseDouble("."+0)*60.0));
-			System.out.println(newText + " true");
+				newText = firstPart+"\u00B0"+fmtMins.format((Double.parseDouble("."+0)*60.0))+"\u2032";
+//			System.out.println(newText + " true");
 			}else{
-				newText = firstPart+" "+fmt.format((Double.parseDouble("."+boxText[1])*60.0));
-				System.out.println(newText + " false");
+				newText = firstPart+"\u00B0"+fmtMins.format((Double.parseDouble("."+boxText[1])*60.0))+"\u2032";
+//				System.out.println(newText + " false");
 			}
 			textToSet.setText(newText);
 		}

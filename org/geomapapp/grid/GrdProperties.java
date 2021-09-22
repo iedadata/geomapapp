@@ -212,6 +212,7 @@ public class GrdProperties {
 		int i = 0;
 		while ( dimensionListIterator.hasNext() ) {
 			String s = ((Dimension)dimensionListIterator.next()).toString();
+			if (s.contains("grid_mapping")) continue;
 			tempDimensions.add( s.substring( s.indexOf("= ") + 2, s.indexOf(";") ) );
 			i++;
 		}

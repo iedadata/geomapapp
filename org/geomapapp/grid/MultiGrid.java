@@ -87,13 +87,13 @@ public class MultiGrid {
 		grid = new Grid2DOverlay( shape.getMap(), shape.toString() );
 		grid.setBackground( background );
 	if(MapApp.AT_SEA) {
-		grid.setIsImported( !baseURL.startsWith("http://www.geomapapp.org/") &&
-				!baseURL.startsWith("http://www.marine-geo.org/geomapapp/") &&
+		grid.setIsImported( !baseURL.contains("www.geomapapp.org/") &&
+				!baseURL.contains("www.marine-geo.org/geomapapp/") &&
 				!baseURL.startsWith("https://www.gmrt.org/geomapapp/") &&
 				!baseURL.startsWith(MapApp.BASE_URL));
 	} else {
-		grid.setIsImported( !baseURL.startsWith("http://www.geomapapp.org/") &&
-				!baseURL.startsWith("http://www.marine-geo.org/geomapapp/") &&
+		grid.setIsImported( !baseURL.contains("www.geomapapp.org/") &&
+				!baseURL.contains("www.marine-geo.org/geomapapp/") &&
 				!baseURL.startsWith("https://www.gmrt.org/geomapapp/") &&
 				!baseURL.startsWith(MapApp.BASE_URL) && 
 				!baseURL.startsWith(PathUtil.getPath("ROOT_PATH")));

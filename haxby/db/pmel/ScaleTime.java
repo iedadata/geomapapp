@@ -1,18 +1,51 @@
 package haxby.db.pmel;
 
-import haxby.util.*;
-import haxby.map.*;
-import haxby.image.*;
+import java.awt.AWTEvent;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.GeneralPath;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
+import java.util.Vector;
 
-import java.util.*;
-import java.io.*;
-import java.net.*;
-import java.awt.*;
-import java.awt.geom.*;
-import java.awt.event.*;
-import java.awt.image.*;
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+import javax.swing.JToggleButton;
+import javax.swing.filechooser.FileFilter;
 
-import javax.swing.*;
+import haxby.image.QT;
+import haxby.image.jcodec.javase.api.awt.AWTSequenceEncoder;
+import haxby.map.MapApp;
+import haxby.map.Zoomable;
+import haxby.map.Zoomer;
+import haxby.util.XYZ;
 
 /**
  * The Locations and Timing of Seafloor Earthquakes and Volcanic Eruptions shows earthquake
@@ -43,6 +76,7 @@ public class ScaleTime extends JComponent
 	JButton save,
 			reset;
 
+    
 	public ScaleTime( PMEL pmel, EventHistogram hist ) {
 		this.pmel = pmel;
 		setHist( hist );
@@ -427,34 +461,64 @@ public class ScaleTime extends JComponent
 			play.setSelected( false );
 		}
 	}
-	public void saveMov() throws IOException {
+	
+	public void saveMovie(String ext) throws IOException {
+		QT qt = null;
+		AWTSequenceEncoder enc = null;
+		String fileName;
+		if (pmel.getActivity() != null) {
+			fileName = pmel.getActivity() + ext;
+			fileName = fileName.replace(" ", "_").replace(",","");
+		}
+		else {
+			fileName = pmel.getDatasetName() + ext;
+		}
+		File file = new File(fileName);
 		JFileChooser chooser = MapApp.getFileChooser();
 		String title = chooser.getDialogTitle();
-		chooser.setDialogTitle("save quickTime animation");
-		chooser.setAccessory(new JLabel("file name should end with .mov"));
+		chooser.setDialogTitle("save animation");
+		chooser.setSelectedFile(file);
+		chooser.setFileFilter( new FileFilter() {
+			public String getDescription() {
+				return ext;
+			}
+			public boolean accept(File f) {
+				return  f.isDirectory() ||
+					f.getName().toLowerCase().endsWith(ext);
+			}
+		});
+
 		int ok = chooser.showSaveDialog(getTopLevelAncestor());
 		if( ok==chooser.CANCEL_OPTION ) {
 			chooser.setDialogTitle(title);
 			chooser.setAccessory( null );
 			return;
 		}
-		File movFile = chooser.getSelectedFile();
-		while( !movFile.getName().endsWith(".mov") ) {
+		File movieFile = chooser.getSelectedFile();
+		
+		while( !movieFile.getName().endsWith(ext) ) {
 			JOptionPane.showMessageDialog( getTopLevelAncestor(), 
-						"File name must end with \".mov\"");
+						"File name must end with \""+ext+"\"");
 			ok = chooser.showSaveDialog(getTopLevelAncestor());
 			if( ok==chooser.CANCEL_OPTION ) {
 				chooser.setDialogTitle(title);
 				chooser.setAccessory( null );
 				return;
 			}
-			movFile = chooser.getSelectedFile();
+			movieFile = chooser.getSelectedFile();
 		}
 		chooser.setDialogTitle(title);
 		chooser.setAccessory( null );
 		Rectangle imr = pmel.map.getVisibleRect();
-		BufferedImage im0 = new BufferedImage(imr.width, imr.height, BufferedImage.TYPE_INT_RGB);
-		BufferedImage im = new BufferedImage(imr.width, imr.height, BufferedImage.TYPE_INT_RGB);
+        int height = imr.height;
+        int width = imr.width;
+        //mp4 requires even value for image height
+        if (ext == ".mp4") {
+        	height = Math.round(height / 2) * 2;
+        	width = Math.round(width / 2) * 2;
+        }
+		BufferedImage im0 = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		BufferedImage im = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g0 = im0.createGraphics();
 		Graphics2D g = im.createGraphics();
 		g.translate(-imr.getX(), -imr.getY());
@@ -475,17 +539,7 @@ public class ScaleTime extends JComponent
 		Rectangle2D.Double rect = new Rectangle2D.Double(-2./zoom, -2./zoom,
 								4./zoom, 4./zoom);
 		AffineTransform at = g.getTransform();
-/*
-		g.setColor( Color.black );
-		for(int i=0 ; i<data.size() ; i++) {
-			PMELEvent evt = (PMELEvent)data.get(i);
-			while( evt.x<clip.x ) evt.x-=wrap;
-			while( evt.x>clip.x+clip.width ) evt.x-=wrap;
-			g.translate( (double)evt.x, (double)evt.y );
-			g.fill( rect );
-			g.setTransform( at );
-		}
-*/
+
 		int rate = 20;
 			try {
 				rate = 2*Integer.parseInt( frameRate.getText() );
@@ -523,7 +577,13 @@ public class ScaleTime extends JComponent
 			t+=dx*2;
 			nFrame++;
 		}
-		QT qt = new QT( nFrame, rate, imr.width, imr.height, movFile);
+		if (ext == ".mp4" ) {
+			enc = AWTSequenceEncoder.createSequenceEncoder(movieFile, rate);
+		}
+		else {
+			qt = new QT( nFrame, rate, imr.width, imr.height, movieFile);
+		}
+		
 		int h = getSize().height;
 		t = zRange[0];
 		System.out.println(nFrame +" frames");
@@ -531,10 +591,7 @@ public class ScaleTime extends JComponent
 		g.setFont( new Font("Monospaced", Font.PLAIN, 12 ));
 		Rectangle2D tmp = g.getFont().getStringBounds( "2000 222 22:22:22", 
 						g.getFontRenderContext() );
-	//	Rectangle dateRect = new Rectangle( (int)(tmp.getX()-2),
-	//				(int)(tmp.getY()-2),
-	//				(int)(tmp.getWidth()+4),
-	//				(int)(tmp.getHeight()+4) );
+
 		Rectangle dateRect = new Rectangle( -2, -2, 
 					(int)(tmp.getWidth()+4),
 					(int)(tmp.getHeight()+4) );
@@ -585,12 +642,14 @@ public class ScaleTime extends JComponent
 				plot[19].add( evt);
 				kount++;
 			}
-			int size = qt.addImage( im );
+			if (ext == ".mp4") {
+				enc.encodeImage(im);
+			}
+			else {
+				qt.addImage( im );
+			}
 			nFrame++;
-			System.out.println( nFrame +"\t"+ size +" bytes");
-		//	Graphics gg = getGraphics();
-		//	gg.setXORMode( Color.yellow );
-		//	if( x>0 ) gg.drawLine( x,0,x,h );
+		
 		}
 		for( int j=0 ; j<20 ; j++) {
 			g.setTransform( new AffineTransform() );
@@ -613,10 +672,21 @@ public class ScaleTime extends JComponent
 					}
 				}
 			}
-			int size = qt.addImage( im );
+			if (ext == ".mp4") {
+				enc.encodeImage(im);
+			}
+			else {
+				qt.addImage( im );
+			}
 			nFrame++;
-			System.out.println( nFrame +"\t"+ size +" bytes");
 		}
+
+		if (ext == ".mp4") {
+			enc.finish();
+		}
+		
+		JOptionPane.showMessageDialog(getTopLevelAncestor(), movieFile.getName() + " successfully saved");
+		
 		for (JRadioButton ds: pmel.datasets) {
 			if (ds.isSelected()) {
 				MapApp.sendLogMessage("Saving_or_Downloading&portal="+pmel.getDBName()+"&what=movie&area=" + ds.getText());
@@ -632,54 +702,37 @@ public class ScaleTime extends JComponent
 		JPanel panel3 = new JPanel(new GridLayout(0,1));
 
 		ButtonGroup saveType = new ButtonGroup();
-		JRadioButton saveMovie = new JRadioButton("Save Movie", true);
-		JRadioButton saveEvents = new JRadioButton("Save events occuring in selected time.");
+		JRadioButton saveMp4 = new JRadioButton("Save MPEG4 (.mp4)", true);
+		JRadioButton saveMov = new JRadioButton("Save Quicktime (.mov)");
 
-		panel3.add(saveMovie);
-		// panel3.add(saveEvents); // For now blank out save events, never completed.
+		panel3.add(saveMp4);
+		panel3.add(saveMov);
 
-		saveMovie.addActionListener(this);
-		saveEvents.addActionListener(this);
+		saveMov.addActionListener(this);
+		saveMp4.addActionListener(this);
 
-		saveType.add(saveMovie);
-		saveType.add(saveEvents);
+		saveType.add(saveMov);
+		saveType.add(saveMp4);
 
 		int c = JOptionPane.showConfirmDialog( getTopLevelAncestor(), panel3, "Save", JOptionPane.OK_CANCEL_OPTION);
 		if (c == JOptionPane.CANCEL_OPTION)
 			return;
 
-		saveMovie.setEnabled(false);
-		saveEvents.setEnabled(false);
+		saveMov.setEnabled(false);
+		saveMp4.setEnabled(false);
 
-		if (saveMovie.isSelected()) {
-			//FIX: Lets saveMov method receive a file.
+		if (saveMov.isSelected()) {
 			try {
-					saveMov();
+					saveMovie(".mov");
 			} catch (IOException ex ) {
 					ex.printStackTrace();
 			}
 		}
-		else if (saveEvents.isSelected()) {
-			//Incomplete.
-			File file = null;
-
-			int confirm = JOptionPane.NO_OPTION;
-
-			while (confirm == JOptionPane.NO_OPTION) {
-				JFileChooser chooser = MapApp.getFileChooser();
-				int ok = chooser.showSaveDialog(getTopLevelAncestor());
-
-				if (ok == chooser.CANCEL_OPTION)
-					return;
-				
-				file = chooser.getSelectedFile();
-
-				if (file.exists()) {
-					confirm = JOptionPane.showConfirmDialog(getTopLevelAncestor(), "File exists, Overwrite?");
-					if (confirm == JOptionPane.CANCEL_OPTION) return;
-				}
-				else
-					break;
+		else if (saveMp4.isSelected()) {
+			try {
+					saveMovie(".mp4");
+			} catch (IOException ex ) {
+					ex.printStackTrace();
 			}
 		}
 	}

@@ -2203,12 +2203,12 @@ public class XMImage extends haxby.util.ScaledComponent
 							
 							if( st.hasMoreTokens() ) {
 								AnnotationObject obj = new AnnotationObject(
-										cruiseLine.map, dig);
+										this, dig);
 								obj.setAnnotation( st.nextToken() );
 								line = (LineSegmentsObject) obj;
 							} else {
 								line = new LineSegmentsObject(
-										cruiseLine.map, dig);
+										this, dig);
 							}
 							line.setName( name );
 							LineType type = null;
@@ -2242,9 +2242,11 @@ public class XMImage extends haxby.util.ScaledComponent
 							line.setColor(Color.RED);
 							line.setShowPoints(true);
 							objects.add( line );
+							dig.getModel().objectAdded();
 						}
 						in.close();
 						dig.setCurrentObject((DigitizerObject) objects.lastElement());
+						dig.setMouseListeners();
 					} catch (Exception ex ) {
 						ex.printStackTrace();
 						try {

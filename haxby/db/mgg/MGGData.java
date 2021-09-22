@@ -28,9 +28,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.StringTokenizer;
-import java.util.TimeZone;
 import java.util.Vector;
 
 import javax.swing.JMenuItem;
@@ -767,42 +765,23 @@ public class MGGData implements Overlay,
 	
 	static MGGData loadFromA77File(XMap map, String leg, BufferedReader inDataFile) throws IOException {
 		String s;
-		double[] lon = new double[5000];
-		double[] lat = new double[5000];
-		float[] topo = new float[5000];
-		float[] grav = new float[5000];
-		float[] mag = new float[5000];
-		int k=0;
+		ArrayList<Double> lon = new ArrayList<Double>();
+		ArrayList<Double> lat = new ArrayList<Double>();
+		ArrayList<Float> topo = new ArrayList<Float>();
+		ArrayList<Float> grav = new ArrayList<Float>();
+		ArrayList<Float> mag = new ArrayList<Float>();
+		
 		int nt=0;
 		int ng=0;
 		int nm=0;
 		String temp = "";
 		boolean dataPresent = false;
 		while ( ( s = inDataFile.readLine() ) != null ) { // reading in the .a77 files
-			if( k==lon.length ) {
-				int len = lon.length;
-				double[] tmp = new double[len*2];
-				System.arraycopy( lon, 0, tmp, 0, len );
-				lon = tmp;
-				tmp = new double[len*2];
-				System.arraycopy( lat, 0, tmp, 0, len );
-				lat = tmp;
-				float[] tmp1 = new float[len*2];
-				System.arraycopy( topo, 0, tmp1, 0, len );
-				topo = tmp1;
-				tmp1 = new float[len*2];
-				System.arraycopy( grav, 0, tmp1, 0, len );
-				grav = tmp1;
-				tmp1 = new float[len*2];
-				System.arraycopy( mag, 0, tmp1, 0, len );
-				mag = tmp1;
-			}
-
 			try {
 				temp = s.substring( MGD77_LON_START_POS, MGD77_LON_END_POS + 1);
 				for ( int i = 0; i < temp.length(); i++ )	{
 					if ( !( temp.substring( i, i + 1 ).equals("9") ) && !( temp.substring( i, i + 1 ).equals("+") ) )	{
-						lon[k] = Double.parseDouble(temp) * MGD77_LON_SCALE;
+						lon.add(Double.parseDouble(temp) * MGD77_LON_SCALE);
 						dataPresent = true;
 						break;
 					}
@@ -812,7 +791,7 @@ public class MGGData implements Overlay,
 				temp = s.substring( MGD77_LAT_START_POS, MGD77_LAT_END_POS + 1);
 				for ( int i = 0; i < temp.length(); i++ )	{
 					if ( !( temp.substring( i, i + 1 ).equals("9") ) && !( temp.substring( i, i + 1 ).equals("+") ) )	{
-						lat[k] = Double.parseDouble(temp) * MGD77_LAT_SCALE;
+						lat.add(Double.parseDouble(temp) * MGD77_LAT_SCALE);
 						dataPresent = true;
 						break;
 					}
@@ -823,64 +802,68 @@ public class MGGData implements Overlay,
 			}
 
 			dataPresent = false;
-
+			float this_topo = Float.NaN;
 			try {
 				temp = s.substring( MGD77_BATHY_START_POS, MGD77_BATHY_END_POS + 1);
 				for ( int i = 0; i < temp.length(); i++ )	{
 					if ( !( temp.substring( i, i + 1 ).equals("9") ) && !( temp.substring( i, i + 1 ).equals("+") ) )	{
-						topo[k] = -1 * Float.parseFloat(temp) / MGD77_BATHY_SCALE;
+						this_topo = -1 * Float.parseFloat(temp) / MGD77_BATHY_SCALE;
 						dataPresent = true;
 						break;
 					}
 				}
 				temp = "";
-				if( !Float.isNaN( topo[k] ) && dataPresent ) nt++;
+				if( !Float.isNaN( this_topo ) && dataPresent ) nt++;
 				else {
-					topo[k] = Float.NaN;
+					this_topo = Float.NaN;
 				}
 			} catch (NumberFormatException ex) {
-				topo[k] = Float.NaN;
+				this_topo = Float.NaN;
 			}
+			topo.add(this_topo);
 			dataPresent = false;
 
+			float this_grav = Float.NaN;
 			try {
 				temp = s.substring( MGD77_GRAVITY_START_POS, MGD77_GRAVITY_END_POS + 1);
 				for ( int i = 0; i < temp.length(); i++ )	{
 					if ( !( temp.substring( i, i + 1 ).equals("9") ) && !( temp.substring( i, i + 1 ).equals("+") ) )	{
-						grav[k] = Float.parseFloat(temp) / MGD77_GRAVITY_SCALE;
+						this_grav = Float.parseFloat(temp) / MGD77_GRAVITY_SCALE;
 						dataPresent = true;
 						break;
 					}
 				}
 				temp = "";
-				if( !Float.isNaN( grav[k] ) && dataPresent ) ng++;
+				if( !Float.isNaN( this_grav ) && dataPresent ) ng++;
 				else	{
-					grav[k] = Float.NaN;
+					this_grav = Float.NaN;
 				}
 			} catch (NumberFormatException ex) {
-				grav[k] = Float.NaN;
+				this_grav = Float.NaN;
 			}
+			grav.add(this_grav);
 			dataPresent = false;
 
+			float this_mag = Float.NaN;
 			try {
 				temp = s.substring( MGD77_MAGNETICS_START_POS, MGD77_MAGNETICS_END_POS + 1);
 				for ( int i = 0; i < temp.length(); i++ )	{
 					if ( !( temp.substring( i, i + 1 ).equals("9") ) && !( temp.substring( i, i + 1 ).equals("+") ) )	{
-						mag[k] = Float.parseFloat(temp) / MGD77_MAGNETICS_SCALE;
+						this_mag = Float.parseFloat(temp) / MGD77_MAGNETICS_SCALE;
 						dataPresent = true;
 						break;
 					}
 				}
 				temp = "";
-				if( !Float.isNaN( mag[k] ) && dataPresent ) nm++;
+				if( !Float.isNaN( this_mag ) && dataPresent ) nm++;
 				else {
-					mag[k] = Float.NaN;
+					this_mag = Float.NaN;
 				}
 			} catch (NumberFormatException ex) {
-				mag[k] = Float.NaN;
+				this_mag = Float.NaN;
 			}
+			mag.add(this_mag);
 			dataPresent = false;
-			k++;
 		}
 
 		if( nt==0 && ng==0 && nm==0 ) throw new IOException("no data in leg "+leg);
@@ -888,7 +871,8 @@ public class MGGData implements Overlay,
 		if(ng==0) grav=null;
 		if(nm==0) mag=null;
 		System.out.println(nt +"\t"+ ng +"\t"+ nm);
-		MGGData data = new MGGData( map, leg, lon, lat, topo, grav, mag);
+		MGGData data = new MGGData( map, leg, GeneralUtils.arrayList2doubles(lon), GeneralUtils.arrayList2doubles(lat),
+				GeneralUtils.arrayList2floats(topo), GeneralUtils.arrayList2floats(grav), GeneralUtils.arrayList2floats(mag));
 		return data;
 	}
 	

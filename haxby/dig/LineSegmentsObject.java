@@ -229,34 +229,41 @@ public class LineSegmentsObject
 		showPoints = tf;
 	}
 	
-	public void draw( Graphics2D g, double[] scales, Rectangle bounds ) {
+	public void draw( Graphics2D g, double[] scales, Rectangle bounds, Insets ins ) {
+		
 		editShape=null;
 		if (!visible || points.size() == 0) return;
 		g.setStroke( stroke );
 		GeneralPath path = new GeneralPath();
 		double[] xyz = (double[])points.get(0);
-		double min = xyz[0]*scales[0];
-		double max = xyz[1]*scales[1];
+		double min = xyz[0];
+		double max = xyz[1];
 		path.moveTo( (float)min, (float)max );
 		GeneralPath path1 = new GeneralPath();
-		double dx = 2.5;
-		double dy = 2.5;
+		double dx = 2.0;
+		double dy = 2.0;
 		if (showPoints) {
-			dx = dy = 3.0;
+			dx = dy = 2.5;
 		}
+		dx /= scales[0];
+		dy /= scales[1];
+		
 		double x, y;
-		x = xyz[0]*scales[0];
-		y = xyz[1]*scales[1];
+		x = xyz[0];
+		y = xyz[1];
+				
 		if( selected || showPoints) path1.append( new Rectangle2D.Double( x-dx, y-dy, 2*dx, 2*dy), false);
 		for(int i=1 ; i<points.size() ; i++) {
 			xyz = (double[])points.get(i);
-			x = xyz[0]*scales[0];
-			y = xyz[1]*scales[1];
+			x = xyz[0];
+			y = xyz[1];
 			if( x>max ) max=x;
 			else if( x<min ) min=x;
 			path.lineTo( (float)x, (float)y );
-			if( selected || showPoints) path1.append( new Rectangle2D.Double( x-dx, y-dx, 2*dx, 2*dx), false);
+			if( selected || showPoints) path1.append( new Rectangle2D.Double( x-dx, y-dx, 2*dx, 2*dy), false);
 		}
+		path.transform(getInverseTransform(scales, ins));
+		path1.transform(getInverseTransform(scales, ins));
 		double wrap = this.wrap * scales[0];
 		wrap = 0;
 		if( wrap>0. ) {
@@ -290,8 +297,8 @@ public class LineSegmentsObject
 		}
 		
 		if(selected ) {
-			g.setColor(Color.WHITE);
-			g.setStroke( new BasicStroke( 1f ));
+			g.setColor(Color.MAGENTA);
+			g.setStroke( new BasicStroke( 3f ));
 			if( wrap>0. ) {
 				AffineTransform at = g.getTransform();
 				double offset = 0.;
@@ -343,7 +350,7 @@ public class LineSegmentsObject
 	public void mousePressed( MouseEvent evt ) {
 		if( evt.isControlDown() || !selected ) return;
 		double[] scales = map.getScales();
-		double r = 2.5;
+		double r = 4;
 		Point p = evt.getPoint();
 		Insets insets = map.getInsets();
 		p.x -= insets.left;
@@ -381,7 +388,7 @@ public class LineSegmentsObject
 		}
 		drawEdit();
 		editShape = null;
-		if( evt.isControlDown() || evt.getWhen()-when<500L ) {
+		if( evt.isControlDown() || evt.getWhen()-when<10L ) {
 			currentPoint = -1;
 			return;
 		}
@@ -417,15 +424,16 @@ public class LineSegmentsObject
 		return active;
 	}
 	public void redraw() {
+		
 		synchronized( map.getTreeLock() ) {
 			Graphics2D g = (Graphics2D)map.getGraphics();
+		
 			double[] scales = map.getScales();
 			Rectangle r = map.getVisibleRect();
 			Insets ins = map.getInsets();
 			r.width -= ins.left + ins.right;
 			r.height -= ins.top + ins.bottom;
-			g.translate( ins.left, ins.top );
-			draw( g, scales, r );
+			draw( g, scales, r, ins );
 		}
 	}
 	public void mouseMoved( MouseEvent evt ) {
@@ -467,14 +475,19 @@ public class LineSegmentsObject
 		editShape.transform( getInverseTransform() );
 		drawEdit();
 	}
+	
 	AffineTransform getInverseTransform() {
-		AffineTransform at = new AffineTransform();
-		Insets i = map.getInsets();
-		at.translate( (double)i.left, (double)i.top );
-		double[] scales = map.getScales();
+		return getInverseTransform(map.getScales(), map.getInsets());
+	}
+	
+	AffineTransform getInverseTransform(double[] scales, Insets i) {
+		AffineTransform at = new AffineTransform();	
+		at.translate((double)i.left, (double)i.top );
 		at.scale( scales[0], scales[1] );
 		return at;
 	}
+	
+	
 	public void drawEdit() {
 		if( editShape==null ) return;
 		synchronized( map.getTreeLock() ) {
@@ -489,7 +502,6 @@ public class LineSegmentsObject
 			Insets ins = map.getInsets();
 			rect.width -= ins.left + ins.right;
 			rect.height -= ins.top + ins.bottom;
-		//	g.translate( -ins.left, -ins.top );
 			
 			double wrap = this.wrap * map.getScales()[0];
 			if( wrap>0. ) {

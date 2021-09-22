@@ -698,6 +698,18 @@ public class RenderingTools extends JPanel implements ActionListener {
 					} else if (selectedItem.getText().equals("More Palettes...") ) {
 						createMorePalDialog();
 					}
+					if (selectedItem.getText().equals("Export the Color Bar") ) {
+						haxby.map.XMap map = grid.getMap();
+						if ( map != null && map.getApp() instanceof MapApp) {
+							try {
+								((MapApp)map.getApp()).getColorScale().saveColorScale();
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+					
+					}
 					else {
 						changePalette(selectedItem.getText());
 					}
@@ -761,6 +773,8 @@ public class RenderingTools extends JPanel implements ActionListener {
 		item = paletteMenu.add(new JMenuItem("Export a Custom Palette"));
 		item.addActionListener(palListener);
 		paletteMenu.addSeparator();
+		item = paletteMenu.add(new JMenuItem("Export the Color Bar"));
+		item.addActionListener(palListener);
 		loadMyPalettes();
 		paletteMenu.setBorder( sborder );
 

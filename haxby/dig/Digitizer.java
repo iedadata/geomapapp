@@ -350,13 +350,11 @@ public class Digitizer implements Overlay,
 	}
 	public void draw( Graphics2D g ) {
 		if( objects.size()==0 ) return;
-		AffineTransform at = g.getTransform();
-		AffineTransform at1 = new AffineTransform();
-		at1.translate(at.getTranslateX() , at.getTranslateY() );
-		Insets ins = map.getInsets();
-		g.setTransform( at1 );
+		
 		double[] scales = map.getScales();
-	//	g.translate( ins.left, ins.top );
+		Insets ins = map.getInsets();
+		g.translate( -ins.left, -ins.top );
+
 		Rectangle bounds = g.getClipBounds();
 		if( bounds==null ) {
 			bounds = map.getVisibleRect();
@@ -368,16 +366,16 @@ public class Digitizer implements Overlay,
 			bounds.x -= ins.left;
 			bounds.y -= ins.top;
 		}
-		draw( g, scales, bounds);
-		g.setTransform( at );
+		draw( g, scales, bounds, ins);
 	}
-	public void draw( Graphics2D g, double[] scales, Rectangle bounds ) {
+	public void draw( Graphics2D g, double[] scales, Rectangle bounds, Insets ins ) {
 		for( int i=0 ; i<objects.size() ; i++ ) {
-			((DigitizerObject)objects.get(i)).draw(g, scales, bounds);
+			((DigitizerObject)objects.get(i)).draw(g, scales, bounds, ins);
 		}
 	}
 	public void reset() {
 		objects = new Vector();
+		currentObject = null;
 	}
 	public Vector getObjects() {
 		return objects;
@@ -419,6 +417,7 @@ public class Digitizer implements Overlay,
 			objects.remove(currentObject);
 			model.objectRemoved();
 			digB.doClick(); // this will create a new current object
+			selectB.doClick(); // but don't want to leave the cursor in digitize mode - can cause problems later (eg when reloading horizons)
 		}
 		map.repaint();
 		
@@ -427,4 +426,19 @@ public class Digitizer implements Overlay,
 	public void setCurrentObject(DigitizerObject obj) {
 		currentObject = obj;
 	}
+	
+	public DigListModel getModel() {
+		return model;
+	}
+	
+	public void setMouseListeners() {
+		if (map == null) return;
+		map.removeMouseListener( this );
+		map.removeMouseMotionListener( this );
+		map.removeKeyListener( this );
+		map.addMouseListener( this );
+		map.addMouseMotionListener( this );
+		map.addKeyListener( this );
+	}
+	
 }

@@ -32,7 +32,7 @@ import javax.swing.border.Border;
 
 public class GMADownload {
 	public static String root_path = PathUtil.getPath("ROOT_PATH", MapApp.BASE_URL);
-	public static String public_home_path = PathUtil.getPath("PUBLIC_HOME_PATH", "http://www.geomapapp.org/");
+	public static String public_home_path = PathUtil.getPath("PUBLIC_HOME_PATH");
 
 	public static void download(String oldVersion, String newVersion) {
 
@@ -191,8 +191,7 @@ public class GMADownload {
 			name = "MacInstall.html";
 		}
 
-		String urlName = PathUtil.getPath("PUBLIC_HOME_PATH", 
-				"http://www.geomapapp.org/") + name;
+		String urlName = PathUtil.getPath("PUBLIC_HOME_PATH") + name;
 		if(pane == JOptionPane.OK_OPTION) {
 		try {
 			BrowseURL.browseURL(urlName);
@@ -300,7 +299,7 @@ public class GMADownload {
 	}
 
 	static void viewUpdates() {
-		String url = PathUtil.getPath("PUBLIC_HOME_PATH", "http://www.geomapapp.org/") + "eNewsletters/index.html";
+		String url = PathUtil.getPath("PUBLIC_HOME_PATH") + "eNewsletters/index.html";
 				//"WhatsNew.html";
 
 		BrowseURL.browseURL( url );
@@ -308,15 +307,13 @@ public class GMADownload {
 
 //	***** GMA 1.5.2: Add functions to display subscribe page when button is clicked
 	static void joinDiscuss() {
-		String url = "http://geomapapp.org/mailman/listinfo/discuss_geomapapp.org";
+		String url =  PathUtil.getPath("DISCUSS_PATH");
 		BrowseURL.browseURL( url );
 	}
 
 	static void joinAnnounce() {
-		String url = "http://geomapapp.org/mailman/listinfo/announce_geomapapp.org";
+		String url = PathUtil.getPath("ANNOUNCE_PATH");;
 		BrowseURL.browseURL( url );
 	}
 
-	public static void main(String[] args) {
-	}
 }

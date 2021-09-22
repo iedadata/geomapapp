@@ -1,11 +1,5 @@
 package haxby.db.custom;
 
-import haxby.db.Database;
-import haxby.map.MapApp;
-import haxby.map.XMap;
-import haxby.util.WESNSupplier;
-import haxby.util.XBTable;
-
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -27,6 +21,7 @@ import java.awt.event.MouseMotionListener;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 import java.util.Vector;
 
 import javax.swing.AbstractButton;
@@ -49,6 +44,12 @@ import org.geomapapp.db.dsdp.CustomBRGTable;
 import org.geomapapp.util.Cursors;
 import org.geomapapp.util.Icons;
 import org.geomapapp.util.XML_Menu;
+
+import haxby.db.Database;
+import haxby.map.MapApp;
+import haxby.map.XMap;
+import haxby.util.WESNSupplier;
+import haxby.util.XBTable;
 
 public class CustomDB implements Database,
 								ActionListener,
@@ -87,6 +88,8 @@ public class CustomDB implements Database,
 //	GMA 1.4.8: String contains option from "Import Data Tables" in main File menu and title
 	public String currentLoadOption = null;
 	public String titleOfDataset = null;
+	
+	private boolean moveToTop = true;
 
 	protected UnknownDataSet currentData = null;
 
@@ -273,7 +276,7 @@ public class CustomDB implements Database,
 	public void disposeDB() {
 		while ((dataSets!=null)&&(dataSets.size()>0)) {
 			UnknownDataSet d = dataSets.get(0);
-			close(d);
+			map.removeDataSet(d);
 		}
 		map.setBaseCursor(Cursor.getDefaultCursor());
 		box.setSelectedIndex(-1);
@@ -311,7 +314,7 @@ public class CustomDB implements Database,
 		} else if (evt.getActionCommand().equals("close")) {
 			close();
 		} else if (evt.getActionCommand().equals("closeB")) {
-			close((UnknownDataSet)box.getSelectedItem());
+			map.removeDataSet((UnknownDataSet)box.getSelectedItem());
 		} else if (evt.getActionCommand().equals("config")) {
 			config();
 		} else if (evt.getActionCommand().equals("color")) {
@@ -351,11 +354,17 @@ public class CustomDB implements Database,
 			save();
 		} else if (evt.getActionCommand().equals("select")) {
 			select();
+			if (moveToTop) {
+				map.moveOverlayToTop(currentData);
+			}
+			moveToTop = true;
+			
 		} else if (evt.getActionCommand().equals("thumb")) {
 			toggleThumbs();
 		}
 	}
 
+	//NSS 06/25/21 - don't think this is needed - select() gets called above.
 	public void itemStateChanged(ItemEvent evt) {
 		if (evt.getSource() == box) select();
 	}
@@ -850,6 +859,7 @@ public class CustomDB implements Database,
 		}
 		dataSets.remove(d);
 		dataSets.trimToSize();
+
 		dataPanel.remove(d.tp);
 		pointsLabel.setText("<html>0 of 0</html>");
 		box.removeItem(d);
@@ -898,12 +908,12 @@ public class CustomDB implements Database,
 			currentData = null;
 			return;
 		}
-		for (UnknownDataSet dataSet : dataSets) {
-			dataSet.setEnabled(false);
-		}
+		
+
 		UnknownDataSet unknownDataSet = (UnknownDataSet)box.getSelectedItem();
-		currentData = unknownDataSet;
+		
 		String nameDS = "Data Table: " + unknownDataSet.desc.name;
+		
 		unknownDataSet.setEnabled(enabled);
 		dataPanel.add(unknownDataSet.tp);
 
@@ -913,10 +923,17 @@ public class CustomDB implements Database,
 		//System.out.println("total size " + unkownDataSet.scene.total_icon_count + " data size " + unkownDataSet.tm.displayToDataIndex.size());
 		updateButtonsState();
 		dataPanel.revalidate();
-		map.removeOverlay(this);
-		map.addOverlay(nameDS, unknownDataSet.getInfoURL(), this, unknownDataSet.xml_menu);
-		//repaintMap();
+
+		map.addOverlay(nameDS, unknownDataSet.getInfoURL(), unknownDataSet, unknownDataSet.xml_menu);
+
 		map.repaint();
+		currentData = unknownDataSet;
+		for (UnknownDataSet ds : dataSets) {
+			map.removeMouseListener(ds);
+			map.removeMouseMotionListener(ds);
+		}
+		map.addMouseListener(currentData);
+		map.addMouseMotionListener(currentData);
 	}
 
 	public void togglePlot() {
@@ -925,8 +942,7 @@ public class CustomDB implements Database,
 
 //		***** GMA 1.4.8: Make this DB the top overlay
 		if ( plotB.isSelected() ) {
-			map.removeOverlay( this );
-			map.addOverlay( box.getSelectedItem().toString(), d.getInfoURL(), this );
+			map.moveOverlayToTop(d);
 		}
 
 		map.repaint();
@@ -940,14 +956,11 @@ public class CustomDB implements Database,
 		if ( plotAllB.isSelected() ) {
 			d.rememberPlottableStatus();
 			d.makeAllPlottable();
-			map.removeOverlay( this );
-			map.addOverlay( box.getSelectedItem().toString(), d.getInfoURL(), this );
 		} else {
 			d.revertToOldPlottableStatus();
-			map.removeOverlay( this );
-			map.addOverlay( box.getSelectedItem().toString(), d.getInfoURL(), this );
 		}
-
+		map.moveOverlayToTop(d);
+		d.dataT.repaint();
 		map.repaint();
 	}
 	
@@ -1038,5 +1051,10 @@ public class CustomDB implements Database,
 		UnknownDataSet ds = (UnknownDataSet) box.getSelectedItem();
 		if (ds == null) return null;
 		return ds.getWESN();
+	}
+	
+	public void setCurrent(UnknownDataSet ds) {
+		moveToTop = false;
+		box.setSelectedItem(ds);
 	}
 }

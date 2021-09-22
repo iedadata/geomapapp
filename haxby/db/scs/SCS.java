@@ -262,6 +262,7 @@ public class SCS implements Database,
 //		when disposeDB() is called
 
 		selPath = null;
+		selCruise = -1;
 
 		if (image.timeDep != null)
 			image.timeDep.clear();
@@ -273,6 +274,8 @@ public class SCS implements Database,
 		cruiseListModel.clear();
 		cruises = null;
 		cruiseListPopulated = false;
+		
+		dig.reset();
 		try {
 			finalize();
 		} catch (Throwable e) {
@@ -592,8 +595,7 @@ public class SCS implements Database,
 
 			if (cruiseList.getSelectedIndex() == -1) {
 			//No selection, disable fire button.
-				System.out.println("No selection");
-
+				return;
 			} else {
 				//Selection, enable the fire button.
 				//if (cruiseList.getSelectedIndex() - 1 != -1) {

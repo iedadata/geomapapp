@@ -24,6 +24,7 @@ import org.geomapapp.geom.UTM;
 import org.geomapapp.geom.UTMProjection;
 
 import haxby.util.GeneralUtils;
+import haxby.util.PathUtil;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
 import ucar.nc2.Attribute;
@@ -277,10 +278,12 @@ public class Grd {
 	public static Grid2D.Float readGrd(String fileName ) throws IOException {
 		return readGrd( fileName, null );
 	}
-
-//	***** GMA 1.6.4: TESTING
-
+	
 	public static Grid2D.Float readGrd( String fileName, MapProjection proj, GrdProperties grdP, boolean flipGrid) throws IOException {
+		return readGrd(fileName, proj, grdP, flipGrid, Double.NaN);
+	}
+
+	public static Grid2D.Float readGrd( String fileName, MapProjection proj, GrdProperties grdP, boolean flipGrid, Double noData) throws IOException {
 		double[] x_range = grdP.x_range;
 		double[] y_range = grdP.y_range;
 		double[] z_range = grdP.z_range;
@@ -290,14 +293,11 @@ public class Grd {
 		double scaleFactor = grdP.scaleFactor;
 		double add_offset = grdP.add_offset;
 		int node_offset = grdP.node_offset;
+		
 		NetcdfFile nc = null;
 		String fileType;
 		MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
-
-//		System.out.println( x_range[0] + " " + x_range[1] );
-//		System.out.println( y_range[0] + " " + y_range[1] );
-//		System.out.println( z_range[0] + " " + z_range[1] );
-
+		
 		try {
 			nc = NetcdfFile.open(fileName);
 			String fileTypeDesc = nc.getFileTypeDescription();
@@ -330,29 +330,23 @@ public class Grd {
 				List variableAttributeList = variable.getAttributes();
 				Iterator variableAttributeListIterator = variableAttributeList.iterator();
 
-//				***** GMA 1.6.6: Read z array type into string
-//				z = (float[])variable.read().copyTo1DJavaArray();
-//				if( add_offset!=0. || scaleFactor!=1. ) {
-//					for( int k = 0; k < z.length; k++ ) {
-//						if( Float.isNaN(z[k]) ) {
-//							continue;
-//						}
-//						double tmp = add_offset + z[k] * scaleFactor;
-//						z[k] = (float)tmp;
-//					}
-//				}
+
 				try {
 					String zArrayType = variable.read().getElementType().toString();
 	//				System.out.println("Element type for z array: " + zArrayType);
 					if ( zArrayType.equals("float")) {
 	//					System.out.println("is float");
 						z = (float[])variable.read().copyTo1DJavaArray();
+						for( int k = 0; k < z.length; k++ ) {
+							if (z[k] == noData) {
+								z[k] = Float.NaN;
+							}
+						}
 						if( add_offset!=0. || scaleFactor!=1. ) {
 							for( int k = 0; k < z.length; k++ ) {
 								if( Float.isNaN(z[k]) ) {
 									continue;
 								}
-	//							double tmp = add_offset + z[k] * scaleFactor;
 								double tmp = z[k];
 								z[k] = (float)tmp;
 							}
@@ -361,37 +355,30 @@ public class Grd {
 					else if (zArrayType.equals("double") ) {
 						double[] z_double = (double[]) variable.read().copyTo1DJavaArray();
 						z = new float[z_double.length];
+
 						for( int k = 0; k < z_double.length; k++ ) {
 							z[k] = (float) z_double[k];
+							if (z[k] == noData) {
+								z[k] = Float.NaN;
+							}
 						}
 						if( add_offset!=0. || scaleFactor!=1. ) {
 							for( int k = 0; k < z_double.length; k++ ) {
 								
-								if( Double.isNaN(z[k]) ) {
+								if( Float.isNaN(z[k]) ) {
 									continue;
 								}
-	//							double tmp = add_offset + z[k] * scaleFactor;
 								double tmp = z_double[k];
 								z[k] = (float)tmp;
 							}
 						}
 					}
 					else if ( zArrayType.equals("short") ) {
-	//					System.out.println("is short");
-						List<Attribute> attributes = variable.getAttributes();
-						boolean filled = false;
-						short fillValue = 0;
-						for (Attribute att : attributes)
-							if (att.getName().equals("_FillValue")) {
-								filled = true;
-								fillValue = att.getNumericValue().shortValue();
-							}
-	
 						short[] tmpShort = (short[])variable.read().copyTo1DJavaArray();
 						z = new float[tmpShort.length];
 						for (int i = 0; i < tmpShort.length; i++) {
 							z[i] = tmpShort[i];
-							if (filled && z[i] == fillValue)
+							if (z[i] == noData) 
 								z[i] = Float.NaN;
 						}
 	
@@ -400,7 +387,6 @@ public class Grd {
 								if( Float.isNaN(z[k]) ) {
 									continue;
 								}
-	//							double tmp = add_offset + z[k] * scaleFactor;
 								double tmp = z[k];
 								z[k] = (float)tmp;
 							}
@@ -413,7 +399,14 @@ public class Grd {
 		            long usedMemory = heapUsage.getUsed() / MEGABYTE;
 		            System.out.println("Memory Use :" + usedMemory + "M/" + maxMemory + "M");
 		            
-					String msg = "Unable to open " + fileName + ". <br>Out of Memory.";
+		            String downloadUrl = PathUtil.getPath("PUBLIC_HOME_PATH") + "UnixInstall.html";
+					String msg = "Unable to open " + fileName + ". <br>Out of Memory.<br><br>"
+							+ "The grid is large. More memory needs to be allocated to GeoMapApp to import the grid.<br><br>"
+							+ "Follow these steps:<br><br>"
+							+ "Download the GeoMapApp jar file from here: <a href='"+downloadUrl+"'>"+downloadUrl+"</a><br><br>"
+							+ "Run that GeoMapApp jar file from the command line with additional memory allocated. Here is an example command:<br><br>"
+							+ "<i>java -jar -Xmx100000m GeoMapApp.jar</i><br><br>"
+							+ "Import the grid.";
 							
 					//create an EditorPane to handle the html and hyperlink
 				    JEditorPane ep = GeneralUtils.makeEditorPane(msg);

@@ -172,17 +172,17 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.12"; // 03/08/2021
+	public final static String VERSION = "3.6.14"; // 09/21/2021
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
 	public static final String PRODUCTION_URL = "http://app.geomapapp.org/";
 	public static String DEFAULT_URL = "http://app.geomapapp.org/";
-	public static final String DEV_URL = "http://app-dev.geomapapp.org/"; // was new-dev.geomapapp.org
+	public static final String DEV_URL = "http://app-dev.geomapapp.org/"; 
 	private static String DEV_PASSWORD_PATH = "gma_passwords/dev_server_password";
 	public static String BASE_URL;
 	public static String NEW_BASE_URL;
-	public static String TEMP_BASE_URL = "http://www.geomapapp.org/"; // stay for old references, mostly all changed or not in use.
+	public static String TEMP_BASE_URL = "http://app.geomapapp.org/"; // stay for old references, mostly all changed or not in use.
 
 //	Name for base map image overlay
 	public static String baseMapName = "GMRT Basemap";
@@ -942,7 +942,8 @@ public class MapApp implements ActionListener,
 		//unload any loaded databases
 		for (Database database : db) {
 			database.unloadDB();
-		}		
+		}	
+		closeDSDP();
 		initGUI();
 		startup.dispose();
 		startSP = null;
@@ -1012,6 +1013,7 @@ public class MapApp implements ActionListener,
 		for (Database database : db) {
 			database.unloadDB();
 		}
+		closeDSDP();
 		initGUI();
 		//startNP.setText("Initializing GUI");
 		startup2.dispose();
@@ -1159,6 +1161,7 @@ public class MapApp implements ActionListener,
 		for (Database database : db) {
 			database.unloadDB();
 		}
+		closeDSDP();
 		start.setText("Initializing GUI");
 		initGUI();
 		startup.dispose();
@@ -1438,7 +1441,9 @@ public class MapApp implements ActionListener,
 	}
 
 	public void closeDSDP(){
+		if (dsdp == null) return;
 		dsdp.close();
+		dsdp = null;
 		// Check if menu item is still selected, deselect it on close.
 		deselectDSDP();
 	}
@@ -1562,6 +1567,10 @@ public class MapApp implements ActionListener,
 	}
 	public static org.geomapapp.util.ProgressDialog getProgressDialog() {
 		return progress;
+	}
+	
+	public MapColorScale getColorScale() {
+		return colorScale;
 	}
 
 	void initDB() {
@@ -2197,7 +2206,6 @@ public class MapApp implements ActionListener,
 							//look up the scaling column name and use to set titles
 							String colName = dataset.header.get(scaleColumnIndex);
 							sst.setName(colName + " - " + dataset.desc.name);
-							dataset.tp.setTitleAt(dataset.tp.indexOfComponent(dataset.scaleLabel), "Symbol Size - " + colName);
 							
 							//attach the scaling tool to the dataset
 							dataset.sst = sst;
@@ -2230,7 +2238,6 @@ public class MapApp implements ActionListener,
 							//look up the scaling column name and use to set titles
 							String colName = dataset.header.get(colorColumnIndex);
 							cst.setName(colName + " - " + dataset.desc.name);
-							dataset.tp.setTitleAt(dataset.tp.indexOfComponent(dataset.colorLabel), "Symbol Color - " + colName);
 	
 							//attach the scaling tool to the dataset
 							dataset.cst = cst;
@@ -3518,7 +3525,9 @@ public class MapApp implements ActionListener,
 	public static JFileChooser getFileChooser() {
 		if( chooser==null ) chooser = new JFileChooser(System.getProperty("user.home"));
 		chooser.setDialogTitle("Open");
+		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 		chooser.resetChoosableFileFilters();
+		chooser.setAcceptAllFileFilterUsed(true);
 		return chooser;
 	}
 
@@ -4885,7 +4894,7 @@ public class MapApp implements ActionListener,
 	public static void sendLogMessage(String message) {
 		if (AT_SEA) return;
 		message = message.replace(" ", "_");
-		String logURL = PathUtil.getPath("LOG_PATH", "http://app.geomapapp.org/gma_logs/gma_logs") + "?log=" + message 
+		String logURL = PathUtil.getPath("LOG_PATH") + "?log=" + message 
 				+ "&proj=" + CURRENT_PROJECTION + "&gma_version=" + VERSION;
 		try {
 			HttpURLConnection con = (HttpURLConnection) new URL( logURL ).openConnection();

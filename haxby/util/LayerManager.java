@@ -40,6 +40,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileFilter;
@@ -54,6 +55,7 @@ import org.geomapapp.util.XML_Menu;
 
 import haxby.db.Database;
 import haxby.db.custom.CustomDB;
+import haxby.db.custom.UnknownDataSet;
 import haxby.map.FocusOverlay;
 import haxby.map.MapApp;
 import haxby.map.MapTools;
@@ -382,19 +384,21 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 		private JSlider slider;
 		private XML_Menu item;
 		private JButton infoB;
+		private JLabel shapeLabel;
 		public String layerName;
 		private String layerURLString = null;
 		private boolean layerVisible = false;
 		public boolean doPlotProfile = false;
 		private Graphics2D g;
 		private int prefered_width;
-
+		
 		public LayerPanel(Overlay layer, String inputLayerName, String layerURLString, boolean inputLayerVisible, final XML_Menu item) {
 			this.layer = layer;
 			this.layerName = inputLayerName;
 			this.layerVisible = inputLayerVisible;
 			this.layerURLString = layerURLString;
 			this.item = item;
+			
 			if ((layer instanceof Grid2DOverlay || layer instanceof ESRIShapefile) &&  !layerName.equals(MapApp.baseFocusName)) {
 				this.doPlotProfile = true;
 			}
@@ -451,6 +455,17 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 			gb.setConstraints(visible, c);
 			add(visible);
 			
+			if (layer instanceof UnknownDataSet) {
+				// get the symbol shape used for the dataset and display it in the layer panel 
+				shapeLabel = new JLabel();
+				shapeLabel.setBorder(new EmptyBorder(0,0,0,10));
+				String shape = ((UnknownDataSet)layer).getSymbolShape();
+				Color color = ((UnknownDataSet)layer).getColor();
+				setSymbolShape(shape, color);
+				add(shapeLabel);
+				((UnknownDataSet) layer).setLayerPanel(this);
+			}
+			
 			JButton up = new JButton("\u039B");
 			up.setMargin(new Insets(1,1,1,1));
 			up.setFont(new Font("Arial", Font.BOLD, 11));
@@ -465,6 +480,8 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 			gb.setConstraints(up, c);
 			add(up);
 
+
+			
 			Box box = new Box(BoxLayout.X_AXIS);
 			box.add(Box.createHorizontalStrut(2));
 
@@ -665,6 +682,7 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 //				}
 //			}//End Color of sessions
 
+			
 			//Add Level Down Button
 			JButton down = new JButton("V");
 			down.setMargin(new Insets(1,1,1,1));
@@ -749,6 +767,44 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 				if (!(comp instanceof JButton))
 					comp.setBackground(c);
 		}
+		
+		public void setSymbolShape(String shape, Color color) {
+			// display the symbol shape used in a dataset on the layer panel
+			String shapeHTML;
+			String colorHTML = "#"+Integer.toHexString(color.getRGB()).substring(2);
+			switch(shape) {
+				case "circle":
+					shapeHTML =  "<html><span style='font-family:verdana; font-size:25px; color: "+colorHTML+"'>&#9679;</span>";
+					break;
+				case "triangle":
+					shapeHTML =  "<html><span style='font-family:verdana; font-size:14px; color: "+colorHTML+"'>&#9650;</span>";
+					break;
+				case "square":
+					shapeHTML =  "<html><span style='font-family:verdana; font-size:25px; color: "+colorHTML+"'>&#9632;</span>";
+					break;
+				case "star":
+					shapeHTML =  "<html><span style='font-family:verdana; font-size:13px; color: "+colorHTML+"'>&#9733;</span>";
+					break;
+				case "solid":
+					shapeHTML = "<html><span style='font-family:verdana; font-size:35px; color: "+colorHTML+"'>&#9472;</span>";
+					break;
+				case "dashed":
+					shapeHTML = "<html><span style='font-family:verdana; font-size:20px; color: "+colorHTML+"'>---</span>";
+					break;
+				case "dotted":
+					shapeHTML = "<html><span style='font-family:verdana; font-size:20px; color: "+colorHTML+"'>&middot;&middot;&middot;&middot;</span>";
+					break;
+				case "dash-dotted":
+					shapeHTML = "<html><span style='font-family:verdana; font-size:20px; color: "+colorHTML+"'>-&middot;-&middot;</span>";
+					break;			
+					
+				default:
+					shapeHTML =  "";
+			}
+			if(shapeLabel != null) {
+				shapeLabel.setText(shapeHTML);
+			}
+		}
 
 		public void sessionColor(XML_Menu itemC) {
 			String c = itemC.color.toString();
@@ -803,6 +859,16 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 				}
 			}
 		}
+		
+		//if displaying any UnknownDataSets, set the selected Data Table to be the top one
+		for (Overlay lyr : overlays) {
+			if (lyr instanceof UnknownDataSet) {
+				UnknownDataSet ds = (UnknownDataSet) lyr;
+				ds.db.setCurrent(ds);
+				break;
+			}
+		}
+		
 		this.add(layerPanel,index+1);
 		this.revalidate();
 		this.repaint();
@@ -851,6 +917,16 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 				}
 			}
 		}
+		
+		//if displaying any UnknownDataSets, set the selected Data Table to be the top one
+		for (Overlay lyr : overlays) {
+			if (lyr instanceof UnknownDataSet) {
+				UnknownDataSet ds = (UnknownDataSet) lyr;
+				ds.db.setCurrent(ds);
+				break;
+			}
+		}
+		
 		this.add(layerPanel,index-1);
 		this.revalidate();
 		this.repaint();
@@ -891,6 +967,9 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 		if ( layerPanel.layer instanceof Grid2DOverlay ) {
 			app.getMapTools().getGridDialog().dispose((Grid2DOverlay)layerPanel.layer);
 		}
+		
+		// may be deprecated now we use UnknownDataSet layers instead of CustomDB layers
+		// NSS 06/25/21
 		if ( layerPanel.layer instanceof CustomDB ) {
 			CustomDB db = (CustomDB) layerPanel.layer;
 			db.close();
@@ -907,6 +986,26 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 				}
 			}
 		}
+		
+		if ( layerPanel.layer instanceof UnknownDataSet ) {
+			UnknownDataSet ds = (UnknownDataSet) layerPanel.layer;
+			CustomDB db = ds.db;
+			db.close(ds);
+			remove(layerPanel);
+			if (db.dataSets.size() != 0)
+				return;
+
+			app.closeDB(db);
+			for ( int i = 0; i < overlays.size(); i++ ) {
+				if ( overlays.get(i) instanceof Database ) {
+					app.setCurrentDB(((Database)overlays.get(i)));
+					app.enableCurrentDB();
+					app.addDBToDisplay(((Database)overlays.get(i)));
+					break;
+				}
+			}
+		}
+		
 		else if ( layerPanel.layer instanceof Database ) {
 			app.closeDB( ((Database)layerPanel.layer) );
 			for ( int i = 0; i < overlays.size(); i++ ) {
@@ -1546,13 +1645,15 @@ public class LayerManager extends JPanel implements PropertyChangeListener {
 		while (overlays.indexOf(layer) > 0) {
 			this.up(layer);
 		}
+//		this.revalidate();
+//		this.repaint();
+//		map.repaint();
+		
 	 }
 	 public void moveToTop(String layerName) {
 		Overlay layer = getOverlay(layerName);
 		if (layerName == null) return;
-		while (overlays.indexOf(layer) > 0) {
-			this.up(layer);
-		}
+		moveToTop(layer);
 	 }
 	 
 	 public void missingLayer(String index) {

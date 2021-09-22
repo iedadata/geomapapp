@@ -588,6 +588,9 @@ public class GridDialog implements ItemListener, WindowListener {
 			toggleListLockUnlock = null;
 			dialog.dispose();
 			loaded = false;
+			if ( map != null && map.getApp() instanceof MapApp) {
+				((MapApp)map.getApp()).initializeColorScale();
+			}
 			map.repaint();
 		}
 		
@@ -655,11 +658,13 @@ public class GridDialog implements ItemListener, WindowListener {
 			toggleListLockUnlock = null;
 			dialog.dispose();
 			loaded = false;
+			if ( map != null && map.getApp() instanceof MapApp) {
+				((MapApp)map.getApp()).initializeColorScale();
+			}
 			map.repaint();
 		}
 		
 	}
-	
 	
 	void save() {
 		haxby.map.XMap map = ((Grid2DOverlay)gridCB.getSelectedItem()).getMap();
@@ -812,10 +817,13 @@ public class GridDialog implements ItemListener, WindowListener {
 			//contributed grids get added in ShapeSuite.addShapeFile
 			if ( !map.hasOverlay(grid) ) {
 				map.addOverlay(grid.name,grid,menu);
+			} else {
+				((MapApp)map.getApp()).layerManager.moveToTop(grid);
 			}
 			units = GRID_UNITS.get(grid.toString());
 			if (units != null)
 				map.setUnits(units);
+			map.setDataType(grid.getDataType());
 		} 
 		
 		// If locked don't zoom when switching grids.

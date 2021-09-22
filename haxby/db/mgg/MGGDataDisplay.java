@@ -9,19 +9,23 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,7 +73,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 	protected String loadedLeg;
 	protected boolean saving = false;
 	protected JCheckBox saveViewportCB, saveFullCB;
-	protected JRadioButton jpgBtn, pngBtn;
+	protected JRadioButton jpgBtn, pngBtn, csvBtn;
 	protected JCheckBox autoscaleCB;
 	protected boolean autoscale = false;
 	protected boolean trackWidth = false;
@@ -206,7 +210,8 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 	}
 	// Info Button from the header file
 	void showInfo() {
-		String leg = cruiseL.getSelectedValue();
+		if (cruiseL.getSelectedValue() == null) return;
+		String leg = cruiseL.getSelectedValue().replace(" (header only)", "");
 		try {
 			BufferedReader in;
 			java.net.URL headerFileURL = null;
@@ -357,7 +362,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 				JOptionPane.showMessageDialog(map.getTopLevelAncestor(), "No Cruise Selected"); // message to user.
 				return;
 			}
-			if (leg.equals("---Imported Files---")) return;
+			if (leg.equals("---Imported Files---") || leg.contains("header only")) return;
 			try {
 				dataIndex = tracks.selectedIndex;
 				if( tracks.dataIndex!=-1 ) {
@@ -492,97 +497,8 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 		}
 //		1.4.4: Added functionality to allow user to download MGD-77 data files for currently selected legs
 		else if ( evt.getSource() == getData ) {
-			String cruiseName = cruiseL.getSelectedValue();
-			List<String> cruiseList = cruiseL.getSelectedValuesList();
-			if (cruiseName.equals("---Imported Files---")) return;
+			download();
 			
-			if ( cruiseL.getSelectedValues().length < 1 ) {
-				JOptionPane.showMessageDialog(map.getTopLevelAncestor(), "Please select leg(s) to download");
-				return;
-			}
-			if ( cruiseL.getSelectedValues().length > 100 ) {
-				int manyCruises = JOptionPane.showConfirmDialog(map.getTopLevelAncestor(), "Warning: More than 100 legs selected.  Continue?", "MGG Warning", JOptionPane.OK_CANCEL_OPTION );
-
-				if ( manyCruises == JOptionPane.CANCEL_OPTION ) {
-					return;
-				}
-			}
-			int confirm = JOptionPane.NO_OPTION;
-
-			File[] newDataFile = new File[cruiseL.getSelectedValuesList().size()];
-
-			for ( int i = 0; i < cruiseL.getSelectedValuesList().size(); i++ ) {
-				try {
-					newDataFile[i] = getDataFile((String)cruiseL.getSelectedValuesList().get(i));
-				} catch (Exception e) {
-					JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
-					e.printStackTrace();
-				}
-			}
-			
-			JFileChooser jfc = MapApp.getFileChooser();
-			jfc.setMultiSelectionEnabled( true );
-			
-			jfc.setDialogTitle( "Download MGD77 Files" );
-			while ( confirm == JOptionPane.NO_OPTION ) {
-				jfc.setSelectedFiles( newDataFile );
-				int c = jfc.showSaveDialog(jfc);
-			if ( c==JFileChooser.CANCEL_OPTION || c == JFileChooser.ERROR_OPTION ) return;
-				String selectedDir = null;
-
-				if ( jfc.getSelectedFile().getAbsolutePath().lastIndexOf("\\") != -1 ) {
-					selectedDir = jfc.getSelectedFile().getAbsolutePath().substring( 0, jfc.getSelectedFile().getAbsolutePath().lastIndexOf("\\") + 1 );
-				}
-				else {
-					selectedDir = jfc.getSelectedFile().getAbsolutePath().substring( 0, jfc.getSelectedFile().getAbsolutePath().lastIndexOf("/") + 1 );
-				}
-
-				for ( int i = 0; i < newDataFile.length; i++ ) {
-					if ( selectedDir != null )	{
-						newDataFile[i] = new File( selectedDir + newDataFile[i].getName() );
-					}
-				}
-
-				for ( int i = 0; i < newDataFile.length; i++ ) {
-					if ( newDataFile[i].exists() ) {
-							confirm = JOptionPane.showConfirmDialog(tracks.map.getTopLevelAncestor(), "File exists, Overwrite?");
-						if ( confirm == JOptionPane.CANCEL_OPTION ) return;
-					} else {
-						confirm = JOptionPane.CANCEL_OPTION;
-					}
-				}
-			}
-			for ( int i = 0; i < newDataFile.length; i++ ) {
-				newDataFile[i] = new File( newDataFile[i].getAbsolutePath() );
-
-				try {
-					URL dataFileURL;
-					BufferedReader inDataFile;
-					try {
-						String sData = "";
-						String leg = newDataFile[i].getName();
-						if ( leg != null ) {
-							dataFileURL = getDataFileURL(leg);
-							inDataFile = new BufferedReader(
-									new InputStreamReader( dataFileURL.openStream() ) );
-							BufferedWriter out = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( newDataFile[i] ) ) );
-
-							while ( ( sData = inDataFile.readLine() ) != null ) {
-								out.write(sData + "\n");
-							}
-							out.flush();
-							out.close();
-						}
-					} catch (IOException e) {
-						JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
-						e.printStackTrace();
-					}
-					MapApp.sendLogMessage("Saving_or_Downloading&portal="+tracks.getDBName()+"&what=Download_Data&cruise="+cruiseList.get(i));
-				} catch (Exception e) {
-					JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
-					e.printStackTrace();
-				}
-		 	}
 		}
 	}
 
@@ -636,8 +552,197 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 		data = null;
 	}
 	
+	
+	private void download() {
+		
+		String cruiseName = cruiseL.getSelectedValue();
+		List<String> cruiseList = cruiseL.getSelectedValuesList();
+		if (cruiseName != null && (cruiseName.equals("---Imported Files---") || cruiseName.contains("header only"))) return;
+		if ( cruiseL.getSelectedValues().length < 1 ) {
+			JOptionPane.showMessageDialog(map.getTopLevelAncestor(), "Please select leg(s) to download");
+			return;
+		}
+		if ( cruiseL.getSelectedValues().length > 100 ) {
+			int manyCruises = JOptionPane.showConfirmDialog(map.getTopLevelAncestor(), "Warning: More than 100 legs selected.  Continue?", "MGG Warning", JOptionPane.OK_CANCEL_OPTION );
+
+			if ( manyCruises == JOptionPane.CANCEL_OPTION ) {
+				return;
+			}
+		}
+		int confirm = JOptionPane.NO_OPTION;
+		
+		JPanel downloadPanel = new JPanel( new BorderLayout() );
+		downloadPanel.setBorder(BorderFactory.createEmptyBorder( 0, 5, 0, 5));
+
+		JPanel downloadPrompt = new JPanel(new GridLayout(0, 1));
+		JLabel formatLabel = new JLabel("Select download format:");
+		JCheckBox downloadMGD77CB = new JCheckBox("MGD77");
+		JCheckBox downloadCSVCB = new JCheckBox("CSV");
+		ButtonGroup downloadGroup = new ButtonGroup();
+		downloadGroup.add(downloadMGD77CB);
+		downloadGroup.add(downloadCSVCB);
+		downloadMGD77CB.setSelected(true);
+		downloadPrompt.add(formatLabel);
+		downloadPrompt.add(downloadMGD77CB);
+		downloadPrompt.add(downloadCSVCB);
+		JLabel downloadText = new JLabel("<html>You can download multiple files at once<br> by selecting more than one cruise from<br>"
+				+ "the list using shift and click.");
+		downloadPanel.add(downloadPrompt, BorderLayout.NORTH);
+		downloadPanel.add(downloadText, BorderLayout.SOUTH);
+	
+		int d = JOptionPane.showConfirmDialog(dialog, downloadPanel, "Download Options", JOptionPane.OK_CANCEL_OPTION);
+		if(d == 2) {
+			return;
+		}
+		
+
+		//if downloading 1 file, allow user to select filename.
+		//if downloading multiple files, user has to select directory, but can't chose filenames.
+		JFileChooser jfc = MapApp.getFileChooser();
+		int c;
+		if (cruiseList.size() > 1 ) {
+			jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			jfc.setAcceptAllFileFilterUsed(false);
+			jfc.setDialogTitle( "Select folder to download files" );
+			c = jfc.showOpenDialog(jfc);
+		}
+		else {
+			File file;
+			jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+			if (downloadMGD77CB.isSelected()) {
+				file = getDataFile((String)cruiseList.get(0));
+				if (file == null) {
+					JOptionPane.showMessageDialog(dialog, "This file was imported by the user. \n"
+							+ "The data are downloadable in CSV format only. \n"
+							+ "Go back and choose CSV download format.", "Error Downloading File", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+			} 
+			else if (downloadCSVCB.isSelected()) {
+				file = new File(cruiseList.get(0) + ".csv");
+			}
+			else {
+				file = new File("");
+			}
+			
+			jfc.setSelectedFile(file);
+			jfc.setDialogTitle( "Download" );	
+			c = jfc.showSaveDialog(null);
+		}
+		
+
+		
+		if ( c==JFileChooser.CANCEL_OPTION || c == JFileChooser.ERROR_OPTION ) return;
+		String selectedLocation = jfc.getSelectedFile().toString();
+
+		
+		if (downloadMGD77CB.isSelected()) {
+			
+			File[] newDataFile = new File[cruiseList.size()];
+	
+			if (cruiseList.size() == 1) {
+				newDataFile[0] = new File(selectedLocation);
+			}
+			else {
+			
+				for ( int i = 0; i < cruiseList.size(); i++ ) {
+					try {
+						newDataFile[i] = getDataFile((String)cruiseList.get(i));
+					} catch (Exception e) {
+						JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
+						e.printStackTrace();
+					}
+				}
+				
+	
+				
+				for ( int i = 0; i < newDataFile.length; i++ ) {
+					if ( selectedLocation != null )	{
+						newDataFile[i] = new File( selectedLocation + '/' + newDataFile[i].getName() );
+					}
+				}
+		
+			}
+			
+			for ( int i = 0; i < newDataFile.length; i++ ) {
+				if ( newDataFile[i].exists() ) {
+						confirm = JOptionPane.showConfirmDialog(tracks.map.getTopLevelAncestor(), "File "+ newDataFile[i] + " exists, Overwrite?");
+					if ( confirm == JOptionPane.CANCEL_OPTION ) return;
+				} else {
+					confirm = JOptionPane.CANCEL_OPTION;
+				}
+			}
+
+			for ( int i = 0; i < newDataFile.length; i++ ) {
+				newDataFile[i] = new File( newDataFile[i].getAbsolutePath() );
+	
+				try {
+					URL dataFileURL;
+					BufferedReader inDataFile;
+					try {
+						String sData = "";
+						String leg = newDataFile[i].getName();
+						if (newDataFile.length == 1) {
+							leg = getDataFile((String)cruiseList.get(0)).getName();
+						}
+						
+						if ( leg != null ) {
+							dataFileURL = getDataFileURL(leg);
+							inDataFile = new BufferedReader(
+									new InputStreamReader( dataFileURL.openStream() ) );
+							BufferedWriter out = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( newDataFile[i] ) ) );
+	
+							while ( ( sData = inDataFile.readLine() ) != null ) {
+								out.write(sData + "\n");
+							}
+							out.flush();
+							out.close();
+							JOptionPane.showMessageDialog(dialog, newDataFile[i] + " successfully downloaded");
+						}
+					} catch (IOException e) {
+						JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
+						e.printStackTrace();
+					}
+					MapApp.sendLogMessage("Saving_or_Downloading&portal="+tracks.getDBName()+"&what=Download_Data&cruise="+cruiseList.get(i));
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
+					e.printStackTrace();
+				}
+		 	}
+		}
+		else if (downloadCSVCB.isSelected()) {
+			
+			for ( int i = 0; i < cruiseList.size(); i++ ) {
+				File newDataFile;
+				if (cruiseList.size() == 1) {
+					newDataFile = new File(selectedLocation);
+				}
+				
+				else {
+					if ( selectedLocation != null )	{
+						newDataFile = new File( selectedLocation + '/' + (String)cruiseList.get(i) + ".csv" );
+					}
+					else {
+						newDataFile = new File((String)cruiseList.get(i) + ".csv");
+					}
+				}
+				
+				try {
+					MGGData legData = loadMGGData(map, cruiseList.get(i), tracks.mggSel.loadedControlFiles);
+					saveCSV(legData, "full", newDataFile);
+					
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+			}
+
+		}
+	}
+	
 	void save()	throws IOException {
-		if (loadedLeg.equals("---Imported Files---")) return;
+		if (loadedLeg.equals("---Imported Files---") || loadedLeg.contains("header only")) return;
 		
 		if(xy[0] == null) {
 			JOptionPane.showMessageDialog(dialog,"Image not loaded.");
@@ -658,15 +763,18 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 		savePrompt.add(saveFullCB);
 		savePanel.add(savePrompt, BorderLayout.NORTH);
 
-		JPanel fmtPanel = new JPanel(new GridLayout(0,2,0,1));
+		JPanel fmtPanel = new JPanel(new GridLayout(0,3,0,1));
 		jpgBtn = new JRadioButton("jpeg");
 		pngBtn = new JRadioButton("png");
+		csvBtn = new JRadioButton("csv");
 		ButtonGroup saveFmtGroup = new ButtonGroup();
 		saveFmtGroup.add(jpgBtn);
 		saveFmtGroup.add(pngBtn);
+		saveFmtGroup.add(csvBtn);
 		jpgBtn.setSelected(true);
 		fmtPanel.add(jpgBtn);
 		fmtPanel.add(pngBtn);
+		fmtPanel.add(csvBtn);
 		savePanel.add(fmtPanel, BorderLayout.CENTER);
 				
 		int s = JOptionPane.showConfirmDialog(dialog, savePanel, "Save Options", JOptionPane.OK_CANCEL_OPTION);
@@ -679,13 +787,35 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 		if (pngBtn.isSelected()) {
 			fmt = "png";
 		}
+		else if (csvBtn.isSelected()){
+			fmt = "csv";
+		}
 				
-		if (saveViewportCB.isSelected()) { // Save viewport image
-
+		if (fmt =="csv") {
+			String range = saveViewportCB.isSelected() ? "viewport" : "full";
+			
+			String filename = loadedLeg + "_" + range + ".csv";
+			File file = new File(filename);
+			
+			JFileChooser filechooser = MapApp.getFileChooser();
+			filechooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+			filechooser.setSelectedFile(file);
+			filechooser.setDialogTitle( "Save CSV file" );
+			int c = filechooser.showSaveDialog(null);
+			if (c == JFileChooser.CANCEL_OPTION)
+				return;
+			file = filechooser.getSelectedFile();			
+			saveCSV(data, range, file);
+		}
+		
+		else if (saveViewportCB.isSelected()) { // Save viewport image
+			
 			File file = new File(loadedLeg + "_" + dataType + "_viewport." + fmt);
 			while (true) {
 				JFileChooser filechooser = MapApp.getFileChooser();
+				filechooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				filechooser.setSelectedFile(file);
+				filechooser.setDialogTitle( "Save image" );
 				int c = filechooser.showSaveDialog(null);
 				if (c == JFileChooser.CANCEL_OPTION)
 					return;
@@ -700,6 +830,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			}
 
 			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file));
+
 			try {
 				saveViewport(out, fmt);
 				out.close();
@@ -715,7 +846,9 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			File file = new File(loadedLeg + "_" + dataType + "_full." + fmt);
 			while (true) {
 				JFileChooser filechooser = MapApp.getFileChooser();
+				filechooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				filechooser.setSelectedFile(file);
+				filechooser.setDialogTitle( "Save file" );
 				int c = filechooser.showSaveDialog(null);
 				if (c == JFileChooser.CANCEL_OPTION)
 					return;
@@ -743,6 +876,71 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 		} 
 	}
 
+	private void saveCSV(MGGData legData, String range, File file) throws FileNotFoundException {
+		if(file.exists()) {
+			int o = JOptionPane.showConfirmDialog(dialog, "File " + file.getPath() + " exists, Overwrite?");
+			if(o != JOptionPane.YES_OPTION)
+				return;
+		}
+		
+		NumberFormat df = new DecimalFormat("#0.00000");
+		
+		String header = "Distance Along Track (km),Longitude,Latitude";
+		ArrayList<Integer> dtAvail = new ArrayList<Integer>(); 
+		if (legData.data[0] != null) {
+			header += ",Bathymetry (m)";
+			dtAvail.add(0);
+		}
+		if (legData.data[1] != null) {
+			header += ",Gravity FAA anomaly (mGal)";
+			dtAvail.add(1);
+		}
+		if (legData.data[2] != null) {
+			header += ",Magnetic anomaly (nT)";
+			dtAvail.add(2);
+		}
+	
+		int iStart = 0;
+		int iEnd = legData.x.length;
+		if (range.equals("viewport")) {
+			iStart = legData.currentRange[0];
+			iEnd = legData.currentRange[1];
+		}
+		try {
+			FileWriter out = new FileWriter(file);
+			String newLine = System.getProperty("line.separator");
+			out.write(header + newLine);
+			for (int i=iStart; i<iEnd; i++) {
+				double lon = legData.lon[i];
+				while (lon < -180) lon += 360;
+				while (lon > 180) lon -= 360;
+				if (range.equals("viewport")) {
+					//only save the section of the track that is currently displayed on the map
+					Point2D p = map.getProjection().getMapXY(lon, legData.lat[i]);
+					if (!data.inDisplayedMap(p)) {
+						continue;
+					}
+				}
+				out.write(df.format(legData.x[i]) + "," + df.format(lon) + "," + df.format(legData.lat[i]));
+				for (int j : dtAvail) {
+					out.write(",");
+					if (!Float.isNaN(legData.data[j][i])) {
+						out.write(Float.toString(legData.data[j][i]));
+					}
+				}
+				out.write(newLine);
+			}
+			out.close();
+			JOptionPane.showMessageDialog(dialog, file.getPath() + " successfully saved");
+			MapApp.sendLogMessage("Saving_or_Downloading&portal="+tracks.getDBName()+"&what=profile_"+ range +"&cruise="+ legData.id + "&format=csv");
+		}		
+		catch(IOException ex) {
+			JOptionPane.showMessageDialog(dialog, ex.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
+			ex.printStackTrace();
+		}
+
+	}
+	
 	public void saveViewport(OutputStream out, String fmt) throws IOException {
 		BufferedImage image = xy[data.getCurrentDataIndex()].getImage();
 		try {
@@ -778,7 +976,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			String fileName = dataFileURL.getFile().substring(dataFileURL.getFile().lastIndexOf('/') + 1);
 			return new File(fileName);
 		} catch (Exception e) {
-			e.printStackTrace();
+		//	e.printStackTrace();
 			return null;
 		}
 	}

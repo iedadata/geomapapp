@@ -5,8 +5,8 @@
 --dest dmg_out 
 --type dmg 
 --mac-sign 
---app-version 3.6.12 
---copyright "GeoMapApp 3.6.12, Copyright © 2021 www.geomapapp.org"
+--app-version 3.6.14 
+--copyright "GeoMapApp 3.6.14, Copyright © 2021 www.geomapapp.org"
 --name GeoMapApp 
 --vendor "org.iedadata.GeoMapApp" 
 --java-options "-Dapple.laf.useScreenMenuBar=false" 

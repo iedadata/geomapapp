@@ -42,6 +42,9 @@ public class URLFactory {
 	 */
 	public static String checkForRedirect(String url) {
 		if (MapApp.AT_SEA) return url;
+		if (url != null && MapApp.BASE_URL != null && MapApp.BASE_URL.matches(MapApp.DEV_URL)) {
+			url = url.replace(MapApp.PRODUCTION_URL, MapApp.DEV_URL);
+		}
 		try {
 			HttpURLConnection con = (HttpURLConnection) new URL( url ).openConnection();
 			if (con.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || con.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) {

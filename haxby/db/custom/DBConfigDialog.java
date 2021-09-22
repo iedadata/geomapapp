@@ -314,21 +314,6 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 	}
 
 	public void ok(){
-		switch(shape.getSelectedIndex()) {
-			case 0:
-				ds.shapeString = "circle";
-				break;
-			case 1:
-				ds.shapeString = "square";
-				break;
-			case 2:
-				ds.shapeString = "triangle";
-				break;
-			case 3:
-				ds.shapeString = "star";
-				break;
-		}
-
 		ds.desc.name=name.getText();
 		ds.tm.editable=editable.isSelected();
 		ds.latIndex = lat.getSelectedIndex() + 1;
@@ -387,6 +372,37 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 				ds.tm.removeCD();
 			}
 		}
+		
+		switch(lineStyle.getSelectedIndex()) {
+			case 0:
+				ds.lineStyleString = "solid";
+				break;
+			case 1:
+				ds.lineStyleString = "dashed";
+				break;
+			case 2:
+				ds.lineStyleString = "dotted";
+				break;
+			case 3:
+				ds.lineStyleString = "dash-dotted";
+				break;
+		}
+		
+		switch(shape.getSelectedIndex()) {
+			case 0:
+				ds.setSymbolShape("circle");
+				break;
+			case 1:
+				ds.setSymbolShape("square");
+				break;
+			case 2:
+				ds.setSymbolShape("triangle");
+				break;
+			case 3:
+				ds.setSymbolShape("star");
+				break;
+		}
+			
 		try {
 			ds.lineThick = Float.parseFloat(lineThick.getText());
 		} catch (Exception ex) {
@@ -396,21 +412,7 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 				    JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		
-		switch(lineStyle.getSelectedIndex()) {
-		case 0:
-			ds.lineStyleString = "solid";
-			break;
-		case 1:
-			ds.lineStyleString = "dashed";
-			break;
-		case 2:
-			ds.lineStyleString = "dotted";
-			break;
-		case 3:
-			ds.lineStyleString = "dash-dotted";
-			break;
-		}
+
 		setVisible(false);
 	}
 
