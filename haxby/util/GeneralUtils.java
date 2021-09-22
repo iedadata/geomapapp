@@ -606,6 +606,33 @@ public class GeneralUtils {
 	}
 	
 	/**
+	 * determine number of decimal places to display latitude and longitude minutes, 
+	 * based on the zoom level.
+	 * @param zoom
+	 * @return
+	 */
+	public static NumberFormat getZoomNumberFormatMins(double zoom) {
+		NumberFormat fmt = NumberFormat.getInstance();
+		if ( zoom < 256 ) {
+			fmt.setMaximumFractionDigits(1);
+			fmt.setMinimumFractionDigits(1);
+		}
+		else if ( zoom >= 256 && zoom < 4096 ) {
+			fmt.setMaximumFractionDigits(2);
+			fmt.setMinimumFractionDigits(2);
+		}
+		else if ( zoom >= 4096 && zoom < 32768 ) {
+			fmt.setMaximumFractionDigits(3);
+			fmt.setMinimumFractionDigits(3);
+		}
+		else if ( zoom >= 32768 ) {
+			fmt.setMaximumFractionDigits(4);
+			fmt.setMinimumFractionDigits(4);
+		}
+		return fmt;
+	}
+	
+	/**
 	 * Format a double to a given number of significant figures.
 	 * From: http://helpdesk.objects.com.au/java/how-to-format-a-number-to-a-certain-number-of-significant-figures-as-opposed-to-decimal-places
 	 * @param value

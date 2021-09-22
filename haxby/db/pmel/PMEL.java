@@ -491,6 +491,20 @@ public class PMEL implements Database, ActionListener {
 	//	select();
 	//	map.repaint();
 	}
+	
+	public String getDatasetName() {
+		for (JRadioButton d : datasets) {
+			if (d.isSelected()) return d.getText();
+		}
+		return "unknown";
+	}
+	
+	public String getActivity() {
+		if (loadedEvent) {
+			return activity.getSelectedItem().toString();
+		}
+		return null;
+	}
 /*
 	void select() {
 		try {

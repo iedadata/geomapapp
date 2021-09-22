@@ -29,7 +29,6 @@ import org.geomapapp.geom.CylindricalProjection;
 import org.geomapapp.geom.MapProjection;
 import org.geomapapp.geom.Mercator;
 import org.geomapapp.geom.ProjectionDialog;
-import org.geomapapp.geom.RectangularProjection;
 import org.geomapapp.geom.UTMProjection;
 import org.geomapapp.gis.shape.ESRIShapefile;
 import org.geomapapp.gis.shape.ShapeSuite;
@@ -38,6 +37,7 @@ import haxby.map.MapApp;
 import haxby.proj.PolarStereo;
 import haxby.util.FilesUtil;
 import haxby.util.GeneralUtils;
+import haxby.util.PathUtil;
 
 public class ImportGrid implements Runnable {
 	private static String[] supportedGrids = new String[] {
@@ -143,6 +143,7 @@ public class ImportGrid implements Runnable {
 	double[] wesn;
 	double[] zScale,
 			 add_offset;
+	double noData = Float.NaN;
 	String zUnits,
 		   dataType;
 	String areaText;
@@ -345,6 +346,7 @@ public class ImportGrid implements Runnable {
 		zScale[currentIndex] = pd.getZScale();
 		dataType = pd.getDataType();
 		zUnits = pd.getZUnits();
+		noData = pd.getNoData();
 		add_offset[currentIndex] = pd.getOffset();
 		applyForAll = pd.getApplyForAll();
 		if (flipGrid != null) {
@@ -642,6 +644,7 @@ public class ImportGrid implements Runnable {
 			pd.setInitialZScale(Double.toString(gridP.scaleFactor));
 			pd.setOffset(Double.toString(gridP.add_offset));
 			pd.setMinMaxZ(gridP.z_range[0],gridP.z_range[1]);
+			pd.setNoData(gridP.fillValue);
 
 			// Set Attributes
 			String [] gAttributes = GrdProperties.getHeader(files[0].toString());
@@ -699,7 +702,7 @@ public class ImportGrid implements Runnable {
 			grids[k] = new GridFile() {
 				public Grid2D getGrid() throws IOException {
 					GrdProperties gridP = new GrdProperties(file.getPath(), thisFlipGrid);
-					Grid2D grid = Grd.readGrd(file.getPath(), null, gridP, thisFlipGrid);
+					Grid2D grid = Grd.readGrd(file.getPath(), null, gridP, thisFlipGrid, noData);
 					if (grid == null) {
 						return null;
 					}
@@ -1400,7 +1403,7 @@ public class ImportGrid implements Runnable {
 	
 	private void showFormatError (String filename) {
 		String msg = "Unable to open " + filename + ". <br>Incompatible file format."
-				+ "<html><br>See <a href=\"http://www.geomapapp.org/FAQ.html#ImportingData\">"
+				+ "<html><br>See <a href=\""+PathUtil.getPath("PUBLIC_HOME_PATH")+"FAQ.html#ImportingData\">"
 				+ "GeoMapApp FAQ</a> for supported formats.</html> ";
 		//create an EditorPane to handle the html and hyperlink
 	    JEditorPane ep = GeneralUtils.makeEditorPane(msg);

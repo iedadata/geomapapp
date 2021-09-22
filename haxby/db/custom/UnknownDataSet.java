@@ -72,19 +72,18 @@ import javax.swing.table.TableModel;
 import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.geomapapp.grid.Grid2DOverlay;
 import org.geomapapp.image.ColorScaleTool;
 import org.geomapapp.io.GMARoot;
 import org.geomapapp.util.SymbolScaleTool;
 import org.geomapapp.util.XML_Menu;
 
 import haxby.db.XYGraph;
-import haxby.db.custom.UnknownDataSet.UnknownDataSceneEntry;
-import haxby.map.GridOverlay;
 import haxby.map.MapApp;
+import haxby.map.Overlay;
 import haxby.map.XMap;
 import haxby.util.BrowseURL;
 import haxby.util.GeneralUtils;
+import haxby.util.LayerManager.LayerPanel;
 import haxby.util.SceneGraph;
 import haxby.util.SceneGraph.SceneGraphEntry;
 import haxby.util.WESNSupplier;
@@ -99,7 +98,8 @@ public class UnknownDataSet implements MouseListener,
 										MouseMotionListener,
 										ListSelectionListener,
 										PropertyChangeListener,
-										WESNSupplier {
+										WESNSupplier, 
+										Overlay {
 	public XBTable dataT;
 	public XMap map;
 	public XML_Menu xml_menu;
@@ -108,6 +108,7 @@ public class UnknownDataSet implements MouseListener,
 	public DBGraphDialog dbg;
 	public DBTableModel tm;
 	public CustomDB db;
+	private LayerPanel layerPanel;
 
 	public Vector<UnknownData> data;
 	private Vector<Boolean> newTrack;
@@ -119,8 +120,6 @@ public class UnknownDataSet implements MouseListener,
 	public List<Integer> polylines = new LinkedList<Integer>();
 	public JScrollPane tableSP;
 	public JPanel dataP = new JPanel(new BorderLayout());
-	public JLabel colorLabel; //	1.3.5: Labels added to tp to indicate which data types are colored and scaled
-	public JLabel scaleLabel;
 	public JTabbedPane tp = new JTabbedPane();
 	public ColorScaleTool cst = null;
 	public SymbolScaleTool sst = null;
@@ -135,7 +134,7 @@ public class UnknownDataSet implements MouseListener,
 	public static final int EXCEL_FILE = 1;
 	public static final int ASCII_URL = 2;
 	public static final int EXCEL_URL = 3;
-	protected static int LIMIT_GRAPHICS_MEMORY = 20000; //	***** GMA 1.6.4: Add variable that sets the number of data points displayed
+	protected static final int LIMIT_GRAPHICS_MEMORY = 20000; //	***** GMA 1.6.4: Add variable that sets the number of data points displayed
 	public int polylineIndex = -1;
 	public int rgbIndex = -1;
 	public int lonIndex = -1;
@@ -195,6 +194,7 @@ public class UnknownDataSet implements MouseListener,
 		this.db = null;
 		this.scene = new SceneGraph(this.map, 4);
 		this.xml_menu = null;
+		this.layerPanel = null;
 
 		input=input.trim();
 
@@ -254,7 +254,6 @@ public class UnknownDataSet implements MouseListener,
 		this.db = db;
 		this.scene = new SceneGraph(this.map, 4);
 		this.xml_menu = xml_menu;
-		LIMIT_GRAPHICS_MEMORY = 20000;
 
 		input=input.trim();
 
@@ -270,6 +269,7 @@ public class UnknownDataSet implements MouseListener,
 				// Only process lines that don't start with the comment symbol #
 				if(!s.startsWith("#")) {
 					if (header.size() == 0) {
+						if(s.startsWith(">")) continue;
 						st = new StringTokenizer(s,delim);
 						while (st.hasMoreTokens()) header.add(st.nextToken().trim());
 						header.trimToSize();
@@ -279,10 +279,12 @@ public class UnknownDataSet implements MouseListener,
 					// a new line when drawing tracks
 					if (s.startsWith(">")) {
 						newTrack.add(true);
-						numTracks++;
+						if (data.size() > 0) numTracks++;
 						s = s.substring(1);
-						if (s.length() == 0) {
+						if (s.length() == 0 || (s.split(delim).length != header.size())) {
 							s = in.readLine();
+							while (s.startsWith("#"))
+								s = in.readLine();
 						}
 					} else newTrack.add(false);
 					st = new StringTokenizer(s,delim, true);
@@ -330,7 +332,6 @@ public class UnknownDataSet implements MouseListener,
 												"More Than 20,000 Records", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 				if (selection == JOptionPane.YES_OPTION) {
 					limitGraphics = false;
-					LIMIT_GRAPHICS_MEMORY = data.size();
 				} else if (selection == JOptionPane.NO_OPTION) {
 					limitGraphics = true;
 				}
@@ -406,18 +407,9 @@ public class UnknownDataSet implements MouseListener,
 		
 		dataT.getSelectionModel().addListSelectionListener(this);
 		dataP.add(tableSP);
-	
-//		***** Change by A.K.M. 06/30/06 *****
-//		if (tp.getComponentCount()==0)tp.add(dataP,"Data");
-//		dataP tab now displays the name of the database that is loaded instead of 
-//		"Data"
-		if (tp.getComponentCount()==0)tp.add(dataP,desc.name);
 
-		colorLabel = new JLabel();
-		scaleLabel = new JLabel();
-		tp.add(colorLabel, "Symbol Color - None Selected");
-		tp.add(scaleLabel, "Symbol Size - None Selected");
-//		***** Change by A.K.M. 06/30/06 *****
+		if (tp.getComponentCount()==0)tp.add(dataP,desc.name);
+		tp.setForegroundAt(0,Color.BLACK);
 
 		dataT.addMouseListener(db);
 		dataT.addMouseMotionListener(db);
@@ -590,7 +582,9 @@ public class UnknownDataSet implements MouseListener,
 		//get a list of column names that contain only numerical data
 		ArrayList<String> o2 = getNumericalColumns();
 	
-		Object o = JOptionPane.showInputDialog(c, "Choose column to color symbols by:", "Select Column",
+		Object o = JOptionPane.showInputDialog(c, "<html>Choose column to color symbols by: <br><br>"
+				+ "<i>Hint: change the symbol shape in<br>the Configure menu to avoid confusion<br>when coloring multiple datasets.<br><br></i>", 
+				"Select Column",
 					JOptionPane.QUESTION_MESSAGE, null, o2.toArray(), o2.get(colorNumericalColumnIndex));
 		if (o==null)return;
 		
@@ -620,9 +614,8 @@ public class UnknownDataSet implements MouseListener,
 		}
 		else cst.setGrid(f);
 
-//		1.3.5: Assign appropriate name to color scale window and color label
+//		1.3.5: Assign appropriate name to color scale window
 		cst.setName(colName + " - " + desc.name);
-		tp.setTitleAt(tp.indexOfComponent(colorLabel), "Symbol Color - " + colName);
 		cst.showDialog((JFrame)c);
 		map.repaint();
 	}
@@ -636,7 +629,9 @@ public class UnknownDataSet implements MouseListener,
 		//get a list of column names that contain only numerical data
 		ArrayList<String> o2 = getNumericalColumns();
 	
-		Object o = JOptionPane.showInputDialog(c, "Choose column to vary symbol size by:", "Select Column",
+		Object o = JOptionPane.showInputDialog(c, "<html>Choose column to color symbols by: <br><br>"
+				+ "<i>Hint: change the symbol shape in<br>the Configure menu to avoid confusion<br>"
+				+ "when scaling multiple datasets.<br><br></i>", "Select Column",
 					JOptionPane.QUESTION_MESSAGE, null, o2.toArray(), o2.get(scaleNumericalColumnIndex));
 		if (o==null)return;
 		
@@ -669,9 +664,8 @@ public class UnknownDataSet implements MouseListener,
 		}
 		else sst.setGrid(f2);
 
-//		1.3.5: Assign appropriate name to scale scale window and scale label
+//		1.3.5: Assign appropriate name to scale scale window 
 		sst.setName(colName + " - " + desc.name);
-		tp.setTitleAt(tp.indexOfComponent(scaleLabel), "Symbol Size - " + colName);
 
 		sst.showDialog((JFrame)c);
 		map.repaint();
@@ -735,6 +729,8 @@ public class UnknownDataSet implements MouseListener,
 		}
 		cst = null;
 		sst = null;
+		
+		layerPanel = null;
 
 		scene.clearScene();
 	}
@@ -760,6 +756,7 @@ public class UnknownDataSet implements MouseListener,
 
 	public void draw( Graphics2D g) {
 		if( map==null) return;
+		if (dataT==null) return;
 		if (!plot) return;
 		if (db != null) db.plotAllB.setSelected(areAllPlottable());
 		if (lonIndex==-1||latIndex==-1) return;
@@ -800,11 +797,9 @@ public class UnknownDataSet implements MouseListener,
 			int kount=0;
 
 //			***** GMA 1.6.4: Add variable that sets the number of data points displayed
-//			int limit = 5000;
-			int limit = LIMIT_GRAPHICS_MEMORY;		// for now 20k default or take the max if user chooses.
-//			Vector<UnkownData> selectedData = new Vector<UnkownData>();
-//			Vector<Integer> selectedDataIndex = new Vector<Integer>();
 
+			int limit = limitGraphics ? LIMIT_GRAPHICS_MEMORY : data.size();		// for now 20k default or take the max if user chooses.
+		
 			List<SceneGraphEntry> entriesToDraw;
 			if (tm.getRowCount() <= limit) {
 				entriesToDraw = scene.getAllEntries(map.getClipRect2D());
@@ -848,7 +843,7 @@ public class UnknownDataSet implements MouseListener,
 				kount = drawData(g, at, arc, d, xMin, xMax, yMin, yMax, wrap, kount, limit, fill, border);
 			}
 			// decimated or allowed, total in map view, total for the set
-			//System.out.println(kount + "\t" + tm.displayToDataIndex.size() + "\t" + data.size());
+//			System.out.println(kount + "\t" + tm.displayToDataIndex.size() + "\t" + data.size());
 			if (this.enabled && db != null)
 				updateTotalDataSize(kount, data.size());
 
@@ -907,19 +902,21 @@ public class UnknownDataSet implements MouseListener,
 		} else {
 
 			// if the input table has been split in to multiple tracks (using the > symbol at the start of the line)
-			// we want to darw each track separately so that we have to option to color each track differently
+			// we want to draw each track separately so that we have to option to color each track differently
 			int startTrack = 0;
 			int endTrack = 0;
 			for (int t=0; t<numTracks; t++) {
 				boolean start = true;
-				float x = 0f;
 				GeneralPath shape = new GeneralPath();
 		
 				for (int i=startTrack; i<data.size(); i++) {
 					endTrack = i;
 					UnknownData d = data.get(i);
-					UnknownData prev = (i > 0) ? data.get(i-1) : null;
-					UnknownData next = (i < data.size() - 1) ? data.get(i+1) : null;
+					UnknownData prev = (i > startTrack) ? data.get(i-1) : null;
+					UnknownData next = (i < data.size() - 1 && !newTrack.get(i+1)) ? data.get(i+1) : null;
+					float d_x = d.x;
+					float prev_x = prev != null ? prev.x : 0;
+					float next_x = next != null ? next.x : 0;
 					
 					//don't plot if Plot column is not checked
 					Boolean plottable = (Boolean) d.data.get(dataT.getPlotColumnIndex());
@@ -932,35 +929,29 @@ public class UnknownDataSet implements MouseListener,
 					//some fiddling around to make sure all points are in the correct wrap segment
 					if (wrap>0f){
 	
-						if (d.x < xMin && d.x + wrap < xMax) {
-							d.x += wrap;
-						} else if (d.x > xMax && d.x - wrap > xMin) {
-							d.x -= wrap;
-						}
+						while (d_x < xMin && d_x + wrap < xMax) {d_x += wrap;} 
+						while (d_x > xMax && d_x - wrap > xMin) {d_x -= wrap;}
 					
 						if( prev != null) {
-							while( d.x-prev.x < wrap/2f ){d.x+=wrap;}
-							while( d.x-prev.x > wrap/2f ){d.x-=wrap;}
+							while( d_x-prev_x < wrap/2f ){d_x+=wrap;}
+							while( d_x-prev_x > wrap/2f ){d_x-=wrap;}
 						} 
 								
 						if ( next != null) {
-							if (next.x < xMin && next.x + wrap < xMax) {
-								next.x += wrap;
-							} else if (next.x > xMax && next.x - wrap > xMin) {
-								next.x -= wrap;
-							}
+							while (next_x < xMin && next_x + wrap < xMax) {next_x += wrap;} 
+							while (next_x > xMax && next_x - wrap > xMin) {next_x -= wrap;}
 						}
 					}
 
 					//only draw tracks if a station is in the visible map, or if the track 
 					//intersects the map
-					if (rect.contains(d.x, d.y) ||
-					   (prev != null && rect.intersectsLine(prev.x, prev.y, d.x, d.y)) ||
-					   (next != null && rect.intersectsLine(d.x, d.y, next.x, next.y))) {
+					if (rect.contains(d_x, d.y) ||
+					   (prev != null && rect.intersectsLine(prev_x, prev.y, d_x, d.y)) ||
+					   (next != null && rect.intersectsLine(d_x, d.y, next_x, next.y))) {
+						
 						if (start){
 							shape.moveTo(d.x, d.y);
 							start = false;
-							x=d.x;
 							// if this is the end of the track, exit loop and draw it
 							if (i < data.size() - 2 && newTrack.get(i+1)) break;
 							continue;
@@ -971,7 +962,7 @@ public class UnknownDataSet implements MouseListener,
 						//and stop drawing.
 						if (!rect.contains(d.x, d.y) && (next != null && !rect.contains(next.x, next.y)) ) start = true;
 					}
-					x=d.x;
+
 					// if this is the end of the track, exit loop and draw it
 					if (i < data.size() - 2 && newTrack.get(i+1)) break;
 				}
@@ -1018,9 +1009,9 @@ public class UnknownDataSet implements MouseListener,
 				} catch (Exception ex) {
 					g.setStroke( new BasicStroke( 1f/(float)mapZoom) );
 				}
-							
+						
 				g.draw(shape);
-				path=shape;
+				path=shape;		
 	
 				if(wrap>0) {
 					float offset = 0;
@@ -1037,7 +1028,7 @@ public class UnknownDataSet implements MouseListener,
 				if (dataT.getSelectedRowCount()>1) {
 					for (int i = 0; i < data.size(); i++) {
 						start = true;
-						x = 0f;
+						float x = 0f;
 						shape = new GeneralPath();
 						while (i < data.size() && dataT.isRowSelected(i)) {
 							UnknownData d = data.get(i);
@@ -1075,6 +1066,9 @@ public class UnknownDataSet implements MouseListener,
 						}
 					}
 				}
+				if (this.enabled && db != null)
+					updateTotalDataSize(0,0);
+				
 				g.setStroke( new BasicStroke(1f) ); //reset the stroke linestyle and thickness
 			}
 		}
@@ -1083,7 +1077,7 @@ public class UnknownDataSet implements MouseListener,
 			DataSetGraph dsg = graph.getDataSetGraph();
 			XYGraph xyg = graph.getXYGraph();
 
-			if (dsg.scatter) dsg.updateRange();
+			if (dsg != null && dsg.scatter) dsg.updateRange();
 
 			xyg.setPoints(dsg, 0);
 			xyg.repaint();
@@ -2299,13 +2293,20 @@ public class UnknownDataSet implements MouseListener,
 		color = c;
 	}
 
+	public String getSymbolShape() {
+		return station ? shapeString : lineStyleString;
+	}
+		
 	public int getDataSize() {
 		return totalSize;
 	}
 	public void updateTotalDataSize(int numSize, int numTotal) {
 		totalSize = numTotal;
 		displaySize = numSize;
-		db.pointsLabel.setText("<html>" + Integer.toString(numSize) + " of " + Integer.toString(totalSize) + "</html>");
+		if (station)
+			db.pointsLabel.setText("<html>" + Integer.toString(numSize) + " of " + Integer.toString(totalSize) + "</html>");
+		else
+			db.pointsLabel.setText("<html>N/A</html>");
 	}
 
 	private static final class XBTableExtension extends XBTable {
@@ -2448,6 +2449,7 @@ public class UnknownDataSet implements MouseListener,
 	
 	//are all rows plottable?
 	public boolean areAllPlottable() {
+		if (dataT == null) return false;
 		//find plot column
 		int plotColumn = dataT.getPlotColumnIndex();
 		for (UnknownData d : data) {
@@ -2490,14 +2492,20 @@ public class UnknownDataSet implements MouseListener,
 	
 	//return whether the table has been edited
 	public boolean isEdited() {
-		return !origData.equals(rowData);
+		return countEditedRows() != 0;
 	}
 	
 	//return number of edited rows
 	public int countEditedRows() {
 		int c = 0;
+		int plotColumn = dataT.getPlotColumnIndex();
 		for (int i=0; i<rowData.size(); i++) {
-			if (!rowData.get(i).equals(origData.get(i))) c++;
+			Vector<Object> thisRow = (Vector<Object>)rowData.get(i).clone();
+			Vector<Object> origRow = (Vector<Object>)origData.get(i).clone();
+			//exclude the plotColumn
+			thisRow.remove(plotColumn);
+			origRow.remove(plotColumn);
+			if (!thisRow.equals(origRow)) c++;
 		}
 		return c;
 	}
@@ -2546,5 +2554,17 @@ public class UnknownDataSet implements MouseListener,
 		data.remove(row);
 		initData();
 		initTable();
+	}
+
+	public void setSymbolShape(String shape) {
+		shapeString = shape;	
+		//update the layerPanel
+		if (layerPanel != null)
+			layerPanel.setSymbolShape(station ? shapeString : lineStyleString, color);
+		
+	}
+	
+	public void setLayerPanel(LayerPanel layerPanel) {
+		this.layerPanel = layerPanel;
 	}
 }

@@ -268,12 +268,12 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 							LineSegmentsObject line;
 							if( st.hasMoreTokens() ) {
 								AnnotationObject obj = new AnnotationObject(
-										cruise.map, dig);
+										this, dig);
 								obj.setAnnotation( st.nextToken() );
 								line = (LineSegmentsObject) obj;
 							} else {
 								line = new LineSegmentsObject(
-										cruise.map, dig);
+										this, dig);
 							}
 							line.setName( name );
 							LineType type = null;
@@ -303,9 +303,11 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 							line.setColor(Color.GREEN);
 							line.setShowPoints(true);
 							objects.add( line );
+							dig.getModel().objectAdded();
 						}
 						in.close();
 						dig.setCurrentObject((DigitizerObject) objects.lastElement());
+						dig.setMouseListeners();
 					} catch (Exception ex ) {
 						ex.printStackTrace();
 						try {
@@ -672,7 +674,11 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 			int y = (int)(i/.0075 + 4./zoom);
 			g2.drawString(tt, xAnot, y);
 		}
-		if( dig!=null) dig.draw( g2 );
+		
+		if( dig!=null) {
+			g2.scale(1f/zoom, 1f/zoom);
+			dig.draw( g2 );
+		}
 		System.gc();
 
 		synchronized( cruise.map.getTreeLock() ) {

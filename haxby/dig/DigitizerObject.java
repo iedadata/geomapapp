@@ -25,5 +25,5 @@ public abstract interface DigitizerObject {
 	public abstract BasicStroke getStroke();
 	public abstract void setStroke( BasicStroke s );
 	public abstract void redraw();
-	public abstract void draw( Graphics2D g, double[] scales, Rectangle bounds );
+	public abstract void draw( Graphics2D g, double[] scales, Rectangle bounds, Insets ins );
 }

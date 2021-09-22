@@ -79,7 +79,6 @@ public class Radar implements ActionListener,
 	private static String MULTI_CHANNEL_PATH =  PathUtil.getPath("PORTALS/MULTI_CHANNEL_PATH",
 			MapApp.BASE_URL+"/data/portals/mcs/");
 
-	//private static String radarPath = "http://www.geomapapp.org/"; // should be deprecated
 	private  String selectedDataUID;
 	XMap map = null;
 	JPanel panel = null;

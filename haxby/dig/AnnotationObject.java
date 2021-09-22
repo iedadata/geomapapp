@@ -46,14 +46,14 @@ public class AnnotationObject extends LineSegmentsObject
 		}
 	}
 
-	public void draw( Graphics2D g, double[] scales, Rectangle bounds ) {
-		super.draw( g, scales, bounds );
+	public void draw( Graphics2D g, double[] scales, Rectangle bounds, Insets ins ) {
+		super.draw( g, scales, bounds, ins );
 
-		if( points.size()<2 ) return;
-
+		if( points.size()<2 || annotation == null) return;
+	
 		double[] xyz = (double[])points.get(1);
-		double x1 = xyz[0] * map.getScales()[0];
-		double y1 = xyz[1] * map.getScales()[1];
+		double x1 = xyz[0] * scales[0] + ins.left;
+		double y1 = xyz[1] * scales[1] + ins.top;
 
 		Rectangle2D annoBounds = font.getStringBounds( annotation, g.getFontRenderContext() );
 

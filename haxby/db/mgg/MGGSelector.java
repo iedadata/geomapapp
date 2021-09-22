@@ -100,16 +100,15 @@ public class MGGSelector implements ActionListener {
 		panel2a.setLayout(new BoxLayout(panel2a, BoxLayout.Y_AXIS));
 		JPanel panel2b = new JPanel();
 		panel2b.setLayout(new BoxLayout(panel2b, BoxLayout.Y_AXIS));
-			
 		
 		JButton b;
 		// ***** 1.4.4: Add new button to allow creation of user control files
 		// from MGD-77 data files
 		b = new JButton("<html><body><center>"
 				+"Import your own <br>"
-				+"MGD77 data file(s)"
+				+"MGD77 and MGD77T <br>data files"
 				+"</center></body></html>");
-		b.setToolTipText("Select only MGD77 data files (\"*.a77\")");
+		b.setToolTipText("Import one or more MGD77 and MGD77T header and data files");
 		b.setActionCommand("Import MGD77");
 		b.addActionListener(this);
 		b.setPreferredSize(new Dimension(230, 60));
@@ -213,6 +212,7 @@ public class MGGSelector implements ActionListener {
 
 
 	public void actionPerformed(ActionEvent evt) {
+
 		String cmd = evt.getActionCommand();
 		if (cmd.equals("All")) {
 			topoCB.setSelected(true);
@@ -266,9 +266,9 @@ public class MGGSelector implements ActionListener {
 		// control file from them, loading it immediately into the current environment
 		if (cmd.equals("Import MGD77")) {
 
-			FileNameExtensionFilter filter = new FileNameExtensionFilter("*.a77, *.m77t, *.h77, *.h77t", 
-					"a77", "m77t", "h77", "h77t");			
-			JFileChooser jfc = new JFileChooser(System.getProperty("user.home"));
+			FileNameExtensionFilter filter = new FileNameExtensionFilter("*.a77, *.m77, *.m77t, *.mgd77, *.mgdt77, *.h77, *.h77t", 
+					"a77", "m77", "m77t", "mgd77", "mgd77t", "h77", "h77t");			
+			JFileChooser jfc = MapApp.getFileChooser();
 			jfc.resetChoosableFileFilters();
 			jfc.setDialogTitle("Choose MGD77 data files to create control file for");
 			jfc.setFileFilter(filter);
@@ -281,7 +281,6 @@ public class MGGSelector implements ActionListener {
 			File[] selectedFiles = jfc.getSelectedFiles();
 			ArrayList<String> loadedFiles = new ArrayList<String>();
 			MGG.MGG_control_dir.mkdir();
-			boolean onlyHeaders = true;
 			
 			for (File inFile : selectedFiles) {
 				String extension = inFile.getName().substring(inFile.getName().lastIndexOf('.'));
@@ -291,7 +290,6 @@ public class MGGSelector implements ActionListener {
 				
 				boolean isHeader  = extension.equals(".h77") || extension.equals(".h77t");
 				
-				if (!isHeader) onlyHeaders = false;
 				
 				File outputDataFile = new File(MGG.MGG_data_dir, "/mgg_data_"+ leg);
 				File outputHeaderFile = new File(MGG.MGG_header_dir, inFile.getName());
@@ -315,139 +313,157 @@ public class MGGSelector implements ActionListener {
 						inFile, MGG.MGG_control_dir, outputControlFile);
 				try {
 					if (mggControl.createControlFile())	loadedFiles.add(inFile.getName());
+					else if (new File(MGG.MGG_header_dir, leg+".h77").exists()) {
+						// not able to create control file, but did extract the header
+						isHeader = true;
+					}
 				} catch (Exception e) {
 					JOptionPane.showMessageDialog(dialogPane, "Not able to import: " + inFile, "Import Error",
 							JOptionPane.ERROR_MESSAGE);
 					return;
 				}
-				if (isHeader) continue;
-				try {
-					
-					int nPer360 = 20480;
-					DataInputStream in = new DataInputStream(
-							new BufferedInputStream(new FileInputStream(
-									outputControlFile)));
-	
-					int k = 0;
-					Point2D.Double pt = new Point2D.Double();
-					double wrap = tracks.map.getWrap();
-					double wraptest = wrap / 2.;
-					double xtest = 0d;
-					Projection proj = tracks.map.getProjection();
-					String name = "";
-					Dimension mapDim = tracks.map.getDefaultSize();
-					while (true) {
-						try {
-							name = in.readUTF();
-						} catch (EOFException ex) {
-							break;
-						}
-	
-						int nseg = in.readInt();
-						ControlPt.Float[][] cpt = new ControlPt.Float[nseg][];
-						byte types = 0;
-						int type1 = 999;
-						int type2 = 999;
-						int type3 = 999;
-						type1 = in.readInt();
-						type2 = in.readInt();
-						type3 = in.readInt();
-	//					System.out.println(name + "\t" + type1 + "\t" + type2 + "\t" + type3);
-	
-						if (type1 != 0)
-							types |= (byte) 0x4;
-						if (type2 != 0)
-							types |= (byte) 0x2;
-						if (type3 != 0)
-							types |= (byte) 0x1;
-	
-						int start = in.readInt();
-						int end = in.readInt();
-	
-						Rectangle2D.Double bounds = new Rectangle2D.Double();
-						for (int i = 0; i < nseg; i++) {
-							int a = in.readInt();
-							cpt[i] = new ControlPt.Float[a];
-	
-							for (int j = 0; j < cpt[i].length; j++) {
-								pt.x = 1.e-6 * (double) in.readInt();
-								pt.y = 1.e-6 * (double) in.readInt();
-	
-								Point2D.Double p = (Point2D.Double) proj
-										.getMapXY(pt);
-	
-								if (j == 0 && i == 0) {
-									bounds.x = p.x;
-									bounds.y = p.y;
-									bounds.width = 0.;
-									bounds.height = 0.;
-									xtest = p.x;
-								} else {
-									if (wrap > 0.) {
-										while (p.x > xtest + wraptest)
-											p.x -= wrap;
-										while (p.x < xtest - wraptest)
-											p.x += wrap;
-									}
-									if (p.x < bounds.x) {
-										bounds.width += bounds.x - p.x;
-										bounds.x = p.x;
-										xtest = bounds.x + .5 * bounds.width;
-									} else if (p.x > bounds.x + bounds.width) {
-										bounds.width = p.x - bounds.x;
-										xtest = bounds.x + .5 * bounds.width;
-									}
-									if (p.y < bounds.y) {
-										bounds.height += bounds.y - p.y;
-										bounds.y = p.y;
-									} else if (p.y > bounds.y + bounds.height) {
-										bounds.height = p.y - bounds.y;
-									}
-								}
-								cpt[i][j] = new ControlPt.Float((float) p.x,
-										(float) p.y);
-							}
-						}
-						if (!tracks.isValidBounds(bounds))
-							continue;
-	//					if (!bounds.intersects(0., 0., mapDim.getWidth(), mapDim
-	//							.getHeight()))
-	//						continue;
-						
-						
+				if (isHeader) {
+					if (!tracks.contains(leg)) {
 						if (!tracks.getContainsImported()) {
 							tracks.add(MGG.IMPORT_TRACK_LINE);
 							addToCachedTracks(MGG.IMPORT_TRACK_LINE);
 						}
-
-						MGGTrack newLine = new MGGTrack(new TrackLine(name, bounds, cpt,
-								start, end, types, (int) wrap));
+						
+						MGGTrack newLine = new MGGTrack( new TrackLine( leg + " (header only)",new Rectangle2D.Double(),
+								new ControlPt.Float[0][0] , 0, 0, (byte)0x7, 0));
 						tracks.add(newLine);
 						addToCachedTracks(newLine);
-						k++;
 					}
-				} catch (IOException ex) {}
+				
+				}
+				else {
+					try {
+						
+						DataInputStream in = new DataInputStream(
+								new BufferedInputStream(new FileInputStream(
+										outputControlFile)));
+		
+						Point2D.Double pt = new Point2D.Double();
+						double wrap = tracks.map.getWrap();
+						double wraptest = wrap / 2.;
+						double xtest = 0d;
+						Projection proj = tracks.map.getProjection();
+						String name = "";
+	
+						while (true) {
+							try {
+								name = in.readUTF();
+							} catch (EOFException ex) {
+								break;
+							}
+		
+							int nseg = in.readInt();
+							ControlPt.Float[][] cpt = new ControlPt.Float[nseg][];
+							byte types = 0;
+							int type1 = 999;
+							int type2 = 999;
+							int type3 = 999;
+							type1 = in.readInt();
+							type2 = in.readInt();
+							type3 = in.readInt();
+		//					System.out.println(name + "\t" + type1 + "\t" + type2 + "\t" + type3);
+		
+							if (type1 != 0)
+								types |= (byte) 0x4;
+							if (type2 != 0)
+								types |= (byte) 0x2;
+							if (type3 != 0)
+								types |= (byte) 0x1;
+		
+							int start = in.readInt();
+							int end = in.readInt();
+		
+							Rectangle2D.Double bounds = new Rectangle2D.Double();
+							for (int i = 0; i < nseg; i++) {
+								int a = in.readInt();
+								cpt[i] = new ControlPt.Float[a];
+		
+								for (int j = 0; j < cpt[i].length; j++) {
+									pt.x = 1.e-6 * (double) in.readInt();
+									pt.y = 1.e-6 * (double) in.readInt();
+		
+									Point2D.Double p = (Point2D.Double) proj
+											.getMapXY(pt);
+		
+									if (j == 0 && i == 0) {
+										bounds.x = p.x;
+										bounds.y = p.y;
+										bounds.width = 0.;
+										bounds.height = 0.;
+										xtest = p.x;
+									} else {
+										if (wrap > 0.) {
+											while (p.x > xtest + wraptest)
+												p.x -= wrap;
+											while (p.x < xtest - wraptest)
+												p.x += wrap;
+										}
+										if (p.x < bounds.x) {
+											bounds.width += bounds.x - p.x;
+											bounds.x = p.x;
+											xtest = bounds.x + .5 * bounds.width;
+										} else if (p.x > bounds.x + bounds.width) {
+											bounds.width = p.x - bounds.x;
+											xtest = bounds.x + .5 * bounds.width;
+										}
+										if (p.y < bounds.y) {
+											bounds.height += bounds.y - p.y;
+											bounds.y = p.y;
+										} else if (p.y > bounds.y + bounds.height) {
+											bounds.height = p.y - bounds.y;
+										}
+									}
+									cpt[i][j] = new ControlPt.Float((float) p.x,
+											(float) p.y);
+								}
+							}
+							if (!tracks.isValidBounds(bounds))
+								continue;							
+							
+							if (!tracks.getContainsImported()) {
+								tracks.add(MGG.IMPORT_TRACK_LINE);
+								addToCachedTracks(MGG.IMPORT_TRACK_LINE);
+							}
+	
+							// remove any header only files for this track that might already be in the list
+							if (tracks.contains(leg + " (header only)")) {
+								tracks.removeImported(leg + " (header only)");
+								removeImportedFromCache(leg + " (header only)");
+//								imported--;
+							}
+								
+							MGGTrack newLine = new MGGTrack(new TrackLine(name, bounds, cpt,
+									start, end, types, (int) wrap));
+							tracks.add(newLine);
+							addToCachedTracks(newLine);
+							in.close();
+						}
+					} catch (IOException ex) {}
+				}
 			}
 			
 			
 			//update the list box
-			if (!onlyHeaders) {
-				//rebuild the model with the added tracks(s)
-				tracks.rebuildModel();
-				
-				//for some reason, need to repaint map if importing a second time
-				//otherwise scroll box is blank
-				if (imported > 0) {
-					tracks.map.repaint();
-				}
-				int lastIndex = tracks.display.cruiseL.getModel().getSize() - 1;
-				if (lastIndex >=0) {	
-					tracks.display.cruiseL.setSelectedIndex(lastIndex);		
-					tracks.display.cruiseL.ensureIndexIsVisible(lastIndex);
-					imported++;
-				}
-			}
+
+			//rebuild the model with the added tracks(s)
+			tracks.rebuildModel();
 			
+			//for some reason, need to request the focus back if importing a second time
+			//otherwise scroll box is blank
+			if (imported > 0) {
+				dialogPane.requestFocus();
+			}
+			int lastIndex = tracks.display.cruiseL.getModel().getSize() - 1;
+			if (lastIndex >=0) {	
+				tracks.display.cruiseL.setSelectedIndex(lastIndex);		
+				tracks.display.cruiseL.ensureIndexIsVisible(lastIndex);
+				imported++;
+			}
 			
 			if (loadedFiles.size() > 0) {
 				String filesString = "";
@@ -468,7 +484,10 @@ public class MGGSelector implements ActionListener {
 				}
 						
 				JOptionPane.showMessageDialog(tracks.getDataDisplay(), "The following file(s) have been imported: " + filesString);
-				
+				//need to request the focus again to get the cruise list to scroll to the bottom
+				if (imported > 1) {
+					dialogPane.requestFocus();
+				}
 			}
 		} else if ( cmd.equals("LDEO Tracks") || cmd.equals("NCEI (NGDC) Tracks") ||
 					cmd.equals("Display ADGRAV Tracks") || cmd.equals("SIO Explorer Tracks") ||

@@ -47,6 +47,7 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 				minEdit,
 				maxEditC,
 				minEditC,
+				noDataField,
 				zUnits,
 				dataType,
 				zScale;
@@ -80,6 +81,7 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 	double minZ = 0.0;
 	double maxZ = 0.0;
 	double floorZ = 0.0;
+	double noData = Double.NaN;
 	double floorZAllGrids = 0.0;
 	double ceilingZAllGrids = 0.0;
 	double ceilingZ = 0.0;
@@ -96,6 +98,9 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		   panel1e,
 		   panel1f,
 		   panel1g,
+		   panel1h,
+		   panel1i,
+		   panel1j,
 		   panel2a,
 		   panelUTM,
 		   panelZone,
@@ -166,24 +171,35 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		flipGrid.setVisible(false);
 		panel1.add(flipGrid);
 		
-		panel1f = new JPanel( new GridLayout(0,2,22,0) );
+		panel1f = new JPanel( new GridLayout(0,2) );
 		panel1f.add ( new JLabel("Data type:") );
-		panel1f.add ( new JLabel("Units for Z values:") );
-		panel1g = new JPanel( new GridLayout(0,2,20,0) );
 		dataType = new JTextField("Elevation",5);
-		panel1g.add(dataType);
+		panel1f.add(dataType);
+		
+		panel1g = new JPanel( new GridLayout(0,2) );
+		panel1g.add ( new JLabel("Units for Z values:") );
 		zUnits = new JTextField("m",5);
 		panel1g.add(zUnits);
 		panel1.add(panel1f);
 		panel1.add(panel1g);
-		
-		panel1.add( new JLabel("Scale Z values by:") );
+				
+		panel1h = new JPanel( new GridLayout(0,2) );
+		panel1h.add( new JLabel("Scale Z values by:") );
 		zScale = new JTextField("1", 5);
-		panel1.add(zScale);
+		panel1h.add(zScale);
 
-		panel1.add( new JLabel("Add offset:") );
+		panel1i = new JPanel( new GridLayout(0,2) );
+		panel1i.add( new JLabel("Add offset:") );
 		offsetTF = new JTextField("0" , 5);
-		panel1.add(offsetTF);
+		panel1i.add(offsetTF);
+		
+		panel1j = new JPanel( new GridLayout(0,2) );
+		panel1j.add( new JLabel("NoData value:") );
+		noDataField = new JTextField("0" , 5);
+		panel1j.add(noDataField);
+		panel1.add(panel1h);
+		panel1.add(panel1i);
+		panel1.add(panel1j);
 
 		// Add WESN Section
 		wesnLabel = new JLabel("");
@@ -205,6 +221,7 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		minEdit.setEditable(false);
 		minEdit.setForeground(Color.GRAY);
 		panel1d.add(minEdit);
+		
 
 		edit = new JPanel(new BorderLayout());
 		editSingle = new JCheckBox("Edit", false);
@@ -746,15 +763,15 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 
 		applyForAll.setSelected(false);
 
-		if ( minZ != maxZ ) {
-			minMaxL.setText("Max z: " + maxZ + "    Min z: " + minZ);
-			origMax = maxZ;
-			origMin = minZ;
-			maxEdit.setText(GeneralUtils.formatToSignificant(maxZ,5));
-			minEdit.setText(GeneralUtils.formatToSignificant(minZ,5));
-			minZ = 0.0;
-			maxZ = 0.0;
-		}
+		minMaxL.setText("Max z: " + maxZ + "    Min z: " + minZ);
+		origMax = maxZ;
+		origMin = minZ;
+		maxEdit.setText(GeneralUtils.formatToSignificant(maxZ,5));
+		minEdit.setText(GeneralUtils.formatToSignificant(minZ,5));
+		minZ = 0.0;
+		maxZ = 0.0;
+		
+		noDataField.setText(Double.toString(noData));
 
 		// If both ceiling and floor is zero file length is only 1
 		if((ceilingZ == 0) && (floorZ == 0)){
@@ -833,6 +850,12 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 		double zmax = Double.parseDouble(maxEdit.getText());
 		double zmin = Double.parseDouble(minEdit.getText());
 		double zscale = Double.parseDouble(zScale.getText());
+		try {
+			noData = Double.parseDouble(noDataField.getText());
+		}
+		catch(Exception e) {
+			noData = Double.NaN;
+		}
 		if (((zmax - zmin)  * zscale) > Short.MAX_VALUE || 
 				((zmax - zmin)  * zscale) < Short.MIN_VALUE) {
 			String msg = "GeoMapApp could not import this grid: The Z range is too large."
@@ -1010,5 +1033,14 @@ public class ProjectionDialog implements ItemListener, ChangeListener {
 	
 	public void setProjectionType(int proj) {
 		type.setSelectedIndex(proj);
+	}
+
+	public void setNoData(double fillValue) {
+		noData = fillValue;
+		
+	}
+
+	public Double getNoData() {
+		return noData;
 	}
 }

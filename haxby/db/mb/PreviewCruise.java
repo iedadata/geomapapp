@@ -75,9 +75,7 @@ public class PreviewCruise
     	PoleMapServer.base[1] = tilesPath + "/NP_320/";
       }
     
-    
-    
-//    System.setProperty("geomapapp.menus_url", "http://app.geomapapp.org/gma_menus/simple_menu.xml");
+
     MapApp mapApp = MapApp.createMapApp(new String[0]);
     
 

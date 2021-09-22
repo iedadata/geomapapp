@@ -227,7 +227,7 @@ public class MGG implements Database,
 			inMGG.close();
 
 //			1.4.4: Load cruises from user-created control files stored in mgg_control_files in default user directory
-			if ( MGG_control_dir.exists() && MGG_control_dir.listFiles().length != 0 ) {
+			if ( MGG_control_dir.exists() && (MGG_control_dir.listFiles().length != 0 || MGG_header_dir.listFiles().length != 0)) {
 				add(IMPORT_TRACK_LINE);
 				File[] MGG_control_files = MGG_control_dir.listFiles();
 				for ( int m = 0; m < MGG_control_files.length; m++ ) {
@@ -304,6 +304,20 @@ public class MGG implements Database,
 							k++;
 						}
 						in.close();
+					}
+				}
+				
+				// header only cruises
+				File[] MGG_header_files = MGG_header_dir.listFiles();
+				if (MGG_header_files != null) {
+					for ( int m = 0; m < MGG_header_files.length; m++ ) {
+						name = MGG_header_files[m].getName().replaceFirst("[.][^.]+$", "");
+	
+						File controlFile = new File(MGG_control_dir + "/mgg_control_" + name);
+						if (!controlFile.exists() || controlFile.length() == 0) {
+							add(new MGGTrack( new TrackLine( name + " (header only)",new Rectangle2D.Double(),new ControlPt.Float[0][0] , 0, 0, (byte)0x7, 0)));
+						}
+						
 					}
 				}
 			}
@@ -547,6 +561,7 @@ public class MGG implements Database,
 		ArrayList<MGGTrack> tracksList = new ArrayList<MGGTrack>();
 		boolean imported = false;
 		for (MGGTrack t :  tracks) {
+			if (t == null) continue;
 			if ( t.getName().equals(IMPORT_TRACK_LINE.getName()) ) imported = true;
 			if ( imported && t.getName().equals(name) ) continue;
 			tracksList.add(t);
@@ -584,5 +599,13 @@ public class MGG implements Database,
 	}
 
 	public void newTrackSet(String loadedControlFiles) {
+	}
+
+	public boolean contains(String name) {
+		for (MGGTrack t :  tracks) {
+			if (t == null) continue;
+			if (t.getName().equals(name)) return true;
+		}
+		return false;
 	}
 }

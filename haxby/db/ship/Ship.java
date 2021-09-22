@@ -267,21 +267,15 @@ public class Ship implements Database,
 		for( int i=0 ; i<size ; i++) {
 			if(tracks[i]!=null){
 			shipTracks.dataT.clearSelection();
-//			if( (types & tracks[i].getTypes()) ==0)continue;
-			//if( (types & tracks[i].getTypes()) ==0)continue;
-			//System.out.println("i "+i);
 			
 			if( !(tracks[i].intersects(rect))) continue;
 			if( i==dataIndex && display.data != null) display.data.draw(g);
 			else tracks[i].draw(g);
 			rect = map.getClipRect2D();
 			
-			if(tracks[i].getNav().getGeneralPath().intersects(rect)){
-				model.addTrack(tracks[i], i);
-				shipTableModel.addTrack(tracks[i], in_view);
-				in_view++;
-			}
-			
+			model.addTrack(tracks[i], i);
+			shipTableModel.addTrack(tracks[i], in_view);
+			in_view++;	
 		}
 		}
 		model.updateList();

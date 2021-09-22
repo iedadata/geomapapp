@@ -51,8 +51,7 @@ public class StratigraphicRangeChart extends JComponent implements MouseListener
 					MapApp.BASE_URL+"/data/portals/dsdp/timescales/StratigraphicRanges.jpg");
 			stratImage = new ImageComponent( 
 					ImageIO.read(URLFactory.url(stratURL)));
-//			ImageIcon stratigraphicRangesImage = createImageIcon("http://www.geomapapp.org/database/DSDP/timescales/StratigraphicRanges.jpg");
-//			JLabel stratigraphicRangesLabel = new JLabel(stratigraphicRangesImage);
+
 			JPanel zoomPanel = new JPanel();
 			zoomInB = new JButton(Icons.getIcon(Icons.ZOOM_IN, false));
 			zoomInB.setSelectedIcon( Icons.getIcon( Icons.ZOOM_IN, true ) );

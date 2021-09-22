@@ -9,6 +9,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -141,6 +142,9 @@ public class CreateMGGControlFile {
 				System.out.println("No data found for " + leg);
 				out.flush();
 				out.close();
+				
+				JOptionPane.showMessageDialog(null, "No data found for: " + leg, "Import Error",
+						JOptionPane.ERROR_MESSAGE);
 				return false;
 			}
 
@@ -223,7 +227,7 @@ public class CreateMGGControlFile {
 		String extension = mgd77leg.getName().substring(mgd77leg.getName().lastIndexOf('.'));
 		String leg = MGD77file.getName().replace(extension, "");
 		// check if the file extension implies the file is an MGD77T file
-		if (extension.equals(".m77t")) {
+		if (extension.equals(".m77t") || extension.equals(".mgd77t")) {
 			readMGD77T(mgd77leg);
 			return;
 		}
@@ -251,6 +255,22 @@ public class CreateMGGControlFile {
 		nm = 0;
 
 		while ((s = in.readLine()) != null) {
+			
+			//extract header information if any
+			if (s.substring(78,80).equals("01")) {
+				MGG.MGG_header_dir.mkdir();
+				File headerFile = new File(MGG.MGG_header_dir, leg + ".h77");
+				FileWriter header = new FileWriter(headerFile);
+				for (int i=0; i<24; i++) {
+					header.write(s + "\n");
+					s = in.readLine();
+				}
+				header.close();
+			}
+
+			
+			
+			
 			while (s.length() < 20) {
 				s = in.readLine();
 				if (s == null) {
@@ -261,7 +281,7 @@ public class CreateMGGControlFile {
 			if (s == null) {
 				break;
 			}
-
+			
 			// check again if data file is in tabbed format
 			if (lineNum == 0) {
 				String[] elements = s.split("\t");
@@ -273,6 +293,8 @@ public class CreateMGGControlFile {
 					return;
 				}
 			}
+			
+
 
 			if (lineNum == lon.length) {
 				int len = lon.length;

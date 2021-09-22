@@ -1,12 +1,30 @@
 package org.geomapapp.db.alvin;
 
-import org.geomapapp.geom.*;
-import org.geomapapp.gis.shape.*;
-
 import java.awt.geom.Point2D;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.util.Calendar;
+import java.util.Hashtable;
+import java.util.StringTokenizer;
+import java.util.TimeZone;
+import java.util.Vector;
 import java.util.zip.GZIPInputStream;
-import java.util.*;
+
+import org.geomapapp.geom.IdentityProjection;
+import org.geomapapp.geom.Navigation;
+import org.geomapapp.geom.UTM;
+import org.geomapapp.gis.shape.ESRIShape;
+import org.geomapapp.gis.shape.ESRIShapefile;
+
+import haxby.util.PathUtil;
 
 public class AlvinNav {
 	Navigation nav;
@@ -272,7 +290,7 @@ public class AlvinNav {
 //		out.println("<info>http://4dgeo.whoi.edu/om-bin/eic2html.pl?f=/webdata/OM/${2}/MDF/OM.${2}.${1}.txt&t=/webdata/OM/${2}/HTMLTemplate/" + platformID.toLowerCase() +".v1.TEMPLATE</info>");
 		out.println("<info>http://4dgeo.whoi.edu/om-bin/view_cruise?vehicle=${2}&cruise=${1}</info>");
 		
-		out.println("<url>http://www.geomapapp.org/GMA/Layers/Photos/NDSF/" + inputSiteID + "/${1}/${2}-${3}/${2}-${3}.shp</url>");
+		out.println("<url>" +PathUtil.getPath("PUBLIC_HOME_PATH")+ "GMA/Layers/Photos/NDSF/" + inputSiteID + "/${1}/${2}-${3}/${2}-${3}.shp</url>");
 		out.println("<description>");
 		out.println("Navigation for ${2} Dive ${3}, Leg ${1}");
 		out.println("</description>");

@@ -56,6 +56,7 @@ import org.geomapapp.grid.Grid2DOverlay;
 import org.geomapapp.grid.GridDialog;
 import org.geomapapp.util.XML_Menu;
 
+import haxby.db.custom.UnknownDataSet;
 import haxby.proj.CylindricalProjection;
 import haxby.proj.Mercator;
 import haxby.proj.Projection;
@@ -129,6 +130,11 @@ public class XMap extends ScaledComponent implements Zoomable,
 	 * Base units of grid
 	 */
 	protected String units = "m";
+	
+	/**
+	 * Base data type of grid
+	 */
+	protected String dataType = "";
 
 	/**
 	 * Alternative z value to be displayed
@@ -456,6 +462,11 @@ public class XMap extends ScaledComponent implements Zoomable,
 		overlays.add(overlay);
 	}
 
+	public void moveOverlayToTop(Overlay overlay) {
+		//move layer to top of layerManager
+		((MapApp)app).layerManager.moveToTop(overlay);
+	}
+	
 	public Grid2DOverlay getFocus() {
 		return focus;
 	}
@@ -502,6 +513,10 @@ public class XMap extends ScaledComponent implements Zoomable,
 		}
 		this.firePropertyChange("overlays", overlay, removeFlag);
 		return index;
+	}
+	
+	public void removeDataSet(UnknownDataSet ds) {
+		((MapApp) app).layerManager.removeLayerPanel(ds);
 	}
 
 	/**
@@ -850,6 +865,10 @@ public class XMap extends ScaledComponent implements Zoomable,
 	public void setUnits( String newUnits )	{
 		units = newUnits;
 	}
+	
+	public void setDataType( String newDataType ) {
+		dataType = newDataType;
+	}
 
 	// GMA 1.6.2: Functions to change alternative units and z value
 	public void setAlternateZValue( double inputAlternateZ ) {
@@ -988,12 +1007,16 @@ public class XMap extends ScaledComponent implements Zoomable,
 			GridDialog gridDialog = mApp.getMapTools().getGridDialog();
 			float z = Float.NaN; 
 			String str = null;
+			String dt = null;
 			if (focus != null) {
 				z = focus.getZ(pt0);
 				str = focus.getUnits();
+				dt = focus.getDataType();
 			
 				if (str != null)
 					setUnits(str);
+				if (dt != null)
+					setDataType(dt);
 			} else {
 				// NSS 04/07/17 - this part may now be deprecated, since I set focus even for ESRIShape files in line 914 above
 				if ( mApp.tools.suite != null && gridDialog != null) {
@@ -1157,6 +1180,14 @@ public class XMap extends ScaledComponent implements Zoomable,
 		return units;
 	}
 
+	/**
+	 * Gets the data type of the current map overlay
+	 * @return String representation of the data type of the current map overlay
+	 */
+	public String getDataType() {
+		return dataType;
+	}
+	
 	/**
 	 * Saves current image.
 	 */

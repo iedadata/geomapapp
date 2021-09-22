@@ -53,6 +53,7 @@ import org.geomapapp.util.Icons;
 import haxby.grid.ContributedGridsOverlay;
 import haxby.proj.Mercator;
 import haxby.util.BrowseURL;
+import haxby.util.PathUtil;
 
 public class MapTools implements ActionListener {
 	protected MapApp app = null;
@@ -85,7 +86,7 @@ public class MapTools implements ActionListener {
 	boolean gridLoaded = false;
 	boolean includeInsets = true;
 	public static int saveCount = 1;
-	protected String contributeDataUrl = "http://www.iedadata.org/contribute";
+	protected String contributeDataUrl = PathUtil.getPath("CONTRIBUTE_PATH");
 
 	public MapTools(MapApp app, XMap map) {
 		this.app = app;
@@ -495,6 +496,8 @@ public class MapTools implements ActionListener {
 		JRadioButton saveMapPNG = new JRadioButton("Image: .PNG (best resolution)");
 		JRadioButton savePS = new JRadioButton("Image: PostScript", false);
 
+		JRadioButton saveColorBar = new JRadioButton("Save Color Bar: .PNG");
+		
 		boolean mercator = map.getProjection() instanceof Mercator;
 		// if mercator projection give selected options
 		if( mercator ) {
@@ -510,6 +513,7 @@ public class MapTools implements ActionListener {
 			panel.add(savePS);
 			panel.add(saveMap);
 			panel.add(saveMapPNG);
+			panel.add(saveColorBar);
 
 			saveType.add(saveGrid1);
 			//saveType.add(saveGrid2);
@@ -527,6 +531,7 @@ public class MapTools implements ActionListener {
 			saveMap.setSelected( true );
 			saveType.add(saveMapPNG);
 			saveType.add(saveGRD);
+			saveType.add(saveColorBar);
 
 			if(map.getMapTools().app.AT_SEA) {
 				saveGRD.setEnabled(false);
@@ -541,15 +546,17 @@ public class MapTools implements ActionListener {
 			}
 
 		} else {
-			// all other projections give 3 options
+			// all other projections give 4 options
 			panel.add(saveGrid1);
 			panel.add(saveMap);
 			panel.add(saveMapPNG);
+			panel.add(saveColorBar);
 
 			saveType.add(saveGrid1);
 			saveType.add(saveMap);
 			saveMap.setSelected( true );
 			saveType.add(saveMapPNG);
+			saveType.add(saveColorBar);
 		}
 	//	saveGrid.addActionListener(this);
 	//	saveMap.addActionListener(this);
@@ -1050,7 +1057,19 @@ public class MapTools implements ActionListener {
 					}
 				}
 			});
+		} 
+		else if(saveColorBar.isSelected()) {
+
+			app.initializeColorScale();
+			try {
+				app.getColorScale().saveColorScale();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
 		}
+		
 	}
 
 	protected void saveImage() {

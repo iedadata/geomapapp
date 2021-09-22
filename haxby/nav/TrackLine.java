@@ -1,9 +1,11 @@
 package haxby.nav;
 
-import haxby.nav.*;
-import haxby.proj.*;
-import java.awt.*;
-import java.awt.geom.*;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.GeneralPath;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 public class TrackLine{
 	String name;
@@ -54,7 +56,65 @@ public class TrackLine{
 		return mask;
 	}
 
+	// returns true if any point in the track line is within the area, or if the line intersects the area
 	public boolean intersects( Rectangle2D area ) {
+		
+		if (name.contains("header only"))
+			return true;
+		
+		float xMin = (float)area.getX();
+		float xMax = (float)(area.getX() + area.getWidth());
+
+		float offset = (float)this.offset;
+
+		for( int seg=0 ; seg<cpts.length ; seg++ ) {
+			for(int i=0 ; i<cpts[seg].length ; i++) {
+				float x = offset+(float)cpts[seg][i].getX();
+				float y = (float)cpts[seg][i].getY();
+				
+				float prevX = (i > 0) ? offset+(float)cpts[seg][i-1].getX() : Float.NaN;
+				float prevY = (i > 0) ? (float)cpts[seg][i-1].getY() : Float.NaN;;
+				float nextX = (i < cpts[seg].length - 1) ? offset+(float)cpts[seg][i+1].getX() : Float.NaN;
+				float nextY = (i < cpts[seg].length - 1) ? (float)cpts[seg][i+1].getY() : Float.NaN;
+				
+				//some fiddling around to make sure all points are in the correct wrap segment
+				if (wrap>0f){
+
+					if (x < xMin && x + wrap < xMax) {
+						x += wrap;
+					} else if (x > xMax && x - wrap > xMin) {
+						x -= wrap;
+					}
+				
+					if( !Float.isNaN(prevX)) {
+						while( x-prevX < wrap/2f ){x+=wrap;}
+						while( x-prevX > wrap/2f ){x-=wrap;}
+					} 
+							
+					if ( !Float.isNaN(nextX)) {
+						if (nextX < xMin && nextX + wrap < xMax) {
+							nextX += wrap;
+						} else if (nextX > xMax && nextX - wrap > xMin) {
+							nextX -= wrap;
+						}
+					}
+				}
+
+				//only draw tracks if a cpt is in the visible map, or if the track 
+				//intersects the map
+				if (area.contains(x, y) ||
+				   (!Float.isNaN(prevX) && area.intersectsLine(prevX, prevY, x, y)) ||
+				   (!Float.isNaN(nextX) && area.intersectsLine(x, y, nextX, nextY))) {
+					return(true);
+				}
+			}
+		}
+				
+		return false;				
+	}
+	
+	//previous version that uses intersection of bounds, rather than the track
+	public boolean intersectsOld( Rectangle2D area ) {		
 		if(wrap>0) {
 			if(area.getHeight()>=0) {
 				if(area.getY()+area.getHeight()<bounds.getY()) return false;
@@ -68,6 +128,7 @@ public class TrackLine{
 					area.getX() ) offset += wrap;
 			if( bounds.getX()+(double)offset > area.getX()+area.getWidth() ) return false;
 			return true;
+			
 		} else {
 			return bounds.intersects(area.getX(), area.getY(), 
 					area.getWidth(), area.getHeight());
