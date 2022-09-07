@@ -1,6 +1,0 @@
-package org.geomapapp.map;
-
-public class GeoMapApp {
-	public static void main(String[] args) {
-	}
-}

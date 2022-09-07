@@ -1,8 +1,0 @@
-package org.geomapapp.gis.shape;
-
-public abstract interface ESRIZ {
-	public void addZ( int i, double z );
-	public double[] getZ();
-	public double[] getZRange();
-	public void setZRange(double minz, double maxz);
-}
