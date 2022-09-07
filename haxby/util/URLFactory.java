@@ -18,7 +18,18 @@ public class URLFactory {
 		url = sub(url);
 		if (!url.contains("http") && !url.contains("file:"))
 			return Paths.get(url).toUri().toURL();
-		return new URL(url);
+	
+		//check if app.geomapapp.org or www.geomapapp.org URLs are being redirected 
+		//from http to https.
+		//Can't run this for all URLs as I have found examples where following the redirect
+		// does not work, eg, for the Multibeam portal URL 
+		//http://www.marine-geo.org/tools/search/GMAPortalStats.php?cmd=multibeam_bathymetry_cmd&sub_name=mercator
+		if (url.contains("geomapapp.org")) {			
+			return new URL(checkForRedirect(url));
+		}
+		else {
+			return new URL(url);
+		}
 	}
 
 	public static URL url(URL url, String spec) throws MalformedURLException {
@@ -45,6 +56,13 @@ public class URLFactory {
 		if (url != null && MapApp.BASE_URL != null && MapApp.BASE_URL.matches(MapApp.DEV_URL)) {
 			url = url.replace(MapApp.PRODUCTION_URL, MapApp.DEV_URL);
 		}
+		
+//		if (url.contains("geomapapp.org")) {	
+//			//for https testing
+//			url = url.replace("app.geomapapp", "app-upgrade.geomapapp");
+//			url = url.replace("www.geomapapp", "www-upgrade.geomapapp");
+//		}
+		
 		try {
 			HttpURLConnection con = (HttpURLConnection) new URL( url ).openConnection();
 			if (con.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || con.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) {

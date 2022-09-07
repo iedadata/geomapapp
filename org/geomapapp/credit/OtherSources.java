@@ -1,15 +1,24 @@
 package org.geomapapp.credit;
 
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
 import haxby.map.MapApp;
 import haxby.util.BrowseURL;
 import haxby.util.PathUtil;
-
-import javax.swing.*;
-
-import java.awt.event.*;
-import java.awt.*;
-
-import com.Ostermiller.util.Browser;
+import haxby.util.URLFactory;
 /**
  * Creation of buttons which will perform a browseURL call to outside sources.
  * Retrieves the destination url from a remote xml file with PathUtil.
@@ -33,7 +42,26 @@ public class OtherSources {
 
 		JPanel base = new JPanel(new GridLayout(0,2));
 		JLabel marineB = new JLabel("Marine");
-		JButton b = new JButton("GEBCO 2014");
+		
+		
+		URL url = null;
+		String btn_txt = "GEBCO";
+	
+	
+		try {
+			String btnTxtURL = PathUtil.getPath("CREDIT_PATH") + "btn_txt/gebco";
+			url = URLFactory.url(btnTxtURL);
+			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
+			btn_txt = in.readLine();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+			
+		
+
+
+		
+		JButton b = new JButton(btn_txt);
 		base.add(marineB);
 		base.add(b);
 		b.addActionListener( new ActionListener() {
@@ -79,7 +107,7 @@ public class OtherSources {
 				BrowseURL.browseURL(url);
 			}
 		});
-		base.setBorder( BorderFactory.createTitledBorder("Base Map"));
+		base.setBorder( BorderFactory.createTitledBorder("GMRT Base Map Components"));
 		panel.add(base,"North");
 
 		JLabel usB = new JLabel("US");
@@ -91,6 +119,19 @@ public class OtherSources {
 				BrowseURL.browseURL(url);
 			}
 		});
+		
+		JPanel gmrtBase = new JPanel(new GridLayout(5,1));
+		JButton gmrtB = new JButton("Visit the GMRT Website");
+		gmrtBase.add(gmrtB);
+		gmrtB.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				String url = PathUtil.getPath("GMRT2_ROOT_PATH");
+				BrowseURL.browseURL(url);
+			}
+		});
+		panel.add(gmrtBase);
+		
+		
 		base = new JPanel(new GridLayout(0,2));
 		base.add(usB);
 		base.add(b);

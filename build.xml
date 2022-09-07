@@ -104,13 +104,14 @@
 		</jar>
 	</target>
 
-	<!-- Sign the jar with verisign for webstart -->
+	<!-- Sign the jar with code signing certificate for webstart -->
 	<target name="sign" depends="dist" description="Sign Jar" >
 		<signjar 
 			jar="dist/GeoMapApp.jar"
-			alias="*****"
-			storepass="*****"
-			keystore="${src}/keystore.ldeo"/>
+			alias="****"
+			storepass="****"
+			tsaurl="http://timestamp.sectigo.com"
+			keystore="${src}/codesign.p12"/>
 	</target>
 
 	<!-- Clean up temp dirs-->
