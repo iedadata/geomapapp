@@ -155,7 +155,7 @@ public class GetImageRequest extends SilentProcessingTask {
 		
 		switch (proj) {
 		case MapApp.MERCATOR_MAP:
-			baseRes = 64;
+			baseRes = 128;
 			break;
 		case MapApp.NORTH_POLAR_MAP:
 			baseRes = PoleMapServer.baseRes[PoleMapServer.NORTH_POLE];

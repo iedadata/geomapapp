@@ -5,10 +5,10 @@
 --dest dmg_out 
 --type dmg 
 --mac-sign 
---app-version 3.6.14 
---copyright "GeoMapApp 3.6.14, Copyright © 2021 www.geomapapp.org"
+--app-version 3.6.15 
+--copyright "GeoMapApp 3.6.15, Copyright © 2022 www.geomapapp.org"
 --name GeoMapApp 
---vendor "org.iedadata.GeoMapApp" 
+--vendor "org.GeoMapApp.www" 
 --java-options "-Dapple.laf.useScreenMenuBar=false" 
 --java-options "-Dgeomapapp.paths_location=http://app.geomapapp.org/gma_paths/GMA_paths.xml" 
 --icon "resources/org/geomapapp/resources/icons/GeoMapApp.icns"

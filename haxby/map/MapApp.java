@@ -172,7 +172,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.14"; // 09/21/2021
+	public final static String VERSION = "3.6.15"; // 08/29/2022
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
@@ -792,7 +792,7 @@ public class MapApp implements ActionListener,
 			}
 			try {
 				String alertPath = PathUtil.getPath("HTML/HTML_PATH",
-						BASE_URL+"/gma_html/") + "Alert.html";
+						BASE_URL+"/gma_html/") + "GMA_Alert.html";
 				url = URLFactory.url(alertPath);
 				JEditorPane jep = new JEditorPane(url);
 				JPanel panel = new JPanel( new BorderLayout() );

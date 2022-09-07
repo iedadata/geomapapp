@@ -103,7 +103,7 @@ public class BaseMapSelect implements ActionListener {
 				+ "Andrew K. Melkonian <font size=2>('06-'09)</font>, "
 				+ "<br>&#09;"
 				+ "Bob Arko <font size=2>('04-'17)</font>, "
-				+ "Ed Bohl <font size=2>('11-present)</font>, "
+				+ "Ed Bohl <font size=2>('11-21)</font>, "
 				+ "Suzanne Carbotte <font size=2>('03-present)</font>, "
 				+ "Vicki Ferrini <font size=2>('06-present)</font>, "
 				+ "<br>&#09;"
