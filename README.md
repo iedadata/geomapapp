@@ -28,6 +28,7 @@ The instructions for building and releasing GeoMapApp for Unix, Windows and Appl
 http://wiki.iedadata.org/display/GFG/How+to+build+and+release+GeoMapApp
 
 # Release History
+* 09/07/2022 v3.6.15 Public release of v3.6.15 of GeoMapApp.
 * 09/23/2021 v3.6.14 Public release of v3.6.14 of GeoMapApp.
 * 03/09/2021 v3.6.12 Public release of v3.6.12 of GeoMapApp.
 * 02/22/2021 v3.6.11 Public release of v3.6.11 of GeoMapApp.
