@@ -1,5 +1,8 @@
 package haxby.db.xmcs;
 
+import haxby.map.XMap;
+import haxby.proj.ProjectionFactory;
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -16,10 +19,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import javax.imageio.ImageIO;
-
-import haxby.map.XMap;
-import haxby.proj.ProjectionFactory;
-import haxby.util.PathUtil;
 
 //import com.sun.image.codec.jpeg.JPEGCodec;
 //import com.sun.image.codec.jpeg.JPEGImageEncoder;
@@ -39,7 +38,7 @@ public class XMRas2ToJPG {
 		}
 
 		XMap map = new XMap(null,ProjectionFactory.getMercator(640), 1000,600);
-		XMCruise.MULTI_CHANNEL_PATH = PathUtil.getPath("PUBLIC_HOME_PATH")+"MCS/";
+		XMCruise.MULTI_CHANNEL_PATH = "https://www.geomapapp.org/MCS/";
 
 		String cruiseID = args[0];
 		final String isRadar = args.length > 1 ? args[1] : "";

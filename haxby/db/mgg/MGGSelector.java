@@ -266,9 +266,9 @@ public class MGGSelector implements ActionListener {
 		// control file from them, loading it immediately into the current environment
 		if (cmd.equals("Import MGD77")) {
 
-			FileNameExtensionFilter filter = new FileNameExtensionFilter("*.a77, *.m77, *.m77t, *.mgd77, *.mgdt77, *.h77, *.h77t", 
-					"a77", "m77", "m77t", "mgd77", "mgd77t", "h77", "h77t");			
-			JFileChooser jfc = MapApp.getFileChooser();
+			FileNameExtensionFilter filter = new FileNameExtensionFilter("*.a77, *.m77t, *.mgd77, *.mgdt77, *.h77, *.h77t", 
+					"a77", "m77t", "mgd77", "mgd77t", "h77", "h77t");			
+			JFileChooser jfc = new JFileChooser(System.getProperty("user.home"));
 			jfc.resetChoosableFileFilters();
 			jfc.setDialogTitle("Choose MGD77 data files to create control file for");
 			jfc.setFileFilter(filter);

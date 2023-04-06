@@ -262,7 +262,6 @@ public class SCS implements Database,
 //		when disposeDB() is called
 
 		selPath = null;
-		selCruise = -1;
 
 		if (image.timeDep != null)
 			image.timeDep.clear();
@@ -274,8 +273,6 @@ public class SCS implements Database,
 		cruiseListModel.clear();
 		cruises = null;
 		cruiseListPopulated = false;
-		
-		dig.reset();
 		try {
 			finalize();
 		} catch (Throwable e) {

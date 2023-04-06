@@ -583,7 +583,7 @@ public class UnknownDataSet implements MouseListener,
 		ArrayList<String> o2 = getNumericalColumns();
 	
 		Object o = JOptionPane.showInputDialog(c, "<html>Choose column to color symbols by: <br><br>"
-				+ "<i>Hint: change the symbol shape in<br>the Configure menu to avoid confusion<br>when coloring multiple datasets.<br><br></i>", 
+				+ "<i>Hint:  try changing the symbol shape in<br>the Configure menu to avoid confusion<br>when coloring multiple datasets.<br><br></i>", 
 				"Select Column",
 					JOptionPane.QUESTION_MESSAGE, null, o2.toArray(), o2.get(colorNumericalColumnIndex));
 		if (o==null)return;
@@ -630,7 +630,7 @@ public class UnknownDataSet implements MouseListener,
 		ArrayList<String> o2 = getNumericalColumns();
 	
 		Object o = JOptionPane.showInputDialog(c, "<html>Choose column to color symbols by: <br><br>"
-				+ "<i>Hint: change the symbol shape in<br>the Configure menu to avoid confusion<br>"
+				+ "<i>Hint:  try changing the symbol shape in<br>the Configure menu to avoid confusion<br>"
 				+ "when scaling multiple datasets.<br><br></i>", "Select Column",
 					JOptionPane.QUESTION_MESSAGE, null, o2.toArray(), o2.get(scaleNumericalColumnIndex));
 		if (o==null)return;

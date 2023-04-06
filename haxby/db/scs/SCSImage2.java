@@ -268,7 +268,7 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 							LineSegmentsObject line;
 							if( st.hasMoreTokens() ) {
 								AnnotationObject obj = new AnnotationObject(
-										this, dig);
+										cruise.map, dig);
 								obj.setAnnotation( st.nextToken() );
 								line = (LineSegmentsObject) obj;
 							} else {
@@ -307,7 +307,6 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 						}
 						in.close();
 						dig.setCurrentObject((DigitizerObject) objects.lastElement());
-						dig.setMouseListeners();
 					} catch (Exception ex ) {
 						ex.printStackTrace();
 						try {
@@ -674,11 +673,7 @@ public class SCSImage2 extends haxby.util.ScaledComponent
 			int y = (int)(i/.0075 + 4./zoom);
 			g2.drawString(tt, xAnot, y);
 		}
-		
-		if( dig!=null) {
-			g2.scale(1f/zoom, 1f/zoom);
-			dig.draw( g2 );
-		}
+		if( dig!=null) dig.draw( g2 );
 		System.gc();
 
 		synchronized( cruise.map.getTreeLock() ) {
