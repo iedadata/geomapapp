@@ -9,7 +9,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -24,8 +23,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URL;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -595,75 +592,38 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			return;
 		}
 		
+	
 
-		//if downloading 1 file, allow user to select filename.
-		//if downloading multiple files, user has to select directory, but can't chose filenames.
 		JFileChooser jfc = MapApp.getFileChooser();
-		int c;
-		if (cruiseList.size() > 1 ) {
-			jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-			jfc.setAcceptAllFileFilterUsed(false);
-			jfc.setDialogTitle( "Select folder to download files" );
-			c = jfc.showOpenDialog(jfc);
-		}
-		else {
-			File file;
-			jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-			if (downloadMGD77CB.isSelected()) {
-				file = getDataFile((String)cruiseList.get(0));
-				if (file == null) {
-					JOptionPane.showMessageDialog(dialog, "This file was imported by the user. \n"
-							+ "The data are downloadable in CSV format only. \n"
-							+ "Go back and choose CSV download format.", "Error Downloading File", JOptionPane.ERROR_MESSAGE);
-					return;
-				}
-			} 
-			else if (downloadCSVCB.isSelected()) {
-				file = new File(cruiseList.get(0) + ".csv");
-			}
-			else {
-				file = new File("");
-			}
-			
-			jfc.setSelectedFile(file);
-			jfc.setDialogTitle( "Download" );	
-			c = jfc.showSaveDialog(null);
-		}
+		jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);	
+		jfc.setAcceptAllFileFilterUsed(false);
+		jfc.setDialogTitle( "Select folder to download files" );
 		
 
-		
+		int c = jfc.showOpenDialog(jfc);
 		if ( c==JFileChooser.CANCEL_OPTION || c == JFileChooser.ERROR_OPTION ) return;
-		String selectedLocation = jfc.getSelectedFile().toString();
+		String selectedDir = jfc.getSelectedFile().toString();
 
 		
 		if (downloadMGD77CB.isSelected()) {
 			
 			File[] newDataFile = new File[cruiseList.size()];
 	
-			if (cruiseList.size() == 1) {
-				newDataFile[0] = new File(selectedLocation);
-			}
-			else {
-			
-				for ( int i = 0; i < cruiseList.size(); i++ ) {
-					try {
-						newDataFile[i] = getDataFile((String)cruiseList.get(i));
-					} catch (Exception e) {
-						JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
-						e.printStackTrace();
-					}
+			for ( int i = 0; i < cruiseList.size(); i++ ) {
+				try {
+					newDataFile[i] = getDataFile((String)cruiseList.get(i));
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(dialog, e.getMessage(), "Error Writing File", JOptionPane.ERROR_MESSAGE);
+					e.printStackTrace();
 				}
-				
+			}
+			
+			for ( int i = 0; i < newDataFile.length; i++ ) {
+				if ( selectedDir != null )	{
+					newDataFile[i] = new File( selectedDir + '/' + newDataFile[i].getName() );
+				}
+			}
 	
-				
-				for ( int i = 0; i < newDataFile.length; i++ ) {
-					if ( selectedLocation != null )	{
-						newDataFile[i] = new File( selectedLocation + '/' + newDataFile[i].getName() );
-					}
-				}
-		
-			}
-			
 			for ( int i = 0; i < newDataFile.length; i++ ) {
 				if ( newDataFile[i].exists() ) {
 						confirm = JOptionPane.showConfirmDialog(tracks.map.getTopLevelAncestor(), "File "+ newDataFile[i] + " exists, Overwrite?");
@@ -682,10 +642,6 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 					try {
 						String sData = "";
 						String leg = newDataFile[i].getName();
-						if (newDataFile.length == 1) {
-							leg = getDataFile((String)cruiseList.get(0)).getName();
-						}
-						
 						if ( leg != null ) {
 							dataFileURL = getDataFileURL(leg);
 							inDataFile = new BufferedReader(
@@ -714,18 +670,25 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			
 			for ( int i = 0; i < cruiseList.size(); i++ ) {
 				File newDataFile;
-				if (cruiseList.size() == 1) {
-					newDataFile = new File(selectedLocation);
-				}
+			
 				
-				else {
-					if ( selectedLocation != null )	{
-						newDataFile = new File( selectedLocation + '/' + (String)cruiseList.get(i) + ".csv" );
-					}
-					else {
-						newDataFile = new File((String)cruiseList.get(i) + ".csv");
-					}
+				if ( selectedDir != null )	{
+					newDataFile = new File( selectedDir + '/' + (String)cruiseList.get(i) + ".csv" );
 				}
+				else {
+					newDataFile = new File((String)cruiseList.get(i) + ".csv");
+				}
+			
+	
+//			for ( int i = 0; i < newDataFile.length; i++ ) {
+//				if ( newDataFile[i].exists() ) {
+//						confirm = JOptionPane.showConfirmDialog(tracks.map.getTopLevelAncestor(), "File "+ newDataFile[i] + " exists, Overwrite?");
+//					if ( confirm == JOptionPane.CANCEL_OPTION ) return;
+//				} else {
+//					confirm = JOptionPane.CANCEL_OPTION;
+//				}
+//			}
+	
 				
 				try {
 					MGGData legData = loadMGGData(map, cruiseList.get(i), tracks.mggSel.loadedControlFiles);
@@ -798,9 +761,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			File file = new File(filename);
 			
 			JFileChooser filechooser = MapApp.getFileChooser();
-			filechooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 			filechooser.setSelectedFile(file);
-			filechooser.setDialogTitle( "Save CSV file" );
 			int c = filechooser.showSaveDialog(null);
 			if (c == JFileChooser.CANCEL_OPTION)
 				return;
@@ -813,9 +774,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			File file = new File(loadedLeg + "_" + dataType + "_viewport." + fmt);
 			while (true) {
 				JFileChooser filechooser = MapApp.getFileChooser();
-				filechooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				filechooser.setSelectedFile(file);
-				filechooser.setDialogTitle( "Save image" );
 				int c = filechooser.showSaveDialog(null);
 				if (c == JFileChooser.CANCEL_OPTION)
 					return;
@@ -846,9 +805,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			File file = new File(loadedLeg + "_" + dataType + "_full." + fmt);
 			while (true) {
 				JFileChooser filechooser = MapApp.getFileChooser();
-				filechooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				filechooser.setSelectedFile(file);
-				filechooser.setDialogTitle( "Save file" );
 				int c = filechooser.showSaveDialog(null);
 				if (c == JFileChooser.CANCEL_OPTION)
 					return;
@@ -883,20 +840,18 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 				return;
 		}
 		
-		NumberFormat df = new DecimalFormat("#0.00000");
-		
-		String header = "Distance Along Track (km),Longitude,Latitude";
+		String header = "Distance Along Track,Longitude,Latitude";
 		ArrayList<Integer> dtAvail = new ArrayList<Integer>(); 
 		if (legData.data[0] != null) {
-			header += ",Bathymetry (m)";
+			header += ",Bathymetry";
 			dtAvail.add(0);
 		}
 		if (legData.data[1] != null) {
-			header += ",Gravity FAA anomaly (mGal)";
+			header += ",Gravity FAA anomaly";
 			dtAvail.add(1);
 		}
 		if (legData.data[2] != null) {
-			header += ",Magnetic anomaly (nT)";
+			header += ",Magnetic anomaly";
 			dtAvail.add(2);
 		}
 	
@@ -911,17 +866,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			String newLine = System.getProperty("line.separator");
 			out.write(header + newLine);
 			for (int i=iStart; i<iEnd; i++) {
-				double lon = legData.lon[i];
-				while (lon < -180) lon += 360;
-				while (lon > 180) lon -= 360;
-				if (range.equals("viewport")) {
-					//only save the section of the track that is currently displayed on the map
-					Point2D p = map.getProjection().getMapXY(lon, legData.lat[i]);
-					if (!data.inDisplayedMap(p)) {
-						continue;
-					}
-				}
-				out.write(df.format(legData.x[i]) + "," + df.format(lon) + "," + df.format(legData.lat[i]));
+				out.write(legData.x[i] + "," + legData.lon[i] + "," + legData.lat[i]);
 				for (int j : dtAvail) {
 					out.write(",");
 					if (!Float.isNaN(legData.data[j][i])) {
@@ -976,7 +921,7 @@ public class MGGDataDisplay implements ActionListener, MouseListener {
 			String fileName = dataFileURL.getFile().substring(dataFileURL.getFile().lastIndexOf('/') + 1);
 			return new File(fileName);
 		} catch (Exception e) {
-		//	e.printStackTrace();
+			e.printStackTrace();
 			return null;
 		}
 	}
