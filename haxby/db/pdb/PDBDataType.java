@@ -15,7 +15,7 @@ import java.util.Vector;
 public class PDBDataType {
 	/* FIXME: Lulin Song leave 'Age' and 'EM' here. It will be removed in the future when pdb_dataC code[i] matches the new list */
 	public final static String[][] dataCode = {
-				{ "A", "Age" },        /*Kerstin recommend to remove this. But pdb_dataC file use this */
+				{ "AGE", "Age" },        /*Kerstin recommend to remove this. But pdb_dataC file use this */
 				{ "MAJ", "Major" },
 				{ "TE", "Trace" },
 				{ "REE", "Rare Earth" },
@@ -24,7 +24,12 @@ public class PDBDataType {
 				{ "NGAS", "Noble Gas" },
 				{ "VO", "Volatile" },
 				{ "US", "U-Series" },
-				{ "EM", "End Member" } /* Kerstin recommend to remove this. But pdb_dataC file use this */
+				{ "EM", "End Member" }, /* Kerstin recommend to remove this. But pdb_dataC file use this */
+				{ "RT", "Ratio" },
+				{ "MODE", "Rock Mode" },
+				{ "MD", "Model Data" },
+				{ "SPEC", "Speciation Ratio" },
+				{ "GEO", "Geospatial" }
 	};
 	static byte[] group;
 	static byte[][] name;
