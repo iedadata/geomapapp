@@ -307,7 +307,7 @@ public class PDBStationModel extends SortableTableModel {
 			StringBuffer sb = new StringBuffer();
 			boolean tf = false;
 			for( int i=0 ; i<PDBRockType.size() ; i++) {
-				if( s.hasRockType( 1<<i ) ) {
+				if( s.hasRockType( 1L<<i ) ) {
 					if(tf) sb.append("; ");
 					tf = true;
 					sb.append(PDBRockType.rockCode[i][0]);

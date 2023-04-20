@@ -15,8 +15,8 @@ import gov.nasa.worldwind.render.*;
 import gov.nasa.worldwind.util.Logging;
 import gov.nasa.worldwind.view.*;
 
-import javax.media.opengl.GL;
-import javax.media.opengl.GL2;
+import com.jogamp.opengl.GL;
+import com.jogamp.opengl.GL2;
 
 import org.geomapapp.image.Palette;
 
@@ -95,7 +95,7 @@ public class ColorScaleLayer extends AbstractLayer
 				!scaleSupplier.isColorScaleValid()) return;
 		
 		//GL gl = dc.getGL();
-		GL2 gl = dc.getGL().getGL2(); // GL initialization checks for GL2 compatibility.
+		GL2 gl = (GL2)dc.getGL().getGL2(); // GL initialization checks for GL2 compatibility.
 
 		boolean attribsPushed = false;
 		boolean modelviewPushed = false;

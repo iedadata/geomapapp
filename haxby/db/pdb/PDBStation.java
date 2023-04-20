@@ -24,7 +24,7 @@ public class PDBStation {
 	String materialCodes;
 	short itemsMeasured;
 	byte alterationFlags;
-	short rockTypes;
+	long rockTypes;
 	static boolean loaded = false;
 	public static HashMap<String, PDBStation> idToStation = new HashMap<String, PDBStation>();
 
@@ -39,7 +39,7 @@ public class PDBStation {
 			byte materialFlags,
 			short itemsMeasured,
 			byte alterationFlags,
-			short rockTypes ) {
+			long rockTypes ) {
 		if(id.startsWith("@")) {
 			this.id = id.substring(1,id.length());
 			suffix = true;
@@ -113,8 +113,8 @@ public class PDBStation {
 	public boolean hasDataType( int type ) {
 		return ((int)itemsMeasured & type)!=0;
 	}
-	public boolean hasRockType( int type ) {
-		return ((int)rockTypes & type)!=0;
+	public boolean hasRockType( long type ) {
+		return (rockTypes & type)!=0L;
 	}
 //  NOT USED?	
 //	public boolean hasAlterations( int alterations ) {
@@ -175,7 +175,7 @@ public class PDBStation {
 		byte materialFlags;
 		short itemsMeasured;
 		byte alterationFlags;
-		short rockTypes;
+		long rockTypes;
 
 		while ((s = in.readLine())!= null){
 			if (s.startsWith("*/")){
@@ -207,7 +207,7 @@ public class PDBStation {
 					}
 					itemsMeasured = Short.parseShort(results[8]);
 					alterationFlags = Byte.parseByte(results[9]);
-					rockTypes = Short.parseShort(results[10]);
+					rockTypes = Long.parseLong(results[10]);
 					add( new PDBStation( id, samples, expedition, location,
 									sampleTechnique, materialFlags, itemsMeasured,
 									alterationFlags, rockTypes ), index);

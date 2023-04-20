@@ -26,3 +26,4 @@ dist/
 keystore.ldeo
 ssl_certificate.p7b
 voKey
+*.DS_Store

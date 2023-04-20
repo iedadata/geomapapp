@@ -55,6 +55,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
+import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -398,7 +399,7 @@ public class MapApp implements ActionListener,
 							public void actionPerformed(ActionEvent ae) {
 								JMenuItem selectedMI = (JMenuItem) ae.getSource();
 								for (int j = 0; j < frames.length; j++) {
-									if (frames[j].getTitle().matches(selectedMI.getText())) {
+									if (frames[j].getTitle().matches(Pattern.quote(selectedMI.getText()))) {
 										frames[j].toFront();
 									}
 								}
