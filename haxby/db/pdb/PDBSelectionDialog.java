@@ -17,7 +17,8 @@ public class PDBSelectionDialog extends JPanel
 		tb = new JTabbedPane(JTabbedPane.TOP);
 		tb.add( "Filter Parameters", basic);
 		add( tb, "Center");
-		setPreferredSize(new Dimension(450,500) );
+		setPreferredSize(new Dimension(450, 800));
+		setMinimumSize(new Dimension(450, 700));
 	}
 	public JTabbedPane getPane() {
 		return tb;

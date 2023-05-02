@@ -3,10 +3,13 @@ package haxby.db.pdb;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.swing.JOptionPane;
 
 import haxby.map.MapApp;
 import haxby.util.PathUtil;
@@ -18,14 +21,14 @@ public class PDBSample {
 	byte[] id;
 	boolean suffix;
 	PDBBatch[] batch;
-	short rockType;
+	long rockType;
 	int specimenNumber;
 	public static HashMap<String, PDBSample> idToSample = new HashMap<String, PDBSample>();
 
 	static String PETDB_PATH = PathUtil.getPath("PORTALS/PETDB_PATH",
 			MapApp.BASE_URL+"/data/portals/petdb/");
 
-	public PDBSample( int station, String ID, short rockType, int snum) {
+	public PDBSample( int station, String ID, long rockType, int snum) {
 		parent = station;
 		if( ID==null ) ID="";
 		if(ID.startsWith("@")) {
@@ -63,8 +66,8 @@ public class PDBSample {
 		}
 		return getName() +":";
 	}
-	public boolean hasRockType(int type) {
-		return ( (int)rockType & type )!= 0;
+	public boolean hasRockType(long type) {
+		return ( rockType & type )!= 0;
 	}
 	static void unload() {
 		if (sample == null) return;
@@ -78,6 +81,29 @@ public class PDBSample {
 		}
 		batch = null;
 	}
+	
+	public static void load2() {
+		String url_str = PETDB_PATH + "petdb_latest/pdb_dataC.tsv";
+		try {
+			URL url = URLFactory.url(url_str);
+			URLConnection urlConn = url.openConnection();
+			urlConn.setDoInput(true);
+			urlConn.setUseCaches(false);
+			
+			BufferedReader txtReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
+			
+			sample = new HashMap<Integer, PDBSample>();
+		}
+		catch(MalformedURLException mue) {
+			mue.printStackTrace();
+			JOptionPane.showMessageDialog(null, "Malformed URL: " + url_str);
+		}
+		catch(IOException ioe) {
+			ioe.printStackTrace();
+			JOptionPane.showMessageDialog(null, ioe);
+		}
+	}
+	
 	public static void load() throws IOException {
 	//	URL url = URLFactory.url(PETDB_PATH + "June2014/pdb_dataC_new.txt");
 		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/pdb_dataC_new.txt");
@@ -106,7 +132,7 @@ public class PDBSample {
 
 			String id = substrings[index++];
 
-			short rock = Short.parseShort(substrings[index++]);
+			long rock = Long.parseLong(substrings[index++]);
 //System.out.println(station + " " + id + " " + rock + " snum " + snum);
 			PDBSample samp = new PDBSample(station, id, rock, snum);
 			sample.put(snum, samp);

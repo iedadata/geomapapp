@@ -228,10 +228,10 @@ public class BasicDialog extends JPanel
 		}
 		return flags;
 	}
-	public int getRockFlags() {
-		int flags = 0;
+	public long getRockFlags() {
+		long flags = 0;
 		for( int i=0 ; i<rockTypes.length ; i++) {
-			if( rockTypes[i].isSelected() )  flags |= (1<<i);
+			if( rockTypes[i].isSelected() )  flags |= (1L<<i);
 		}
 		return flags;
 	}
