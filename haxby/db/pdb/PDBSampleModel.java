@@ -74,7 +74,7 @@ public class PDBSampleModel extends SortableTableModel {
 		PDBStationModel model = pdb.getModel();
 		int material = model.materialFlags;
 		int data = model.dataFlags;
-		int rock = model.rockFlags;
+		long rock = model.rockFlags;
 		int[] stations = model.current;
 		for(int k=0 ; k<dt.size() ; k++) codes[k]=false;  //dt.size() total number of stations in station model
 		samples = new Vector();
@@ -208,7 +208,7 @@ public class PDBSampleModel extends SortableTableModel {
 		PDBStationModel model = pdb.getModel();
 		int material = model.materialFlags;
 		int data = model.dataFlags;
-		int rock = model.rockFlags;
+		long rock = model.rockFlags;
 		try{ 
 			for( int k=0 ; k<samp.batch.length ; k++) {
 				PDBBatch b = samp.batch[k];

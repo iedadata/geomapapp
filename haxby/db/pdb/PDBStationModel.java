@@ -19,7 +19,7 @@ public class PDBStationModel extends SortableTableModel {
 	public double wrap;
 	public int materialFlags;
 	public int dataFlags;
-	public int rockFlags;
+	public long rockFlags;
 	public int altFlags;
 
 	HashMap stationToIndex;
@@ -29,7 +29,7 @@ public class PDBStationModel extends SortableTableModel {
 	private boolean ascent = true;
 
 	// Column sorter is used in sorting index's of row data
-	// Column sorter compares two PDBStation index's based on lastSortedColumb
+	// Column sorter compares two PDBStation index's based on lastSortedColumn
 	private Comparator columnSorter = new Comparator() {
 		public int compare(Object arg0, Object arg1) {
 			int cmp;
@@ -96,7 +96,7 @@ public class PDBStationModel extends SortableTableModel {
 		selected = new int[0];
 		materialFlags = 0xffff;
 		dataFlags = 0xffff;
-		rockFlags = 0xffff;
+		rockFlags = 0xfffffffffL;
 		altFlags = 0xffff;
 		colName = new String[] { 
 					"Number of Samples",
@@ -157,7 +157,7 @@ public class PDBStationModel extends SortableTableModel {
 		dataFlags = flags;
 		pdb.repaintMap();
 	}
-	public void setRockFlags(int flags) {
+	public void setRockFlags(long flags) {
 		if( flags==rockFlags ) return;
 		rockFlags = flags;
 		pdb.repaintMap();
@@ -290,16 +290,11 @@ public class PDBStationModel extends SortableTableModel {
 		} else if( col==2 ) {
 			StringBuffer sb = new StringBuffer();
 			boolean tf = false;
-			PDBDataType dt = null;
-			try {
-				dt = new PDBDataType();
-			} catch(Exception ex) {
-			}
-			for( int i=0 ; i<dt.dataCode.length ; i++) {
+			for( int i=0 ; i<PDBDataType.size() ; i++) {
 				if( s.hasDataType( 1<<i ) ) {
 					if(tf) sb.append("; ");
 					tf = true;
-					sb.append(dt.dataCode[i][0]);//MAJ,TE,REE etc.
+					sb.append(PDBDataType.getGroupAbbrev(i));//MAJ,TE,REE etc.
 				}
 			}
 			return sb.toString();
@@ -340,6 +335,7 @@ public class PDBStationModel extends SortableTableModel {
 	public String getRowName( int row ) {
 		return PDBStation.get(current[row]).getID();
 	}
+	/*
 	static String[] alterationCode = { "F", "S", "M", "E", "A", "T"};
 	static String[][] materialCode = {
 				{ "WR", "whole rock"},
@@ -360,6 +356,7 @@ public class PDBStationModel extends SortableTableModel {
 				{"V", "volatile" },
 				{"AGE", "age"},
 				{"RM", "rock mode" } };
+	*/
 
 	public void dispose() {
 		stations = null;
