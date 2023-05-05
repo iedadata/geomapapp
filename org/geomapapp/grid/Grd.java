@@ -171,13 +171,13 @@ public class Grd {
 		nc.addGlobalAttribute(node_offset);
 		nc.addVariableAttribute( "x", "long_name", "Longitude" );
 		nc.addVariableAttribute( "x", "units", "degrees_east" );
-		nc.addVariableAttribute( "x", "actual_range", Array.factory( new double[] {wesn[0], wesn[1] } ) );
+		nc.addVariableAttribute( "x", "actual_range", Array.makeFromJavaArray( new double[] {wesn[0], wesn[1] } ) );
 		nc.addVariableAttribute( "y", "long_name", "Latitude" );
 		nc.addVariableAttribute( "y", "units", "degrees_north" );
-		nc.addVariableAttribute( "y", "actual_range", Array.factory( new double[] {wesn[2], wesn[3] } ) );
+		nc.addVariableAttribute( "y", "actual_range", Array.makeFromJavaArray( new double[] {wesn[2], wesn[3] } ) );
 		nc.addVariableAttribute( "z_float", "long_name", "z" );
 		nc.addVariableAttribute( "z_float", "_FillValue", Double.NaN );
-		nc.addVariableAttribute( "z_float", "actual_range", Array.factory( new double[] { (double)minZ, (double)maxZ } ) );
+		nc.addVariableAttribute( "z_float", "actual_range", Array.makeFromJavaArray( new double[] { (double)minZ, (double)maxZ } ) );
 		nc.addVariable(dimensionGroup, x);
 		nc.addVariable(dimensionGroup, y);
 		nc.addVariable(variableGroup, z);
@@ -208,7 +208,7 @@ public class Grd {
 		}
 		nc.create();
 		try {
-			nc.write("z", Array.factory( zTmp ));
+			nc.write("z", Array.makeFromJavaArray( zTmp ));
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		}
