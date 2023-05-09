@@ -56,8 +56,8 @@ public class GetGrid {
      * The base URL from which to pull tile data.
      */
     // Uses Path Util to get path from xml file.
-	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
-	public static String mb_base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
+	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH").replaceFirst("current", (MapApp.AT_SEA)?(MapApp.which_os.gmrt_current):("current"));
+	public static String mb_base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH").replaceFirst("current", (MapApp.AT_SEA)?(MapApp.which_os.gmrt_current):("current"));
 	
     /**
      * relative paths to data directories

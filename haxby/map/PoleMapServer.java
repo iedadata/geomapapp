@@ -47,8 +47,8 @@ public class PoleMapServer {
 	static boolean loaded = true;
 
 	public static String base[] = {
-		PathUtil.getPath("GMRT_LATEST/SP_TILE_PATH"),
-		PathUtil.getPath("GMRT_LATEST/NP_TILE_PATH"),
+		PathUtil.getPath("GMRT_LATEST/SP_TILE_PATH").replaceFirst("current", (MapApp.AT_SEA)?(MapApp.which_os.gmrt_current):("current")),
+		PathUtil.getPath("GMRT_LATEST/NP_TILE_PATH").replaceFirst("current", (MapApp.AT_SEA)?(MapApp.which_os.gmrt_current):("current")),
 	};
 
 	static int baseRes[] = {
