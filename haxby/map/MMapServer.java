@@ -70,7 +70,12 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 	static Vector masks = new Vector(CACHE_SIZE);
 	static byte[][] coverage=null;
 
-	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_TILE_PATH").replaceFirst("current", (MapApp.AT_SEA)?(MapApp.which_os.gmrt_current):("current"));
+	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_TILE_PATH");
+	static {
+		if(MapApp.AT_SEA) {
+			base = base.replaceFirst("current", MapApp.which_os.gmrt_current);
+		}
+	}
 	//public static String[] splitBase = base.split("/");
 	public static String GMRT_VERSION_FILE = "gmrt_version/version";
 
@@ -88,7 +93,10 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 		
 			PathUtil.replacePlaceHolder("$GMRT_VERSION", versionNum);
 			if (base.contains("$GMRT_VERSION")) {
-				base = PathUtil.getPath("GMRT_LATEST/MERCATOR_TILE_PATH").replaceFirst("current", (MapApp.AT_SEA)?(MapApp.which_os.gmrt_current):("current"));
+				base = PathUtil.getPath("GMRT_LATEST/MERCATOR_TILE_PATH");
+				if(MapApp.AT_SEA) {
+					base = base.replaceFirst("current", MapApp.which_os.gmrt_current);
+				}
 			}
 		} catch (Exception e) {
 			System.err.println("Not able to find GMRT Version");
