@@ -10,6 +10,7 @@ import java.awt.Rectangle;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.OutputStream;
+import java.nio.file.Paths;
 import java.io.FileOutputStream;
 
 import org.geomapapp.grid.Grid2D;
@@ -56,8 +57,14 @@ public class GetGrid {
      * The base URL from which to pull tile data.
      */
     // Uses Path Util to get path from xml file.
-	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH").replaceFirst("current", (MapApp.AT_SEA)?(MapApp.which_os.gmrt_current):("current"));
-	public static String mb_base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH").replaceFirst("current", (MapApp.AT_SEA)?(MapApp.which_os.gmrt_current):("current"));
+	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
+	public static String mb_base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
+	static {
+		if(MapApp.AT_SEA) {
+			base = base.replaceFirst("current", MapApp.which_os.gmrt_current);
+			mb_base = mb_base.replaceFirst("current", MapApp.which_os.gmrt_current);
+		}
+	}
 	
     /**
      * relative paths to data directories
