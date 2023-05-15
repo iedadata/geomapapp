@@ -82,28 +82,6 @@ public class PDBSample {
 		batch = null;
 	}
 	
-	public static void load2() {
-		String url_str = PETDB_PATH + "petdb_latest/pdb_dataC.tsv";
-		try {
-			URL url = URLFactory.url(url_str);
-			URLConnection urlConn = url.openConnection();
-			urlConn.setDoInput(true);
-			urlConn.setUseCaches(false);
-			
-			BufferedReader txtReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
-			
-			sample = new HashMap<Integer, PDBSample>();
-		}
-		catch(MalformedURLException mue) {
-			mue.printStackTrace();
-			JOptionPane.showMessageDialog(null, "Malformed URL: " + url_str);
-		}
-		catch(IOException ioe) {
-			ioe.printStackTrace();
-			JOptionPane.showMessageDialog(null, ioe);
-		}
-	}
-	
 	public static void load() throws IOException {
 	//	URL url = URLFactory.url(PETDB_PATH + "June2014/pdb_dataC_new.txt");
 		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/pdb_dataC_new.txt");
