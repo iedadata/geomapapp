@@ -67,7 +67,7 @@ public class PDBSample {
 		return getName() +":";
 	}
 	public boolean hasRockType(long type) {
-		return ( rockType & type )!= 0;
+		return ( rockType & type )!= 0L;
 	}
 	static void unload() {
 		if (sample == null) return;
