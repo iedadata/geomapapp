@@ -56,6 +56,7 @@ public class BasicDialog extends JPanel
 		// Add check boxes
 		for(int i=0 ; i<materials.length ; i++) {
 			materials[i] = new JCheckBox(PDBMaterial.material[i].abbrev + ": " + PDBMaterial.material[i].name, true);
+			materials[i].setToolTipText(materials[i].getText());
 			panel.add(materials[i]);
 			materials[i].addActionListener(this);
 			materials[i].setActionCommand("material");
@@ -101,6 +102,7 @@ public class BasicDialog extends JPanel
 		// Add checkboxes
 		for(int i=0 ; i<dataTypes.length ; i++) {
 			dataTypes[i] = new JCheckBox(PDBDataType.dataCode[i][0] + ": " +PDBDataType.dataCode[i][1], true);
+			dataTypes[i].setToolTipText(dataTypes[i].getText());
 			panel.add(dataTypes[i]);
 			dataTypes[i].addActionListener(this);
 			dataTypes[i].setActionCommand("dataType");
@@ -146,6 +148,7 @@ public class BasicDialog extends JPanel
 		for(int i=0 ; i<rockTypes.length ; i++) {
 			String rockDisplay = (PDBRockType.rock[i].abbrev + ": " + PDBRockType.rock[i].name);
 			rockTypes[i] = new JCheckBox(PDBRockType.rock[i].abbrev + ": " + PDBRockType.rock[i].name, true);
+			rockTypes[i].setToolTipText(rockTypes[i].getText());
 			panel.add(rockTypes[i]);
 			rockTypes[i].addActionListener(this);
 			rockTypes[i].setActionCommand("rockType");
