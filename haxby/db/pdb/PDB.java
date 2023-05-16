@@ -1081,8 +1081,8 @@ public class PDB implements Database,
 		dialog = new JPanel( new BorderLayout() );
 
 		//Set a min size width and height
-		dialog.setMinimumSize(new Dimension(438, 800));
-		dialog.setPreferredSize(new Dimension(438, 800));
+		dialog.setMinimumSize(new Dimension(438, 1000));
+		dialog.setPreferredSize(new Dimension(438, 1000));
 		
 
 		JPanel p = new JPanel(new GridLayout(0,1));

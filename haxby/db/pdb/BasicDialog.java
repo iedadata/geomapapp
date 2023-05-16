@@ -42,6 +42,7 @@ public class BasicDialog extends JPanel
 		int n = dt.dataCode.length;
 		if(  PDBMaterial.size() > max ) max = PDBMaterial.size();
 		if(  n > max ) max = n;
+		if(max < PDBRockType.size()) max = PDBRockType.size();
 
 		// Material section
 		materials = new JToggleButton[PDBMaterial.size()];
@@ -106,6 +107,11 @@ public class BasicDialog extends JPanel
 			dataTypes[i].setSelected( true );
 			dataTypes[i].setBorder(on);
 		}
+		for(int i = dataTypes.length; i < max; i++) {
+			label = new JLabel("");
+			label.setBorder(lb1);
+			panel.add(label);
+		}
 
 		// Add buttons
 		JRadioButton buttonS2 = new JRadioButton("Select All");
@@ -145,6 +151,11 @@ public class BasicDialog extends JPanel
 			rockTypes[i].setActionCommand("rockType");
 			rockTypes[i].setSelected( true );
 			rockTypes[i].setBorder(on);
+		}
+		for(int i = rockTypes.length; i < max; i++) {
+			label = new JLabel("");
+			label.setBorder(lb1);
+			panel.add(label);
 		}
 
 		// Add buttons
