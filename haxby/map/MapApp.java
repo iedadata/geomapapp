@@ -1288,7 +1288,7 @@ public class MapApp implements ActionListener,
 
 		dialog = new JPanel(new BorderLayout());
 		dialog.add( panel, "North");
-		dialog.setPreferredSize(new Dimension(125, 700));
+		dialog.setPreferredSize(new Dimension(125, 1000));
 		dialog.setMinimumSize(new Dimension(125,8));
 		// For vPane Panel to scroll
 		dialogScroll = new JScrollPane(dialog);
