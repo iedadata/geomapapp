@@ -8,11 +8,17 @@ import haxby.util.URLFactory;
 
 import java.awt.geom.Point2D;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class PDBLocation {
 	static PDBLocation[] locations = null;
@@ -28,7 +34,7 @@ public class PDBLocation {
 	public PDBLocation( float lon, float lat, short[] elev ) {
 		this.lon = lon;
 		this.lat = lat;
-		//this.elev = elev; // not used?
+		this.elev = elev; // not used?
 		x = y = Float.NaN;
 	}
 	public void project( Projection proj ) {
@@ -67,8 +73,9 @@ public class PDBLocation {
 	}
 	public static void load() throws IOException {
 		if( loaded ) return;
+		
 		//URL url = URLFactory.url(PETDB_PATH + "June2014/locations_new.txt"); 
-		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/locations_new.txt");
+		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/pdb_locations_new.tsv");
 		URLConnection urlConn = url.openConnection();
 		urlConn.setDoInput(true); 
 		urlConn.setUseCaches(false);
@@ -81,28 +88,29 @@ public class PDBLocation {
 		float lon, lat;
 		short[] elev = new short[2];
 
+		//first read the header
+		s = in.readLine();
+		
+		//now read the data
+		SortedMap<Integer, PDBLocation> locations_map = new TreeMap<>();
 		while ((s = in.readLine())!= null){
-			if (s.startsWith("*/")){
-				int n =Integer.parseInt(in.readLine());
-				init(n);
-				while (true) try{
-					s = in.readLine();
-					String [] results = s.split("\\t");
-					if (results.length < 3) continue;
-					index = Integer.parseInt(results[0]);
-					lon = Float.parseFloat(results[1]);
-					lat = Float.parseFloat(results[2]);
-					// elev not used?
-				//	elev[0] = Short.parseShort(results[3]);
-				//	elev[1] = Short.parseShort(results[4]);
-					/* Lulin Changed to the following. elevation min and max are floats in database. */
-					//elev[0] = (short)Float.parseFloat(results[3]);
-					//elev[1] = (short)Float.parseFloat(results[4]);
-					add( new PDBLocation( lon, lat, elev ), index);
-				} catch (NullPointerException ex) {
-					break;
-				}
-			}
+			String [] results = s.split("\\t");
+			if (results.length < 3) continue;
+			index = Integer.parseInt(results[0]);
+			lon = Float.parseFloat(results[1]);
+			lat = Float.parseFloat(results[2]);
+			// elev not used?
+		//	elev[0] = Short.parseShort(results[3]);
+		//	elev[1] = Short.parseShort(results[4]);
+			/* Lulin Changed to the following. elevation min and max are floats in database. */
+			//elev[0] = (short)Float.parseFloat(results[3]);
+			//elev[1] = (short)Float.parseFloat(results[4]);
+			//add( new PDBLocation( lon, lat, elev ), index);
+			locations_map.put(index, new PDBLocation(lon, lat, elev));
+		}
+		init(locations_map.lastKey());
+		for(Integer i : locations_map.keySet()) {
+			add(locations_map.get(i), i);
 		}
 		try {
 			in.close();

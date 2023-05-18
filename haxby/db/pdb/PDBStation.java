@@ -6,11 +6,17 @@ import haxby.util.URLFactory;
 
 import java.awt.geom.Point2D;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
+
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class PDBStation {
 	public static PDBStation[] stations = null;
@@ -132,7 +138,9 @@ public class PDBStation {
 			stations = tmp;
 		}
 		stations[index] = station;
-		idToStation.put(station.id, station);
+		if(null != null) {
+			idToStation.put(station.id, station);
+		}
 	}
 	static int trimToSize() {
 		int k;
@@ -158,8 +166,9 @@ public class PDBStation {
 
 	public static void load() throws IOException {
 		if(loaded) return;
+
+		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/pdb_stations_new.tsv");
 		//URL url = URLFactory.url(PETDB_PATH + "June2014/stations_new.txt");
-		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/stations_new.txt");
 		URLConnection urlConn = url.openConnection();
 		urlConn.setDoInput(true);
 		urlConn.setUseCaches(false);
@@ -176,48 +185,57 @@ public class PDBStation {
 		short itemsMeasured;
 		byte alterationFlags;
 		long rockTypes;
-
+		
+		//first read the header
+		s = in.readLine();
+		
+		//then read the data
+		SortedMap<Integer, PDBStation> stations_map = new TreeMap<>();
 		while ((s = in.readLine())!= null){
-			if (s.startsWith("*/")){
-				int n =Integer.parseInt(in.readLine());
-				init(n);
-
-				while (true) try{
-					s = in.readLine();
-					String [] results = s.split("\\t");
-					if (results.length != 11) continue;
-					index = Integer.parseInt(results[0]);
-					id = results[1];
-					expedition =  results[2].length() > 0 ? Integer.parseInt(results[2]) : 0;
-					location = Integer.parseInt(results[3]);
-					samples = new long[Short.parseShort(results[4])];
-					String [] sampleItems = results[5].split(",");
-					for( int i=0 ; i<samples.length ; i++) {
-						samples[i] = Long.parseLong(sampleItems[i]);
-					}
-					try {
-						sampleTechnique = Byte.parseByte(results[6]);
-					} catch(Exception e) {
-						sampleTechnique = 0;
-					}
-					try {
-						materialFlags = Byte.parseByte(results[7]);
-					} catch(Exception e) {
-						continue;
-					}
-					itemsMeasured = Short.parseShort(results[8]);
-					alterationFlags = Byte.parseByte(results[9]);
-					rockTypes = Long.parseLong(results[10]);
-					add( new PDBStation( id, samples, expedition, location,
-									sampleTechnique, materialFlags, itemsMeasured,
-									alterationFlags, rockTypes ), index);
-					if( PDBLocation.locations[location]==null) {
-						stations[index]=null;
-					}
-				} catch (NullPointerException ex) {
-					break;
-				}
+			String [] results = s.split("\\t");
+			if (results.length != 11) continue;
+			index = Integer.parseInt(results[0]);
+			id = results[1];
+			expedition =  results[2].length() > 0 ? Integer.parseInt(results[2]) : 0;
+			location = Integer.parseInt(results[3]);
+			if(PDBLocation.locations[location] == null) {
+				stations_map.put(index, null);
 			}
+			else {
+				samples = new long[Short.parseShort(results[4])];
+				String [] sampleItems = results[5].split(",");
+				for( int i=0 ; i<samples.length ; i++) {
+					samples[i] = Long.parseLong(sampleItems[i]);
+				}
+				try {
+					sampleTechnique = Byte.parseByte(results[6]);
+				} catch(Exception e) {
+					sampleTechnique = 0;
+				}
+				try {
+					materialFlags = Byte.parseByte(results[7]);
+				} catch(Exception e) {
+					continue;
+				}
+				itemsMeasured = Short.parseShort(results[8]);
+				alterationFlags = Byte.parseByte(results[9]);
+				rockTypes = Long.parseLong(results[10]);
+				stations_map.put(index, new PDBStation(id, samples, expedition, location,
+											sampleTechnique, materialFlags, itemsMeasured,
+											alterationFlags, rockTypes));
+			}
+			/*
+			add( new PDBStation( id, samples, expedition, location,
+							sampleTechnique, materialFlags, itemsMeasured,
+							alterationFlags, rockTypes ), index);
+			if( PDBLocation.locations[location]==null) {
+				stations[index]=null;
+			}
+			*/
+		}
+		init(stations_map.size());
+		for(Integer i : stations_map.keySet()) {
+			add(stations_map.get(i), i);
 		}
 
 		try {
