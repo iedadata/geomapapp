@@ -47,7 +47,7 @@ public class PDBDataType {
 		if( initiallized ) return;
 		Vector<String[]> v = new Vector<String[]>();
 		//URL url = URLFactory.url(PETDB_PATH + "June2014/item_codeA_new.txt");
-		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/item_codeA_new.txt");
+		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/pdb_item_codeA_new.tsv");
 		URLConnection urlConn = url.openConnection();
 		urlConn.setDoInput(true); 
 		urlConn.setUseCaches(false);
