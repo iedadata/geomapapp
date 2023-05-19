@@ -59,7 +59,6 @@ public class PDBDataType {
 		//then the data
 		while( (s=in.readLine()) != null) {
 			String [] results = s.split("\\t");
-			//The first column in the file is skipped. It is used for pdb_dataC.txt file.
 			v.add( new String[] {results[0], 
 					results[1], 
 					results[2], 
