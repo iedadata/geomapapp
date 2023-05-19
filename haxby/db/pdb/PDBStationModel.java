@@ -290,11 +290,11 @@ public class PDBStationModel extends SortableTableModel {
 		} else if( col==2 ) {
 			StringBuffer sb = new StringBuffer();
 			boolean tf = false;
-			for( int i=0 ; i<PDBDataType.size() ; i++) {
+			for( int i=0 ; i<PDBDataType.getGroupSize() ; i++) {
 				if( s.hasDataType( 1<<i ) ) {
 					if(tf) sb.append("; ");
 					tf = true;
-					sb.append(PDBDataType.getGroupAbbrev(i));//MAJ,TE,REE etc.
+					sb.append(PDBDataType.dataCode[i][0]);//MAJ,TE,REE etc.
 				}
 			}
 			return sb.toString();
