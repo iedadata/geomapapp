@@ -138,7 +138,7 @@ public class PDBStation {
 			stations = tmp;
 		}
 		stations[index] = station;
-		if(null != null) {
+		if(null != station) {
 			idToStation.put(station.id, station);
 		}
 	}
