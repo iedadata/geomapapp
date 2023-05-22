@@ -178,7 +178,7 @@ public class MBTracks implements Database, Overlay, MouseListener {
 
 		Map<String, String> hashSha1Map = new HashMap<String, String>();
 		
-		Float versionGMRT = Float.parseFloat(MapApp.versionGMRT);	
+		//Float versionGMRT = Float.parseFloat(MapApp.versionGMRT);	
 		try {
 			DataInputStream in = null;
 			File inf = null;
