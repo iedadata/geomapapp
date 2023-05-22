@@ -26,3 +26,9 @@ dist/
 keystore.ldeo
 ssl_certificate.p7b
 voKey
+
+#other files
+haxby_org
+*.swp
+*.swo
+build_tmp

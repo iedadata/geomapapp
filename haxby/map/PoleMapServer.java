@@ -50,6 +50,13 @@ public class PoleMapServer {
 		PathUtil.getPath("GMRT_LATEST/SP_TILE_PATH"),
 		PathUtil.getPath("GMRT_LATEST/NP_TILE_PATH"),
 	};
+	static {
+		if(MapApp.AT_SEA) { 
+			for(int i = 0; i < base.length; i++) {
+				base[i] = base[i].replaceFirst("current", MapApp.which_os.gmrt_current);
+			}
+		}
+	}
 
 	static int baseRes[] = {
 		64,

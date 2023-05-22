@@ -156,6 +156,8 @@ import haxby.wms.WMS_ESPG_3031_Overlay;
 import haxby.wms.WMS_ESPG_4326_Overlay;
 import haxby.wms.XML_Layer;
 
+import org.geomapapp.util.OSAdjustment;
+
 public class MapApp implements ActionListener,
 							   KeyListener {
 
@@ -172,7 +174,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.15"; // 08/29/2022
+	public final static String VERSION = "3.6.16"; // 08/29/2022
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
@@ -325,6 +327,8 @@ public class MapApp implements ActionListener,
 	protected Object autoFocusLock = new Object(); // Lock Object for the autoFocus method
 	protected Object processingTaskLock = new Object();
 	protected Object silentProcessingTaskLock = new Object();
+	
+	public static OSAdjustment.OS which_os = OSAdjustment.getOS();
 
 	public static JFileChooser chooser = null;
 	public static ArrayList<String> portal_commands;
