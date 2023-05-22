@@ -5,8 +5,8 @@ public class PDBMaterial {
 	public final static String[][] materialCode = {
 				{ "WR", "Whole Rock"}, //1				db = 8				--> material bit shift = 0
 				{ "GL", "Glass" }, //2 					db = 3				--> material bit shift = 1
-				{ "ROCK", "Rock (unspec.)" } //4		db = 7				--> material bit shift = 2
-				//{ "MIN", "mineral"}, //8				db = 6				--> material bit shift = 3
+				{ "ROCK", "Rock (unspec.)" }, //4		db = 7				--> material bit shift = 2
+				{ "MIN", "mineral"} //8				db = 6				--> material bit shift = 3
 				//{ "INC", "inclusion" }, //16			db = 5				--> material bit shift = 4
 				//{ "CC", "CC" }, // 32 				db = 1				--> material bit shift = 5
 				//{ "G", "G" }, // 64					db = no longer there--> material bit shift = 6

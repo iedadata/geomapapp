@@ -9,11 +9,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class PDBExpedition {
 	static PDBExpedition[] expeditions = null;
@@ -83,11 +88,13 @@ public class PDBExpedition {
 	}
 	public static void load() throws IOException {
 		if(loaded) return;
+		
 		//URL url = URLFactory.url(PETDB_PATH + "June2014/expeditions_new.txt");
-		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/expeditions_new.txt");
+		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/pdb_expeditions_new.tsv");
 		URLConnection urlConn = url.openConnection();
 		urlConn.setDoInput(true); 
 		urlConn.setUseCaches(false);
+		
 
 		BufferedReader in = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
 //		BufferedReader in = new BufferedReader(new FileReader("C:\\Users\\Lulin Song\\workspace\\GMA-PetDB-Portal-Branch\\GeoMapApp\\haxby\\db\\pdb\\expeditions_new.txt"));
@@ -98,28 +105,29 @@ public class PDBExpedition {
 		String code, s;
 		short[] chiefs;
 
+		//read the header first
+		s = in.readLine();
+		//now read the body
+		SortedMap<Integer, PDBExpedition> expeditions_map = new TreeMap<>();
 		while ((s = in.readLine())!= null){
-			if (s.startsWith("*/")){
-				int n =Integer.parseInt(in.readLine());
-				init(n);
-				while (true) try{
-					s = in.readLine();
-					String [] results = s.split("\\t");
-					index = Integer.parseInt(results[0]);
-					start = Short.parseShort(results[1]);
-					institution = Short.parseShort(results[2]);
-					code = results[3];
-					chiefs = new short[Byte.parseByte(results[4])];
-					for(int k=0 ; k<chiefs.length ; k++){
-						short cheifName = Short.parseShort(results[4 + k]);
-						chiefs[k]= cheifName;
-					}
-					add( new PDBExpedition(code, start, institution, chiefs), index);
-				} catch (NullPointerException ex) {
-					break;
-				}
+			String [] results = s.split("\\t");
+			index = Integer.parseInt(results[0]);
+			start = Short.parseShort(results[1]);
+			institution = Short.parseShort(results[2]);
+			code = results[3];
+			chiefs = new short[Byte.parseByte(results[4])];
+			for(int k=0 ; k<chiefs.length ; k++){
+				short cheifName = Short.parseShort(results[4 + k]);
+				chiefs[k]= cheifName;
 			}
+			//add( new PDBExpedition(code, start, institution, chiefs), index);
+			expeditions_map.put(index, new PDBExpedition(code, start, institution, chiefs));
 		}
+		init(expeditions_map.lastKey());
+		for(Integer i : expeditions_map.keySet()) {
+			add(expeditions_map.get(i), i);
+		}
+		
 		try {
 			in.close();
 		} catch ( IOException ex ) {
