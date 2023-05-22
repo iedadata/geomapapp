@@ -68,7 +68,7 @@ public class PDBAnalysisModel extends SortableTableModel {
 		PDBStationModel model = pdb.getModel();
 		int material = model.materialFlags;
 		int data = model.dataFlags;
-		int rock = model.rockFlags;
+		long rock = model.rockFlags;
 		int[] stations = model.current;
 		int[] currentStations = new int[stations.length];
 		for(int k=0 ; k<dt.size() ; k++) codes[k]=false;
