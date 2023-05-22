@@ -93,7 +93,8 @@ public class BaseMapSelect implements ActionListener {
 
 		infoLabel = new JLabel("<html>Created By: William F. Haxby <font size=2>('03-'06)</font>, William B.F. Ryan <font size=2>('03-'12)</font></font>" +
 				"<br>Development and Design: "
-				+ "Neville Shane <font size=2>('16-present)</font>, "
+				+ "Alex Strong <font size=2>('23-present)</font>, "
+				+ "Neville Shane <font size=2>('16-'22)</font>, "
 				+ "John Morton <font size=2>('10-present)</font>, "
 				+ "Sze-Man(Samantha) Chan <font size=2>('09-'15)</font>, "
 				+ "<br>&#09;"
