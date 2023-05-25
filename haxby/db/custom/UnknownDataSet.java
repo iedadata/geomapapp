@@ -960,7 +960,7 @@ public class UnknownDataSet implements MouseListener,
 						shape.lineTo(d.x, d.y);
 						//if this point and next point aren't in the visible map, pick up the pen
 						//and stop drawing.
-						if (!rect.contains(d.x, d.y) && (next != null && !rect.contains(next.x, next.y)) ) start = true;
+						if (!rect.contains(d_x, d.y) && (next != null && !rect.contains(next_x, next.y)) ) start = true;
 					}
 
 					// if this is the end of the track, exit loop and draw it
