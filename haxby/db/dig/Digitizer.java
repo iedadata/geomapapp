@@ -78,7 +78,7 @@ public class Digitizer implements Database,
 	DigitizerObject currentObject;
 	int lastSelectedIndex;
 	public JToggleButton startStopBtn;
-	public JButton deleteBtn, helpBtn, saveBtn, deletePtsBtn, addBtn;
+	public JButton deleteBtn, helpBtn, saveBtn, deletePtsBtn, addBtn, insertBtn;
 	JCheckBox autoscaleCB;
 	public JRadioButton greatCircleRB, straightLineRB;
 	public JTextField speedTF;
@@ -192,7 +192,12 @@ public class Digitizer implements Database,
 		deleteBtn.addActionListener(this);
 		panel.add(deleteBtn);
 		
-		addBtn = new JButton("Add to segment");
+		insertBtn = new JButton("Insert before selected point");
+		insertBtn.addActionListener(this);
+		insertBtn.setEnabled(false);
+		panel.add(insertBtn);
+		
+		addBtn = new JButton("Append to segment");
 		addBtn.addActionListener(this);
 		addBtn.setEnabled(false);
 		panel.add(addBtn);
@@ -434,6 +439,9 @@ public class Digitizer implements Database,
 					ex.printStackTrace();
 				}
 		}
+		if(evt.getSource() == insertBtn) {
+			JOptionPane.showMessageDialog(null, "You clicked insert");
+		}
 		if(evt.getSource() == deleteBtn) {
 			//get selected indices from list
 			int[] selectedIndices = list.getSelectedIndices();
@@ -525,6 +533,7 @@ public class Digitizer implements Database,
 	}
 	public void mouseClicked( MouseEvent evt ) {
 		if (table.getSelectedRows().length == 0) deletePtsBtn.setEnabled(false);
+		insertBtn.setEnabled(table.getSelectedRows().length == 1);
 		//make sure Digitizer is at the top of the Layer Manager so that segments can be displayed
 		moveDigitizerLayerToTop();
 		if( evt.getSource()==list ) {
