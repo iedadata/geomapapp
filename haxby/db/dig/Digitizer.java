@@ -76,6 +76,8 @@ public class Digitizer implements Database,
 	JPanel tools;
 	boolean enabled;
 	DigitizerObject currentObject;
+	private DigitizerObject inserterObject;
+	private int lastPointSelected;
 	int lastSelectedIndex;
 	public JToggleButton startStopBtn;
 	public JButton deleteBtn, helpBtn, saveBtn, deletePtsBtn, addBtn, insertBtn;
@@ -102,6 +104,7 @@ public class Digitizer implements Database,
 		this.map = map;
 		objects = new Vector<Object>();
 		currentObject = null;
+		inserterObject = null;
 		model = new DigListModel( this );
 		list = new JList(model);
 		list.setCellRenderer( new DigCellRenderer() );
@@ -399,6 +402,15 @@ public class Digitizer implements Database,
 						obj_ind++;
 					} else {
 						editing = false;
+						if(null != inserterObject) {
+							inserterObject.finish();
+							LineSegmentsObject temp = (LineSegmentsObject) inserterObject;
+							((LineSegmentsObject)currentObject).insertPoints(lastPointSelected, temp);
+							((LineSegmentsObject)currentObject).getProfile();
+							map.repaint();
+							currentObject.redraw();
+							inserterObject = null;
+						}
 					}
 					
 					for( int k=0 ; k<objects.size() ; k++ ) {
@@ -441,6 +453,30 @@ public class Digitizer implements Database,
 		}
 		if(evt.getSource() == insertBtn) {
 			JOptionPane.showMessageDialog(null, "You clicked insert");
+			lastPointSelected = table.getSelectedRow();
+			// similar to Start Digitizing
+			startStopBtn.setSelected(true);
+			//make sure zoom and pan buttons are de-selected
+			map.getMapTools().selectB.doClick();
+			//always default to Digitized Points
+			tabs[0].doClick();
+			saveBtn.setEnabled(false);
+			map.removeMouseListener( this );
+			map.removeMouseMotionListener( this );
+			map.removeKeyListener( this );
+			listening = false;
+			try {
+				Class[] classes = new Class[] { map.getClass(), getClass() };
+				Object[] objects = new Object[] { map, this };
+				inserterObject = (DigitizerObject) 
+						objectClasses[1].getConstructor(classes).newInstance(objects);
+				currentObject = (LineSegmentsObject) table.getModel();
+				inserterObject.start();
+				editing = true;
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
 		}
 		if(evt.getSource() == deleteBtn) {
 			//get selected indices from list
