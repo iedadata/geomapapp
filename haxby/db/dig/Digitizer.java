@@ -196,8 +196,9 @@ public class Digitizer implements Database,
 		panel.add(deleteBtn);
 		
 		insertBtn = new JButton("Insert before selected point");
+		insertBtn.setToolTipText("Insert new points before the selected point.");
 		insertBtn.addActionListener(this);
-		insertBtn.setEnabled(false);
+		insertBtn.setEnabled(true);
 		panel.add(insertBtn);
 		
 		addBtn = new JButton("Append to segment");
@@ -452,30 +453,35 @@ public class Digitizer implements Database,
 				}
 		}
 		if(evt.getSource() == insertBtn) {
-			JOptionPane.showMessageDialog(null, "You clicked insert");
-			lastPointSelected = table.getSelectedRow();
-			// similar to Start Digitizing
-			startStopBtn.setSelected(true);
-			//make sure zoom and pan buttons are de-selected
-			map.getMapTools().selectB.doClick();
-			//always default to Digitized Points
-			tabs[0].doClick();
-			saveBtn.setEnabled(false);
-			map.removeMouseListener( this );
-			map.removeMouseMotionListener( this );
-			map.removeKeyListener( this );
-			listening = false;
-			try {
-				Class[] classes = new Class[] { map.getClass(), getClass() };
-				Object[] objects = new Object[] { map, this };
-				inserterObject = (DigitizerObject) 
-						objectClasses[1].getConstructor(classes).newInstance(objects);
-				currentObject = (LineSegmentsObject) table.getModel();
-				inserterObject.start();
-				editing = true;
+			if(table.getSelectedRows().length != 1) {
+				JOptionPane.showMessageDialog(null, "Please select a point from the table.", "", JOptionPane.PLAIN_MESSAGE);
 			}
-			catch(Exception e) {
-				e.printStackTrace();
+			else {
+				JOptionPane.showMessageDialog(null, "The previously digitized points will temporarily disappear from the table while new points are being chosen.", "", JOptionPane.PLAIN_MESSAGE);
+				lastPointSelected = table.getSelectedRow();
+				// similar to Start Digitizing
+				startStopBtn.setSelected(true);
+				//make sure zoom and pan buttons are de-selected
+				map.getMapTools().selectB.doClick();
+				//always default to Digitized Points
+				tabs[0].doClick();
+				saveBtn.setEnabled(false);
+				map.removeMouseListener( this );
+				map.removeMouseMotionListener( this );
+				map.removeKeyListener( this );
+				listening = false;
+				try {
+					Class[] classes = new Class[] { map.getClass(), getClass() };
+					Object[] objects = new Object[] { map, this };
+					inserterObject = (DigitizerObject) 
+							objectClasses[1].getConstructor(classes).newInstance(objects);
+					currentObject = (LineSegmentsObject) table.getModel();
+					inserterObject.start();
+					editing = true;
+				}
+				catch(Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		if(evt.getSource() == deleteBtn) {
@@ -569,7 +575,7 @@ public class Digitizer implements Database,
 	}
 	public void mouseClicked( MouseEvent evt ) {
 		if (table.getSelectedRows().length == 0) deletePtsBtn.setEnabled(false);
-		insertBtn.setEnabled(table.getSelectedRows().length == 1);
+		insertBtn.setEnabled(table.getSelectedRows().length <= 1);
 		//make sure Digitizer is at the top of the Layer Manager so that segments can be displayed
 		moveDigitizerLayerToTop();
 		if( evt.getSource()==list ) {
@@ -684,7 +690,7 @@ public class Digitizer implements Database,
 		if(evt.getSource() == table) {
 			map.repaint();
 			redraw();
-			insertBtn.setEnabled(table.getSelectedRows().length == 1);
+			insertBtn.setEnabled(table.getSelectedRows().length <= 1);
 			if (tabs[0].isSelected() && table.getSelectedRows().length > 0) {
 				deletePtsBtn.setEnabled(true);
 			}
