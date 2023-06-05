@@ -639,10 +639,18 @@ public class Digitizer implements Database,
 				JTextArea text = new JTextArea(sb.toString());
 				text.selectAll();
 				text.cut();
-/*
+
 			} else if( evt.getKeyCode() == evt.VK_A ) {
 				table.selectAll();
-*/
+
+			}
+		}
+		if(evt.getSource() == table) {
+			map.repaint();
+			redraw();
+			insertBtn.setEnabled(table.getSelectedRows().length == 1);
+			if (tabs[0].isSelected() && table.getSelectedRows().length > 0) {
+				deletePtsBtn.setEnabled(true);
 			}
 		}
 		if(evt.isControlDown() && evt.getKeyCode() == KeyEvent.VK_S ) {
