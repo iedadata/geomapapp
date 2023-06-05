@@ -530,6 +530,13 @@ public class LineSegmentsObject extends DBTableModel
 		}
 	}
 	
+	void insertPoints(int beforeIndex, LineSegmentsObject other) {
+		other.updatePoints();
+		for(int i = other.points.size()-1; i >= 0; i--) {
+			points.add(beforeIndex, other.points.get(i));
+		}
+	}
+	
 	public double getZ(Point2D p) {
 		if( map.getFocus()==null )return Double.NaN;
 		return map.getFocus().getZ(map.getProjection().getRefXY(p));
