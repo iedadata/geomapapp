@@ -198,7 +198,7 @@ public class Digitizer implements Database,
 		insertBtn = new JButton("Insert before selected point");
 		insertBtn.setToolTipText("Insert new points before the selected point.");
 		insertBtn.addActionListener(this);
-		insertBtn.setEnabled(true);
+		insertBtn.setEnabled(false);
 		panel.add(insertBtn);
 		
 		addBtn = new JButton("Append to segment");
@@ -575,7 +575,7 @@ public class Digitizer implements Database,
 	}
 	public void mouseClicked( MouseEvent evt ) {
 		if (table.getSelectedRows().length == 0) deletePtsBtn.setEnabled(false);
-		insertBtn.setEnabled(table.getSelectedRows().length <= 1);
+		insertBtn.setEnabled(table.getSelectedRows().length == 1);
 		//make sure Digitizer is at the top of the Layer Manager so that segments can be displayed
 		moveDigitizerLayerToTop();
 		if( evt.getSource()==list ) {
@@ -690,7 +690,7 @@ public class Digitizer implements Database,
 		if(evt.getSource() == table) {
 			map.repaint();
 			redraw();
-			insertBtn.setEnabled(table.getSelectedRows().length <= 1);
+			insertBtn.setEnabled(table.getSelectedRows().length == 1);
 			if (tabs[0].isSelected() && table.getSelectedRows().length > 0) {
 				deletePtsBtn.setEnabled(true);
 			}
