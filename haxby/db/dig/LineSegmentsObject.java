@@ -29,6 +29,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.event.ListSelectionEvent;
 
 import org.geomapapp.geom.XYZ;
 import org.geomapapp.grid.Grid2DOverlay;
@@ -463,13 +464,15 @@ public class LineSegmentsObject extends DBTableModel
 			currentPoint = i;
 			//highlight in table
 			try {
-				dig.table.setRowSelectionInterval(currentPoint, currentPoint);
+				dig.list.setSelectedIndex(currentPoint);
+				dig.list.getListSelectionListeners()[0].valueChanged(new ListSelectionEvent(evt.getSource(), 0, dig.list.getModel().getSize()-1, false));
 		        dig.deletePtsBtn.setEnabled(true);	
 				if (SwingUtilities.isRightMouseButton(evt)) {
 					rightClickMenu.show(evt.getComponent(), evt.getX(), evt.getY());
-				} else {
-					mouseDragged( evt );
 				}
+				dig.table.setRowSelectionInterval(currentPoint, currentPoint);
+				dig.map.repaint();
+				dig.redraw();
 				return;
 				} 
 			catch(Exception e) {
@@ -481,6 +484,7 @@ public class LineSegmentsObject extends DBTableModel
 		currentPoint = -1;
 	}
 	public void mouseReleased( MouseEvent evt ) {
+        
 		if( !editShape ) {
 			currentPoint = -1;
 			return;
