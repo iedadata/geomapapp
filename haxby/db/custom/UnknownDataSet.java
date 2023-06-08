@@ -905,7 +905,7 @@ public class UnknownDataSet implements MouseListener,
 			// we want to draw each track separately so that we have to option to color each track differently
 			int startTrack = 0;
 			int endTrack = 0;
-			for (int t=0; t<numTracks; t++) {
+			for (int t=0; t<numTracks && startTrack < data.size(); t++) {
 				boolean start = true;
 				GeneralPath shape = new GeneralPath();
 		
