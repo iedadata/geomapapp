@@ -454,7 +454,7 @@ public class Digitizer implements Database,
 		}
 		if(evt.getSource() == insertBtn) {
 			if(table.getSelectedRows().length != 1) {
-				JOptionPane.showMessageDialog(null, "Please select a point from the table.", "", JOptionPane.PLAIN_MESSAGE);
+				JOptionPane.showMessageDialog(null, "Please select a point from the table or map.", "", JOptionPane.PLAIN_MESSAGE);
 			}
 			else {
 				JOptionPane.showMessageDialog(null, "The previously digitized points will temporarily disappear from the table while new points are being chosen.", "", JOptionPane.PLAIN_MESSAGE);
