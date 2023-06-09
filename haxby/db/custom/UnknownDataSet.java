@@ -50,6 +50,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.JDialog;
@@ -176,6 +178,7 @@ public class UnknownDataSet implements MouseListener,
 	private MouseAdapter columnSorter;
 	private KeyAdapter copyListener;
 	private String infoURL;
+	protected SortedMap<Integer, Integer> commentLinesMap = new TreeMap<>();
 
 	private ArrayList<Boolean> oldPlottableStatus = null;
 	
@@ -185,6 +188,10 @@ public class UnknownDataSet implements MouseListener,
 
 	public UnknownDataSet(DBDescription desc, String input, String delim, CustomDB db, boolean skipPrompts){
 		this(desc, input, delim, db, false, null);
+	}
+	
+	protected Vector<Boolean> getNewTrack() {
+		return newTrack;
 	}
 
 	// cut down version of constructor used by Survey Planner import and the Velocity Vectors portal
@@ -200,13 +207,20 @@ public class UnknownDataSet implements MouseListener,
 
 		BufferedReader in = new BufferedReader(new StringReader(input));
 		try {
+			int blankLines = 0;
+			int commentLines = 0;
 			header=new Vector<String>();
 			String s;
 			StringTokenizer st;
 			data = new Vector<UnknownData>();
 			while ((s = in.readLine())!=null){
+				if(s.equals("")) {
+					blankLines++;
+					continue;
+				}
 				// Only process lines that don't start with the comment symbol #
 				if(!s.startsWith("#")) {
+					commentLinesMap.put(data.size(), commentLines + blankLines + 1);
 					if (header.size() == 0) {
 						st = new StringTokenizer(s,delim);
 						while (st.hasMoreTokens()) header.add(st.nextToken().trim());
@@ -232,6 +246,10 @@ public class UnknownDataSet implements MouseListener,
 					for (int i = data2.size(); i < header.size(); i++)
 						data2.add("");
 					data.add( new UnknownData(data2) );
+				}
+				else {
+					commentLines++;
+					commentLinesMap.put(data.size(), commentLines + blankLines + 1);
 				}
 			}
 			data.trimToSize();
@@ -259,6 +277,7 @@ public class UnknownDataSet implements MouseListener,
 
 		BufferedReader in = new BufferedReader(new StringReader(input));
 		try {
+			int commentLines = 0, blankLines = 0;
 			header=new Vector<String>();
 			String s;
 			StringTokenizer st;
@@ -266,10 +285,18 @@ public class UnknownDataSet implements MouseListener,
 			newTrack = new Vector<Boolean>();
 			numTracks = 1;
 			while ((s = in.readLine())!=null){
+				if(s.equals("")) {
+					blankLines++;
+					continue;
+				}
 				// Only process lines that don't start with the comment symbol #
 				if(!s.startsWith("#")) {
+					//commentLinesMap.put(data.size(), commentLines + blankLines);
 					if (header.size() == 0) {
-						if(s.startsWith(">")) continue;
+						if(s.startsWith(">")) {
+							blankLines++;
+							continue;
+						}
 						st = new StringTokenizer(s,delim);
 						while (st.hasMoreTokens()) header.add(st.nextToken().trim());
 						header.trimToSize();
@@ -283,10 +310,13 @@ public class UnknownDataSet implements MouseListener,
 						s = s.substring(1);
 						if (s.length() == 0 || (s.split(delim).length != header.size())) {
 							s = in.readLine();
-							while (s.startsWith("#"))
+							while (s.startsWith("#")) {
+								commentLines++;
 								s = in.readLine();
+							}
 						}
 					} else newTrack.add(false);
+					commentLinesMap.put(data.size(), commentLines + blankLines);
 					st = new StringTokenizer(s,delim, true);
 					Vector<Object> data2 = new Vector<Object>(header.size());
 					while (true) {
@@ -305,6 +335,9 @@ public class UnknownDataSet implements MouseListener,
 					for (int i = data2.size(); i < header.size(); i++)
 						data2.add("");
 					data.add( new UnknownData(data2) );
+				}
+				else {
+					commentLines++;
 				}
 			}
 			data.trimToSize();
@@ -905,7 +938,7 @@ public class UnknownDataSet implements MouseListener,
 			// we want to draw each track separately so that we have to option to color each track differently
 			int startTrack = 0;
 			int endTrack = 0;
-			for (int t=0; t<numTracks; t++) {
+			for (int t=0; t<numTracks && startTrack < data.size(); t++) {
 				boolean start = true;
 				GeneralPath shape = new GeneralPath();
 		
