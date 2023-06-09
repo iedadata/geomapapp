@@ -9,6 +9,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.ButtonGroup;
@@ -313,7 +314,46 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 		}
 	}
 
-	public void ok(){
+	public void ok(){	
+		if(track.isSelected()) {
+			Vector<Integer> dangerIndices = new Vector<>();
+			Vector<Integer> lineNumAdjuster = new Vector<>();
+			int numTracksSoFar = 0;
+			for(int pt = 1; pt < ds.getNewTrack().size(); pt++) {
+				if(ds.getNewTrack().get(pt)) {
+					numTracksSoFar++;
+					if(ds.getNewTrack().get(pt-1)) {
+						dangerIndices.add(pt-1);
+						lineNumAdjuster.add(numTracksSoFar + 1 + ds.commentLinesMap.get(pt-1));
+					}
+					if(pt+1 == ds.getNewTrack().size()) {
+						dangerIndices.add(pt);
+						lineNumAdjuster.add(numTracksSoFar + 2 + ds.commentLinesMap.get(pt));
+					}
+				}
+			}
+			if(!dangerIndices.isEmpty()) {
+				station.setSelected(true);
+				StringBuilder sb = new StringBuilder("Cannot show tracks because there ");
+				if(dangerIndices.size() == 1) {
+					sb.append("is 1 isolated point:");
+				}
+				else {
+					sb.append("are ").append(dangerIndices.size()).append(" isolated points:");
+				}
+				for(int i = 0; i < dangerIndices.size(); i++) {
+					int dangerIndex = dangerIndices.get(i);
+					int tracks = lineNumAdjuster.get(i);
+					sb.append("\nInput file line ").append(dangerIndex + tracks).append(": ");
+					String coordsAsString = ds.data.get(dangerIndex).data.subList(1, 3).toString();
+					String presentableCoords = coordsAsString.replace('[', '(').replace(']', ')');
+					sb.append(presentableCoords);
+				}
+				sb.append("\nShowing stations instead.");
+				JOptionPane.showMessageDialog(this, sb.toString(), "Error Displaying Tracks", JOptionPane.WARNING_MESSAGE);
+			}
+		}
+		
 		ds.desc.name=name.getText();
 		ds.tm.editable=editable.isSelected();
 		ds.latIndex = lat.getSelectedIndex() + 1;
@@ -362,7 +402,7 @@ public class DBConfigDialog extends JDialog implements ActionListener, ItemListe
 
 		ds.drawOutlines = drawOutline.isSelected();
 		ds.wesn = wesn;
-
+		
 		if (ds.station != station.isSelected()){
 			ds.station = station.isSelected();
 
