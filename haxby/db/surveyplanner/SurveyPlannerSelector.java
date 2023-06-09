@@ -334,6 +334,9 @@ public class SurveyPlannerSelector implements ActionListener, MouseListener, Mou
 
 			dig.deleteBtn.addActionListener(this);
 			panel7.add(dig.deleteBtn);
+			
+			dig.insertBtn.addActionListener(this);
+			panel7.add(dig.insertBtn);
 
 			dig.addBtn.addActionListener(this);
 			panel7.add(dig.addBtn);
