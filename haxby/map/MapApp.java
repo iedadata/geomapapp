@@ -1928,12 +1928,15 @@ public class MapApp implements ActionListener,
 			JOptionPane.showMessageDialog(null, "You chose to load from a local file");
 		}
 		else {
-			String cruiseRootDir = MapApp.BASE_URL + "/cruises/";
+			String cruiseRootDir = "https://dev2.geomapapp.org/cruises/";
 			int optionChosen = JOptionPane.showConfirmDialog(null, "Has this cruise already been completed?");
 			if(optionChosen > 1) return;
 			String optStr = (0 == optionChosen)?("done"):("todo");
 			String cruiseDir = cruiseRootDir + optStr;
-			String urlStr = JOptionPane.showInputDialog(null, "Preview which cruise?");
+			String cruiseNameStr = JOptionPane.showInputDialog(null, "Preview which cruise?");
+			String urlStr = cruiseRootDir + optStr + "/" + cruiseNameStr;
+			System.out.println(urlStr);
+			JOptionPane.showMessageDialog(null, "Previewing from URL: " + urlStr);
 		}
 	}
 
