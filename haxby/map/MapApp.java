@@ -1922,6 +1922,20 @@ public class MapApp implements ActionListener,
 	protected void importImage() {
 		new ImportImageLayer().importImage(this);
 	}
+	
+	public void previewCruiseFromMenu(boolean fromLocalFile) {
+		if(fromLocalFile) {
+			JOptionPane.showMessageDialog(null, "You chose to load from a local file");
+		}
+		else {
+			String cruiseRootDir = MapApp.BASE_URL + "/cruises/";
+			int optionChosen = JOptionPane.showConfirmDialog(null, "Has this cruise already been completed?");
+			if(optionChosen > 1) return;
+			String optStr = (0 == optionChosen)?("done"):("todo");
+			String cruiseDir = cruiseRootDir + optStr;
+			String urlStr = JOptionPane.showInputDialog(null, "Preview which cruise?");
+		}
+	}
 
 	public synchronized void actionPerformed(ActionEvent evt) throws OutOfMemoryError {
 		String name = evt.getActionCommand();
@@ -2760,6 +2774,12 @@ public class MapApp implements ActionListener,
 			System.out.println("Starting Mercator Projection");
 			MInit2();
 		}
+		else if(name.equals("loadTilesLocalCmd")) {
+			previewCruiseFromMenu(true);
+		}
+		else if(name.equals("loadTilesRemoteCmd")) {
+			previewCruiseFromMenu(false);
+		}
 
 		// Close DB button action
 		if(evt.getSource() == closeDB) {
@@ -3133,9 +3153,17 @@ public class MapApp implements ActionListener,
 		JPanel devOptions = new JPanel();
 		showTileNames = new JCheckBox("Show Tile Names", MMapServer.DRAW_TILE_LABELS);
 		devOptions.add(showTileNames);
+		JButton loadLocalTiles = new JButton("Load tiles from your computer"),
+				loadRemoteTiles = new JButton("Load tiles from a URL");
+		loadLocalTiles.setActionCommand("loadTilesLocalCmd");
+		loadRemoteTiles.setActionCommand("loadTilesRemoteCmd");
+		loadLocalTiles.addActionListener(this);
+		loadRemoteTiles.addActionListener(this);
+		devOptions.add(loadRemoteTiles);
+		devOptions.add(loadLocalTiles);
 
 		// Tab Server Options
-		prefer.addTab( "Development Options", devOptions);
+		prefer.addTab( "GMRT Tiles", devOptions);
 
 		option.getContentPane().add(prefer);
 		option.pack();
