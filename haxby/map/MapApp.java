@@ -175,7 +175,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.15"; // 08/29/2022
+	public final static String VERSION = "3.6.15.1"; // 06/13/2023
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
@@ -1924,19 +1924,35 @@ public class MapApp implements ActionListener,
 	}
 	
 	public void previewCruiseFromMenu(boolean fromLocalFile) {
+		String url = null;
 		if(fromLocalFile) {
-			JOptionPane.showMessageDialog(null, "You chose to load from a local file");
+			JFileChooser chooser = new JFileChooser();
+			chooser.setMultiSelectionEnabled(false);
+			int option = chooser.showOpenDialog(null);
+			if(JFileChooser.APPROVE_OPTION == option) {
+				String path = chooser.getSelectedFile().getAbsolutePath();
+				if(which_os == OSAdjustment.OS.WINDOWS) {
+					path = "/" + Character.toLowerCase(path.charAt(0)) + path.substring(1).replaceAll("\\\\", "/");
+				}
+				url = "file://" + path;
+			}
 		}
 		else {
+			//TODO may later want to add fully custom URLs
 			String cruiseRootDir = "https://dev2.geomapapp.org/cruises/";
 			int optionChosen = JOptionPane.showConfirmDialog(null, "Has this cruise already been completed?");
 			if(optionChosen > 1) return;
 			String optStr = (0 == optionChosen)?("done"):("todo");
 			String cruiseDir = cruiseRootDir + optStr;
-			String cruiseNameStr = JOptionPane.showInputDialog(null, "Preview which cruise?");
-			String urlStr = cruiseRootDir + optStr + "/" + cruiseNameStr;
-			System.out.println(urlStr);
-			JOptionPane.showMessageDialog(null, "Previewing from URL: " + urlStr);
+			String[] cruises = new String[] {"Cruise1", "Cruise2", "Cruise3"};
+			String cruiseNameStr = (String)JOptionPane.showInputDialog(null, "Preview which cruise?", "", JOptionPane.PLAIN_MESSAGE, null, cruises, cruises[0]);
+			if(null != cruiseNameStr) {
+				url = cruiseDir + "/" + cruiseNameStr;
+			}
+		}
+		if(null != url) {
+			System.out.println(url);
+			JOptionPane.showMessageDialog(null, "Loading tiles from " + url, "", JOptionPane.PLAIN_MESSAGE);
 		}
 	}
 
@@ -3157,7 +3173,7 @@ public class MapApp implements ActionListener,
 		showTileNames = new JCheckBox("Show Tile Names", MMapServer.DRAW_TILE_LABELS);
 		devOptions.add(showTileNames);
 		JButton loadLocalTiles = new JButton("Load tiles from your computer"),
-				loadRemoteTiles = new JButton("Load tiles from a URL");
+				loadRemoteTiles = new JButton("Load tiles from the server");
 		loadLocalTiles.setActionCommand("loadTilesLocalCmd");
 		loadRemoteTiles.setActionCommand("loadTilesRemoteCmd");
 		loadLocalTiles.addActionListener(this);
