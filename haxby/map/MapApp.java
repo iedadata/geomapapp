@@ -48,6 +48,7 @@ import java.net.ProxySelector;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -55,7 +56,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -114,6 +118,7 @@ import haxby.db.dig.Digitizer;
 import haxby.db.eq.EQ;
 import haxby.db.fms.FocalMechanismSolutionDB;
 import haxby.db.mb.MBTracks;
+import haxby.db.mb.PreviewCruise;
 import haxby.db.mgg.MGG;
 import haxby.db.pdb.PDB;
 import haxby.db.pmel.PMEL;
@@ -1923,6 +1928,36 @@ public class MapApp implements ActionListener,
 		new ImportImageLayer().importImage(this);
 	}
 	
+	public void addCruisePreview(String url) {
+		String[] pathParts = url.split("/");
+		String folderName = pathParts[pathParts.length-1];
+		String infoFile = url + folderName + ".gmrt.xml";
+		try {
+			URL cruiseRoot = new URL(infoFile);
+			URLConnection rootConn = cruiseRoot.openConnection();
+			BufferedReader infoReader = new BufferedReader(new InputStreamReader(rootConn.getInputStream()));
+			//this file should only have one line, so don't bother reading multiple
+			String infoXml = infoReader.readLine();
+			
+			String resolutionAttr = "resolution=\"";
+			int resStartIndex = infoXml.indexOf(resolutionAttr) + resolutionAttr.length();
+			int resEndIndex = infoXml.indexOf("\"", resStartIndex);
+			String bestRes = infoXml.substring(resStartIndex, resEndIndex);
+			
+			String projAttr = "projections=\"";
+			int projStartIndex = infoXml.indexOf(projAttr) + projAttr.length();
+			int projEndIndex = infoXml.indexOf("\"", projStartIndex);
+			String projections = infoXml.substring(projStartIndex, projEndIndex);
+		}
+		catch (MalformedURLException murle) {
+			murle.printStackTrace();
+		}
+		catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
+		
+	}
+	
 	public void previewCruiseFromMenu(boolean fromLocalFile) {
 		String url = null;
 		if(fromLocalFile) {
@@ -1939,20 +1974,44 @@ public class MapApp implements ActionListener,
 		}
 		else {
 			//TODO may later want to add fully custom URLs
-			String cruiseRootDir = "https://dev2.geomapapp.org/cruises/";
+			String cruiseRootDir = "http://dev2.geomapapp.org/cruises/";
 			int optionChosen = JOptionPane.showConfirmDialog(null, "Has this cruise already been completed?");
 			if(optionChosen > 1) return;
 			String optStr = (0 == optionChosen)?("done"):("todo");
 			String cruiseDir = cruiseRootDir + optStr;
-			String[] cruises = new String[] {"Cruise1", "Cruise2", "Cruise3"};
-			String cruiseNameStr = (String)JOptionPane.showInputDialog(null, "Preview which cruise?", "", JOptionPane.PLAIN_MESSAGE, null, cruises, cruises[0]);
-			if(null != cruiseNameStr) {
-				url = cruiseDir + "/" + cruiseNameStr;
+			try {
+				URL cruiseDirUrl = new URL(cruiseDir);
+				URLConnection conn = cruiseDirUrl.openConnection();
+				BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				Stream<String> htmlLines = reader.lines();
+				String[] cruises = htmlLines.filter(x -> x.contains("alt=\"[DIR]\""))
+						.map(new Function<String, String>() {
+							@Override
+							public String apply(String line) {
+								String linkTag = "a href=\"";
+								int startIndex = line.indexOf(linkTag) + linkTag.length();
+								int endIndex = line.indexOf("/", startIndex);
+								return line.substring(startIndex, endIndex);
+							}
+						})
+						.collect(Collectors.toList()).toArray(new String[] {});
+				String cruiseNameStr = (String)JOptionPane.showInputDialog(null, "Preview which cruise?", "Choose a cruise (" + optStr + ")", JOptionPane.PLAIN_MESSAGE, null, cruises, cruises[0]);
+				if(null != cruiseNameStr) {
+					url = cruiseDir + "/" + cruiseNameStr;
+				}
+			}
+			catch(MalformedURLException murle) {
+				System.out.println("Malformed URL: " + cruiseDir);
+				murle.printStackTrace();
+			} catch (IOException e) {
+				System.out.println("Could not access the URL: " + cruiseDir);
+				e.printStackTrace();
 			}
 		}
 		if(null != url) {
 			System.out.println(url);
 			JOptionPane.showMessageDialog(null, "Loading tiles from " + url, "", JOptionPane.PLAIN_MESSAGE);
+			addCruisePreview(url);
 		}
 	}
 
