@@ -1931,13 +1931,17 @@ public class MapApp implements ActionListener,
 	public void addCruisePreview(String url) {
 		String[] pathParts = url.split("/");
 		String folderName = pathParts[pathParts.length-1];
-		String infoFile = url + folderName + ".gmrt.xml";
+		String infoFile = url + "/" + folderName + ".gmrt.xml";
 		try {
 			URL cruiseRoot = new URL(infoFile);
 			URLConnection rootConn = cruiseRoot.openConnection();
 			BufferedReader infoReader = new BufferedReader(new InputStreamReader(rootConn.getInputStream()));
-			//this file should only have one line, so don't bother reading multiple
+
 			String infoXml = infoReader.readLine();
+			while(!infoXml.trim().startsWith("<CRUISE_INPUT")) {
+				infoXml = infoReader.readLine();
+			}
+			infoReader.close();
 			
 			String resolutionAttr = "resolution=\"";
 			int resStartIndex = infoXml.indexOf(resolutionAttr) + resolutionAttr.length();
@@ -1948,6 +1952,10 @@ public class MapApp implements ActionListener,
 			int projStartIndex = infoXml.indexOf(projAttr) + projAttr.length();
 			int projEndIndex = infoXml.indexOf("\"", projStartIndex);
 			String projections = infoXml.substring(projStartIndex, projEndIndex);
+			
+			boolean hasMerc = projections.contains("m"),
+					hasNp = projections.contains("n"),
+					hasSp = projections.contains("s");
 		}
 		catch (MalformedURLException murle) {
 			murle.printStackTrace();
