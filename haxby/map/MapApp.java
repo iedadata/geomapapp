@@ -161,6 +161,9 @@ import haxby.wms.WMSViewServer;
 import haxby.wms.WMS_ESPG_3031_Overlay;
 import haxby.wms.WMS_ESPG_4326_Overlay;
 import haxby.wms.XML_Layer;
+import haxby.db.mb.PreviewCruise.CruiseBounds;
+import haxby.db.mb.PreviewCruise.CruiseImageViewer;
+import haxby.db.mb.PreviewCruise.CruiseGridViewer;
 
 import org.geomapapp.util.OSAdjustment;
 
@@ -1933,20 +1936,27 @@ public class MapApp implements ActionListener,
 		String folderName = pathParts[pathParts.length-1];
 		String infoFile = url + "/" + folderName + ".gmrt.xml";
 		try {
-			URL cruiseRoot = new URL(infoFile);
-			URLConnection rootConn = cruiseRoot.openConnection();
+			URL cruiseInfoUrl = new URL(infoFile);
+			URLConnection rootConn = cruiseInfoUrl.openConnection();
 			BufferedReader infoReader = new BufferedReader(new InputStreamReader(rootConn.getInputStream()));
 
-			String infoXml = infoReader.readLine();
-			while(!infoXml.trim().startsWith("<CRUISE_INPUT")) {
-				infoXml = infoReader.readLine();
+			String infoXml = infoReader.readLine().trim();
+			while(!infoXml.contains("<CRUISE_INPUT")) {
+				infoXml += " " + infoReader.readLine();
+				infoXml = infoXml.trim();
 			}
 			infoReader.close();
+			int cruiseInputIndex = infoXml.indexOf("<CRUISE_INPUT");
 			
 			String resolutionAttr = "resolution=\"";
-			int resStartIndex = infoXml.indexOf(resolutionAttr) + resolutionAttr.length();
+			int resStartIndex = infoXml.indexOf(resolutionAttr, cruiseInputIndex) + resolutionAttr.length();
 			int resEndIndex = infoXml.indexOf("\"", resStartIndex);
 			String bestRes = infoXml.substring(resStartIndex, resEndIndex);
+			
+			int shouldContinue = JOptionPane.showConfirmDialog(null, "Click \"OK\" to continue loading from " + url + "\nBest resolution found: " + bestRes, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if(shouldContinue > 1) return;
+
+			int bestResInt = Integer.parseInt(bestRes);
 			
 			String projAttr = "projections=\"";
 			int projStartIndex = infoXml.indexOf(projAttr) + projAttr.length();
@@ -1956,6 +1966,52 @@ public class MapApp implements ActionListener,
 			boolean hasMerc = projections.contains("m"),
 					hasNp = projections.contains("n"),
 					hasSp = projections.contains("s");
+			
+			final MBTracks tracks = new MBTracks(map, 4000, url + "/mb_control");
+			addProcessingTask(tracks.getDBName(), new Runnable() {
+				public void run() {
+					loadDatabase(tracks, null);
+				}
+			});
+			String whichProj = null;
+			switch(getMapType()) {
+			case 0:
+				whichProj = "/merc/";
+				break;
+			case 1:
+				whichProj = "/SP/";
+				break;
+			case 2:
+				whichProj = "/NP/";
+				break;
+			}
+			if(null != whichProj) {
+				String cruiseDir = url + whichProj;
+				CruiseBounds cruiseBounds = new CruiseBounds(cruiseDir, map);
+				map.addOverlay(folderName + " bounds", cruiseBounds);
+				CruiseImageViewer cruiseImageViewer = new CruiseImageViewer(map, cruiseDir, bestResInt);
+				addFocusOverlay(cruiseImageViewer, folderName + " images");
+				layerManager.setLayerVisible(cruiseImageViewer, false);
+				String gridName = folderName + " grid";
+				CruiseGridViewer cruiseGridViewer = new CruiseGridViewer(map, gridName, folderName, bestResInt);
+				GridDialog.GRID_LOADERS.put(gridName, cruiseGridViewer);
+				GridDialog.GRID_UNITS.put(gridName, "m");
+				GridDialog.GRID_URL.put(gridName, cruiseDir);
+				GridDialog gridDialog = getMapTools().getGridDialog();
+				gridDialog.gridCmds.put(gridName + "Cmd", gridName);
+				gridDialog.addGrid(cruiseGridViewer);
+				gridDialog.setSelectedGrid(cruiseGridViewer);
+				gridDialog.showDialog();
+				gridDialog.startGridLoad();
+				gridDialog.loaded = true;
+				int dx = (getMapType() == 0)?(0):(320),
+						dy = (getMapType() == 0)?(260):(320);
+				cruiseBounds.dx = cruiseGridViewer.dx = cruiseImageViewer.dx = dx;
+				cruiseBounds.dy = cruiseGridViewer.dy = cruiseImageViewer.dy = dy;
+			}
+			else {
+				System.err.println("Unknown map type " + getMapType());
+			}
 		}
 		catch (MalformedURLException murle) {
 			murle.printStackTrace();
@@ -1983,9 +2039,20 @@ public class MapApp implements ActionListener,
 		else {
 			//TODO may later want to add fully custom URLs
 			String cruiseRootDir = "http://dev2.geomapapp.org/cruises/";
-			int optionChosen = JOptionPane.showConfirmDialog(null, "Has this cruise already been completed?");
+			//TODO make this radio buttons instead of a YES/NO/CANCEL
+			JPanel chooseDirPanel = new JPanel(new GridLayout(3,1));
+			JLabel chooseDirLabel = new JLabel("Choose a directory to search in.");
+			chooseDirPanel.add(chooseDirLabel);
+			JRadioButton todoButton = new JRadioButton("todo", true),
+					doneButton = new JRadioButton("done (may take several seconds to load)");
+			ButtonGroup chooseDirButtons = new ButtonGroup();
+			chooseDirButtons.add(todoButton);
+			chooseDirButtons.add(doneButton);
+			chooseDirPanel.add(todoButton);
+			chooseDirPanel.add(doneButton);
+			int optionChosen = JOptionPane.showConfirmDialog(null, chooseDirPanel, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 			if(optionChosen > 1) return;
-			String optStr = (0 == optionChosen)?("done"):("todo");
+			String optStr = (todoButton.isSelected())?("todo"):("done");
 			String cruiseDir = cruiseRootDir + optStr;
 			try {
 				URL cruiseDirUrl = new URL(cruiseDir);
@@ -2018,7 +2085,6 @@ public class MapApp implements ActionListener,
 		}
 		if(null != url) {
 			System.out.println(url);
-			JOptionPane.showMessageDialog(null, "Loading tiles from " + url, "", JOptionPane.PLAIN_MESSAGE);
 			addCruisePreview(url);
 		}
 	}
