@@ -131,7 +131,8 @@ public class PreviewCruise
     cruiseBounds.dy = (cruiseGridViewer.dy = cruiseImageViewer.dy = dy);
   }
   
-  public static void addCruiseShown(MapApp mapApp, String[] args) {
+  //Identical to main, except it uses a previously existing MapApp instead of creating a new one
+  public static void showCruise(MapApp mapApp, String[] args) {
 	  if ((args.length < 1) || (args.length > 3))
 	    {
 	      System.err.println("Usage: PreviewCruise cruiseDir [maxRes] [tilesPath]");
@@ -377,6 +378,14 @@ public class PreviewCruise
       super(map);
       this.base = base;
       this.maxRes = maxRes;
+    }
+    
+    @Override
+    public String toString() {
+    	String[] urlSections = base.split("/");
+    	if(urlSections.length == 0) return null;
+    	if(urlSections.length == 1) return "Images: " + urlSections[0];
+    	return "Images: " + urlSections[urlSections.length-2] + "/" + urlSections[urlSections.length-1];
     }
     
     public Runnable createFocusTask(final Rectangle2D rect)

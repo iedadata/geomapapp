@@ -9,6 +9,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.Point;
@@ -85,6 +87,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JWindow;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.Border;
@@ -161,9 +164,6 @@ import haxby.wms.WMSViewServer;
 import haxby.wms.WMS_ESPG_3031_Overlay;
 import haxby.wms.WMS_ESPG_4326_Overlay;
 import haxby.wms.XML_Layer;
-import haxby.db.mb.PreviewCruise.CruiseBounds;
-import haxby.db.mb.PreviewCruise.CruiseImageViewer;
-import haxby.db.mb.PreviewCruise.CruiseGridViewer;
 
 import org.geomapapp.util.OSAdjustment;
 
@@ -183,7 +183,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.15.1"; // 06/13/2023
+	public final static String VERSION = "3.6.15.2"; // 06/16/2023
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
@@ -1931,33 +1931,42 @@ public class MapApp implements ActionListener,
 		new ImportImageLayer().importImage(this);
 	}
 	
-	public void addCruisePreview(String url) {
+	public void addCruisePreview(String url, String altTilesPath) {
+		//figure out the name of the cruise and the info file path
 		String[] pathParts = url.split("/");
 		String folderName = pathParts[pathParts.length-1];
 		String infoFile = url + "/" + folderName + ".gmrt.xml";
 		try {
+			//fetch and read the info file (XML)
 			URL cruiseInfoUrl = new URL(infoFile);
 			URLConnection rootConn = cruiseInfoUrl.openConnection();
 			BufferedReader infoReader = new BufferedReader(new InputStreamReader(rootConn.getInputStream()));
 
-			String infoXml = infoReader.readLine().trim();
-			while(!infoXml.contains("<CRUISE_INPUT")) {
-				infoXml += " " + infoReader.readLine();
+			//Should be a one- or two-line file, but can't be too careful
+			String infoXml = "";
+			String line = null;
+			while(null != (line = infoReader.readLine())) {
+				infoXml += " " + line.trim();
 				infoXml = infoXml.trim();
 			}
 			infoReader.close();
 			int cruiseInputIndex = infoXml.indexOf("<CRUISE_INPUT");
 			
+			//get the best resolution available
 			String resolutionAttr = "resolution=\"";
 			int resStartIndex = infoXml.indexOf(resolutionAttr, cruiseInputIndex) + resolutionAttr.length();
 			int resEndIndex = infoXml.indexOf("\"", resStartIndex);
 			String bestRes = infoXml.substring(resStartIndex, resEndIndex);
 			
-			int shouldContinue = JOptionPane.showConfirmDialog(null, "Click \"OK\" to continue loading from " + url + "\nBest resolution found: " + bestRes, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-			if(shouldContinue > 1) return;
-			
-			PreviewCruise.addCruiseShown(this, new String[] {url, bestRes});
-
+			int shouldContinue = JOptionPane.showConfirmDialog(null, "Click \"OK\" to continue loading from " + url.replace("file://", "") + "\nBest resolution found: " + bestRes, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if(shouldContinue == JOptionPane.CANCEL_OPTION || shouldContinue == JOptionPane.CLOSED_OPTION) return;
+			//pass off the rest of the work to previously existing PreviewCruise
+			if(null == altTilesPath) {
+				PreviewCruise.showCruise(this, new String[] {url, bestRes});
+			}
+			else {
+				PreviewCruise.showCruise(this, new String[] {url, bestRes, altTilesPath});
+			}
 		}
 		catch (MalformedURLException murle) {
 			murle.printStackTrace();
@@ -1969,10 +1978,11 @@ public class MapApp implements ActionListener,
 	}
 	
 	public void previewCruiseFromMenu(boolean fromLocalFile) {
-		String url = null;
+		String url = null, altTilesUrl = null;
 		if(fromLocalFile) {
 			JFileChooser chooser = new JFileChooser();
 			chooser.setMultiSelectionEnabled(false);
+			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 			int option = chooser.showOpenDialog(null);
 			if(JFileChooser.APPROVE_OPTION == option) {
 				String path = chooser.getSelectedFile().getAbsolutePath();
@@ -1980,24 +1990,40 @@ public class MapApp implements ActionListener,
 					path = "/" + Character.toLowerCase(path.charAt(0)) + path.substring(1).replaceAll("\\\\", "/");
 				}
 				url = "file://" + path;
+				JPanel chooseAltTilesPanel = new JPanel();
+				JCheckBox loadAltTiles = new JCheckBox("Load alternate base map tiles? If yes, specify URL: ");
+				JTextField altTilesUrlTextField = new JTextField("http://www.dev2.geomapapp.org/");
+				chooseAltTilesPanel.add(loadAltTiles);
+				chooseAltTilesPanel.add(altTilesUrlTextField);
+				int optionChosen = JOptionPane.showConfirmDialog(null, chooseAltTilesPanel, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+				if(optionChosen == JOptionPane.CANCEL_OPTION || optionChosen == JOptionPane.CLOSED_OPTION) return;
+				if(loadAltTiles.isSelected()) {
+					altTilesUrl = altTilesUrlTextField.getText();
+				}
 			}
 		}
 		else {
-			//TODO may later want to add fully custom URLs
+			//TODO may later want to add fully custom URLs for cruises
 			String cruiseRootDir = "http://dev2.geomapapp.org/cruises/";
-			//TODO make this radio buttons instead of a YES/NO/CANCEL
-			JPanel chooseDirPanel = new JPanel(new GridLayout(3,1));
+			JPanel chooseDirPanel = new JPanel(new GridLayout(0,1));
 			JLabel chooseDirLabel = new JLabel("Choose a directory to search in.");
 			chooseDirPanel.add(chooseDirLabel);
 			JRadioButton todoButton = new JRadioButton("todo", true),
-					doneButton = new JRadioButton("done (may take several seconds to load)");
+					doneButton = new JRadioButton("done");
 			ButtonGroup chooseDirButtons = new ButtonGroup();
 			chooseDirButtons.add(todoButton);
 			chooseDirButtons.add(doneButton);
 			chooseDirPanel.add(todoButton);
 			chooseDirPanel.add(doneButton);
+			JTextField altTilesUrlTextField = new JTextField("http://dev2.geomapapp.org/");
+			JCheckBox loadAltTiles = new JCheckBox("Load alternate base map tiles? If yes, specify URL:");
+			chooseDirPanel.add(loadAltTiles);
+			chooseDirPanel.add(altTilesUrlTextField);
 			int optionChosen = JOptionPane.showConfirmDialog(null, chooseDirPanel, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-			if(optionChosen > 1) return;
+			if(optionChosen == JOptionPane.CANCEL_OPTION || optionChosen == JOptionPane.CLOSED_OPTION) return;
+			if(loadAltTiles.isSelected()) {
+				altTilesUrl = altTilesUrlTextField.getText();
+			}
 			String optStr = (todoButton.isSelected())?("todo"):("done");
 			String cruiseDir = cruiseRootDir + optStr;
 			try {
@@ -2031,7 +2057,10 @@ public class MapApp implements ActionListener,
 		}
 		if(null != url) {
 			System.out.println(url);
-			addCruisePreview(url);
+			if(null != altTilesUrl) {
+				System.out.println(altTilesUrl);
+			}
+			addCruisePreview(url, altTilesUrl);
 		}
 	}
 
@@ -3248,22 +3277,36 @@ public class MapApp implements ActionListener,
 
 
 		// Development Options
-		JPanel devOptions = new JPanel();
+		JPanel devOptions = new JPanel(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.fill = GridBagConstraints.BOTH;
+		c.gridwidth = 4;
+		c.gridx = 0;
+		c.gridy = 0;
+		c.weightx = 0.0;
 		showTileNames = new JCheckBox("Show Tile Names", MMapServer.DRAW_TILE_LABELS);
-		devOptions.add(showTileNames);
+		showTileNames.setHorizontalAlignment(SwingConstants.CENTER);
+		devOptions.add(showTileNames, c);
 		JButton loadLocalTiles = new JButton("Load tiles from your computer"),
 				loadRemoteTiles = new JButton("Load tiles from the server");
 		loadLocalTiles.setActionCommand("loadTilesLocalCmd");
 		loadRemoteTiles.setActionCommand("loadTilesRemoteCmd");
 		loadLocalTiles.addActionListener(this);
 		loadRemoteTiles.addActionListener(this);
-		devOptions.add(loadRemoteTiles);
-		devOptions.add(loadLocalTiles);
+		c.gridwidth = 2;
+		c.gridy = 1;
+		c.gridx = 0;
+		c.weightx = 0.5;
+		devOptions.add(loadRemoteTiles, c);
+		c.gridx = 2;
+		devOptions.add(loadLocalTiles, c);
+		
 
 		// Tab Server Options
 		prefer.addTab( "GMRT Tiles", devOptions);
 
 		option.getContentPane().add(prefer);
+		option.setMinimumSize(new Dimension(prefer.getPreferredSize().width + 100, option.getPreferredSize().height));
 		option.pack();
 		option.show();
 	}
