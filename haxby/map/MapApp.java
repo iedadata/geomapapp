@@ -1958,8 +1958,9 @@ public class MapApp implements ActionListener,
 			int resEndIndex = infoXml.indexOf("\"", resStartIndex);
 			String bestRes = infoXml.substring(resStartIndex, resEndIndex);
 			
-			int shouldContinue = JOptionPane.showConfirmDialog(null, "Click \"OK\" to continue loading from " + url.replace("file://", "") + "\nBest resolution found: " + bestRes, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-			if(shouldContinue == JOptionPane.CANCEL_OPTION || shouldContinue == JOptionPane.CLOSED_OPTION) return;
+			int shouldContinue = JOptionPane.showConfirmDialog(null, "Best resolution found: " + bestRes + "\nContinue loading from " + url.replace("file://", "") + "?", "", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if(shouldContinue == JOptionPane.CANCEL_OPTION || shouldContinue == JOptionPane.CLOSED_OPTION || shouldContinue == JOptionPane.NO_OPTION) return;
+			cancelOps();
 			//pass off the rest of the work to previously existing PreviewCruise
 			if(null == altTilesPath) {
 				PreviewCruise.showCruise(this, new String[] {url, bestRes});
@@ -3308,7 +3309,7 @@ public class MapApp implements ActionListener,
 		option.getContentPane().add(prefer);
 		option.setMinimumSize(new Dimension(prefer.getPreferredSize().width + 100, option.getPreferredSize().height));
 		option.pack();
-		option.show();
+		option.setVisible(true);
 	}
 
 	private void defaultOps() {
@@ -3390,7 +3391,7 @@ public class MapApp implements ActionListener,
 
 	private void cancelOps() {
 		this.resetOps();
-		option.hide();
+		option.setVisible(false);
 		option.dispose();
 		map.addMouseListener(zoomer);
 	}
