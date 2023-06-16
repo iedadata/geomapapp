@@ -1955,63 +1955,9 @@ public class MapApp implements ActionListener,
 			
 			int shouldContinue = JOptionPane.showConfirmDialog(null, "Click \"OK\" to continue loading from " + url + "\nBest resolution found: " + bestRes, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 			if(shouldContinue > 1) return;
+			
+			PreviewCruise.addCruiseShown(this, new String[] {url, bestRes});
 
-			int bestResInt = Integer.parseInt(bestRes);
-			
-			String projAttr = "projections=\"";
-			int projStartIndex = infoXml.indexOf(projAttr) + projAttr.length();
-			int projEndIndex = infoXml.indexOf("\"", projStartIndex);
-			String projections = infoXml.substring(projStartIndex, projEndIndex);
-			
-			boolean hasMerc = projections.contains("m"),
-					hasNp = projections.contains("n"),
-					hasSp = projections.contains("s");
-			
-			final MBTracks tracks = new MBTracks(map, 4000, url + "/mb_control");
-			addProcessingTask(tracks.getDBName(), new Runnable() {
-				public void run() {
-					loadDatabase(tracks, null);
-				}
-			});
-			String whichProj = null;
-			switch(getMapType()) {
-			case 0:
-				whichProj = "/merc/";
-				break;
-			case 1:
-				whichProj = "/SP/";
-				break;
-			case 2:
-				whichProj = "/NP/";
-				break;
-			}
-			if(null != whichProj) {
-				String cruiseDir = url + whichProj;
-				CruiseBounds cruiseBounds = new CruiseBounds(cruiseDir, map);
-				map.addOverlay(folderName + " bounds", cruiseBounds);
-				CruiseImageViewer cruiseImageViewer = new CruiseImageViewer(map, cruiseDir, bestResInt);
-				addFocusOverlay(cruiseImageViewer, folderName + " images");
-				layerManager.setLayerVisible(cruiseImageViewer, false);
-				String gridName = folderName + " grid";
-				CruiseGridViewer cruiseGridViewer = new CruiseGridViewer(map, gridName, folderName, bestResInt);
-				GridDialog.GRID_LOADERS.put(gridName, cruiseGridViewer);
-				GridDialog.GRID_UNITS.put(gridName, "m");
-				GridDialog.GRID_URL.put(gridName, cruiseDir);
-				GridDialog gridDialog = getMapTools().getGridDialog();
-				gridDialog.gridCmds.put(gridName + "Cmd", gridName);
-				gridDialog.addGrid(cruiseGridViewer);
-				gridDialog.setSelectedGrid(cruiseGridViewer);
-				gridDialog.showDialog();
-				gridDialog.startGridLoad();
-				gridDialog.loaded = true;
-				int dx = (getMapType() == 0)?(0):(320),
-						dy = (getMapType() == 0)?(260):(320);
-				cruiseBounds.dx = cruiseGridViewer.dx = cruiseImageViewer.dx = dx;
-				cruiseBounds.dy = cruiseGridViewer.dy = cruiseImageViewer.dy = dy;
-			}
-			else {
-				System.err.println("Unknown map type " + getMapType());
-			}
 		}
 		catch (MalformedURLException murle) {
 			murle.printStackTrace();
