@@ -257,7 +257,7 @@ public class XMCruise implements Overlay {
 					float n0 = Float.parseFloat(ss0[0]);
 					float n1 = Float.parseFloat(ss1[0]);
 					return n0 - n1 < 0 ?  -1 : (n0 - n1 == 0 ? 0 : 1);
-				} catch (NumberFormatException ex) {
+				} catch (NumberFormatException | ArrayIndexOutOfBoundsException ex) {
 					return s0.compareTo(s1);
 				}
 			}
