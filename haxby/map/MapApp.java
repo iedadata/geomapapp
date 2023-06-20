@@ -53,6 +53,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -64,6 +65,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
+import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -341,6 +343,9 @@ public class MapApp implements ActionListener,
 
 	public static JFileChooser chooser = null;
 	public static ArrayList<String> portal_commands;
+	
+	private JCheckBox loadAltTiles;
+	//private JTextField altTilesUrlTextField;
 
 	public StartUp start,
 					startNP,
@@ -1958,7 +1963,7 @@ public class MapApp implements ActionListener,
 			int resEndIndex = infoXml.indexOf("\"", resStartIndex);
 			String bestRes = infoXml.substring(resStartIndex, resEndIndex);
 			
-			int shouldContinue = JOptionPane.showConfirmDialog(null, "Best resolution found: " + bestRes + "\nContinue loading from " + url.replace("file://", "") + "?", "", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
+			int shouldContinue = JOptionPane.showConfirmDialog(vPane, "Best resolution found: " + bestRes + "\nContinue loading from " + url.replace("file://", "") + "?", "", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
 			if(shouldContinue == JOptionPane.CANCEL_OPTION || shouldContinue == JOptionPane.CLOSED_OPTION || shouldContinue == JOptionPane.NO_OPTION) return;
 			cancelOps();
 			//pass off the rest of the work to previously existing PreviewCruise
@@ -1991,6 +1996,7 @@ public class MapApp implements ActionListener,
 					path = "/" + Character.toLowerCase(path.charAt(0)) + path.substring(1).replaceAll("\\\\", "/");
 				}
 				url = "file://" + path;
+				/*
 				JPanel chooseAltTilesPanel = new JPanel();
 				JCheckBox loadAltTiles = new JCheckBox("Load alternate base map tiles? If yes, specify URL: ");
 				JTextField altTilesUrlTextField = new JTextField("http://www.dev2.geomapapp.org/");
@@ -2001,31 +2007,44 @@ public class MapApp implements ActionListener,
 				if(loadAltTiles.isSelected()) {
 					altTilesUrl = altTilesUrlTextField.getText();
 				}
+				*/
 			}
 		}
 		else {
 			//TODO may later want to add fully custom URLs for cruises
 			String cruiseRootDir = "http://dev2.geomapapp.org/cruises/";
 			JPanel chooseDirPanel = new JPanel(new GridLayout(0,1));
-			JLabel chooseDirLabel = new JLabel("Choose a directory to search in.");
+			JLabel chooseDirLabel = new JLabel("Choose a directory to search in:");
 			chooseDirPanel.add(chooseDirLabel);
 			JRadioButton todoButton = new JRadioButton("todo", true),
-					doneButton = new JRadioButton("done");
+					doneButton = new JRadioButton("done"),
+					submittedButton = new JRadioButton("submitted");
 			ButtonGroup chooseDirButtons = new ButtonGroup();
 			chooseDirButtons.add(todoButton);
 			chooseDirButtons.add(doneButton);
+			chooseDirButtons.add(submittedButton);
 			chooseDirPanel.add(todoButton);
 			chooseDirPanel.add(doneButton);
+			chooseDirPanel.add(submittedButton);
+			/*
 			JTextField altTilesUrlTextField = new JTextField("http://dev2.geomapapp.org/");
 			JCheckBox loadAltTiles = new JCheckBox("Load alternate base map tiles? If yes, specify URL:");
 			chooseDirPanel.add(loadAltTiles);
 			chooseDirPanel.add(altTilesUrlTextField);
-			int optionChosen = JOptionPane.showConfirmDialog(null, chooseDirPanel, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-			if(optionChosen == JOptionPane.CANCEL_OPTION || optionChosen == JOptionPane.CLOSED_OPTION) return;
-			if(loadAltTiles.isSelected()) {
+			*/
+			int optionChosen = JOptionPane.showConfirmDialog(vPane, chooseDirPanel, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if(optionChosen != JOptionPane.OK_OPTION) return;
+			/*if(loadAltTiles.isSelected()) {
 				altTilesUrl = altTilesUrlTextField.getText();
+			}*/
+			Enumeration<AbstractButton> buttons = chooseDirButtons.getElements();
+			String optStr = null;
+			while(buttons.hasMoreElements()) {
+				AbstractButton b = buttons.nextElement();
+				if(b.isSelected()) {
+					optStr = b.getText();
+				}
 			}
-			String optStr = (todoButton.isSelected())?("todo"):("done");
 			String cruiseDir = cruiseRootDir + optStr;
 			try {
 				URL cruiseDirUrl = new URL(cruiseDir);
@@ -2043,7 +2062,7 @@ public class MapApp implements ActionListener,
 							}
 						})
 						.collect(Collectors.toList()).toArray(new String[] {});
-				String cruiseNameStr = (String)JOptionPane.showInputDialog(null, "Preview which cruise?", "Choose a cruise (" + optStr + ")", JOptionPane.PLAIN_MESSAGE, null, cruises, cruises[0]);
+				String cruiseNameStr = (String)JOptionPane.showInputDialog(vPane, "Preview which cruise?", "Choose a cruise (" + optStr + ")", JOptionPane.PLAIN_MESSAGE, null, cruises, cruises[0]);
 				if(null != cruiseNameStr) {
 					url = cruiseDir + "/" + cruiseNameStr;
 				}
@@ -2057,11 +2076,27 @@ public class MapApp implements ActionListener,
 			}
 		}
 		if(null != url) {
-			System.out.println(url);
-			if(null != altTilesUrl) {
-				System.out.println(altTilesUrl);
+			ButtonGroup showDevTiles = new ButtonGroup();
+			JRadioButton useDevTilesBtn = new JRadioButton("Development"),
+					useProdTilesBtn = new JRadioButton("Production");
+			showDevTiles.add(useDevTilesBtn);
+			showDevTiles.add(useProdTilesBtn);
+			JPanel devTilesDecision = new JPanel(new GridLayout(0,1));
+			devTilesDecision.add(new JLabel("Choose the base map tiles:"));
+			devTilesDecision.add(useProdTilesBtn);
+			devTilesDecision.add(useDevTilesBtn);
+			useProdTilesBtn.setSelected(true);
+			int shouldContinue = JOptionPane.showConfirmDialog(vPane, devTilesDecision, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if(JOptionPane.OK_OPTION == shouldContinue) {
+				if(useDevTilesBtn.isSelected()) {
+					altTilesUrl = "http://dev2.geomapapp.org/";
+				}
+				System.out.println(url);
+				if(null != altTilesUrl) {
+					System.out.println(altTilesUrl);
+				}
+				addCruisePreview(url, altTilesUrl);
 			}
-			addCruisePreview(url, altTilesUrl);
 		}
 	}
 
@@ -3236,7 +3271,7 @@ public class MapApp implements ActionListener,
 
 		option.getContentPane().add(prefer);
 		option.pack();
-		option.show();
+		option.setVisible(true);
 
 // Tab Add Menu Options
 //JPanel menuOptions = new JPanel(new BorderLayout());
@@ -3281,26 +3316,26 @@ public class MapApp implements ActionListener,
 		JPanel devOptions = new JPanel(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
 		c.fill = GridBagConstraints.BOTH;
-		c.gridwidth = 4;
-		c.gridx = 0;
-		c.gridy = 0;
-		c.weightx = 0.0;
-		showTileNames = new JCheckBox("Show Tile Names", MMapServer.DRAW_TILE_LABELS);
-		showTileNames.setHorizontalAlignment(SwingConstants.CENTER);
-		devOptions.add(showTileNames, c);
-		JButton loadLocalTiles = new JButton("Load tiles from your computer"),
-				loadRemoteTiles = new JButton("Load tiles from the server");
+		JButton loadLocalTiles = new JButton("Load cruise tiles from your computer"),
+				loadRemoteTiles = new JButton("Load cruise tiles from the server");
 		loadLocalTiles.setActionCommand("loadTilesLocalCmd");
 		loadRemoteTiles.setActionCommand("loadTilesRemoteCmd");
 		loadLocalTiles.addActionListener(this);
 		loadRemoteTiles.addActionListener(this);
 		c.gridwidth = 2;
-		c.gridy = 1;
+		c.gridy = 0;
 		c.gridx = 0;
 		c.weightx = 0.5;
 		devOptions.add(loadRemoteTiles, c);
 		c.gridx = 2;
 		devOptions.add(loadLocalTiles, c);
+		c.gridwidth = 4;
+		c.gridx = 0;
+		c.gridy = 1;
+		c.weightx = 0.0;
+		showTileNames = new JCheckBox("Show Tile Names", MMapServer.DRAW_TILE_LABELS);
+		showTileNames.setHorizontalAlignment(SwingConstants.CENTER);
+		devOptions.add(showTileNames, c);
 		
 
 		// Tab Server Options
