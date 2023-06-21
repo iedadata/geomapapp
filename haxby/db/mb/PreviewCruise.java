@@ -131,6 +131,87 @@ public class PreviewCruise
     cruiseBounds.dy = (cruiseGridViewer.dy = cruiseImageViewer.dy = dy);
   }
   
+  //Identical to main, except it uses a previously existing MapApp instead of creating a new one
+  public static void showCruise(MapApp mapApp, String[] args) {
+	  if ((args.length < 1) || (args.length > 3))
+	    {
+	      System.err.println("Usage: PreviewCruise cruiseDir [maxRes] [tilesPath]");
+	      System.exit(-1);
+	    }
+	    while (args[0].endsWith("/")) {
+	      args[0] = args[0].substring(0, args[0].length() - 1);
+	    }
+	    int maxRes = args.length >= 2 ? Integer.parseInt(args[1]) : 512;
+	    String cruiseID = args[0].substring(args[0].lastIndexOf("/") + 1);
+	    String cruiseDir = args[0];
+	    if ((!cruiseDir.startsWith("http://")) && (!cruiseDir.startsWith("file:/"))) {
+	      cruiseDir = "file://" + new File(cruiseDir).getPath();
+	    }
+	    
+	    if (args.length >= 3) {
+	    	String tilesPath = args[2];
+	    	GridComposer.base = tilesPath + "/merc_320/";
+	    	GridComposer.mbPath = tilesPath + "/merc_320/";
+	    	GridComposer.spBase = tilesPath + "/SP_320/";
+	    	GridComposer.npBase = tilesPath + "/NP_320/";
+	    	MMapServer.base = tilesPath + "/merc_320/";
+	    	PoleMapServer.base[0] = tilesPath + "/SP_320/";
+	    	PoleMapServer.base[1] = tilesPath + "/NP_320/";
+	      }
+	    
+
+	    
+	    XMap map = mapApp.getMap();
+	    final MBTracks tracks = new MBTracks(map, 4000, cruiseDir + "/mb_control");
+	    mapApp.addProcessingTask(tracks.getDBName(), new Runnable()
+	    {
+	      public void run()
+	      {
+	        mapApp.loadDatabase(tracks, null);
+	      }
+	    });
+	    MAP_PROJ = mapApp.getMapType();
+	    if (MAP_PROJ == 0) {
+	      cruiseDir = cruiseDir + "/merc/";
+	    } else if (MAP_PROJ == 1) {
+	      cruiseDir = cruiseDir + "/SP/";
+	    } else {
+	      cruiseDir = cruiseDir + "/NP/";
+	    }
+	    CruiseBounds cruiseBounds = new CruiseBounds(cruiseDir, map);
+	    map.addOverlay(cruiseID + " bounds", cruiseBounds);
+	    CruiseImageViewer cruiseImageViewer = new CruiseImageViewer(map, cruiseDir, maxRes);
+	    //load images layer, but set to unchecked as default
+	    mapApp.addFocusOverlay(cruiseImageViewer, cruiseID + " images");
+	    mapApp.layerManager.setLayerVisible(cruiseImageViewer, false);
+	    String gridName = cruiseID + " grid";
+	    CruiseGridViewer cruiseGridViewer = new CruiseGridViewer(map, gridName, cruiseDir, maxRes);
+	    GridDialog.GRID_LOADERS.put(gridName, cruiseGridViewer);
+	    GridDialog.GRID_UNITS.put(gridName, "m");
+	    GridDialog.GRID_URL.put(gridName, cruiseDir);
+	    GridDialog gridDialog = mapApp.getMapTools().getGridDialog();
+	    gridDialog.gridCmds.put(gridName + "Cmd", gridName);
+	    gridDialog.addGrid(cruiseGridViewer);
+	    gridDialog.setSelectedGrid(cruiseGridViewer);
+	    gridDialog.showDialog();
+	    gridDialog.startGridLoad();
+	    gridDialog.loaded = true;
+
+	    int dx;
+	    int dy;
+	    if (mapApp.getMapType() == 0)
+	    {
+	      dx = 0;
+	      dy = 260;
+	    }
+	    else
+	    {
+	      dx = dy = 320;
+	    }
+	    cruiseBounds.dx = (cruiseGridViewer.dx = cruiseImageViewer.dx = dx);
+	    cruiseBounds.dy = (cruiseGridViewer.dy = cruiseImageViewer.dy = dy);
+  }
+  
   public static class CruiseBounds
     implements Overlay
   {
@@ -297,6 +378,14 @@ public class PreviewCruise
       super(map);
       this.base = base;
       this.maxRes = maxRes;
+    }
+    
+    @Override
+    public String toString() {
+    	String[] urlSections = base.split("/");
+    	if(urlSections.length == 0) return null;
+    	if(urlSections.length == 1) return "Images: " + urlSections[0];
+    	return "Images: " + urlSections[urlSections.length-2] + "/" + urlSections[urlSections.length-1];
     }
     
     public Runnable createFocusTask(final Rectangle2D rect)
