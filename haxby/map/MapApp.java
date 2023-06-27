@@ -51,6 +51,7 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -171,6 +172,8 @@ import org.geomapapp.util.OSAdjustment;
 
 public class MapApp implements ActionListener,
 							   KeyListener {
+	
+	private static boolean DEBUG_SLOW_MENUS = true;
 
 	public static final int MERCATOR_MAP = 0;
 	public static final int SOUTH_POLAR_MAP = 1;
@@ -185,7 +188,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.15.2"; // 06/16/2023
+	public final static String VERSION = "3.6.15.9"; // 06/27/2023
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
@@ -1349,8 +1352,10 @@ public class MapApp implements ActionListener,
 			} else if (whichMap==MapApp.NORTH_POLAR_MAP) {
 				startNP.setText("Initializing Menu Items");
 			}
+			if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Initializing Menu Items");
 			List<XML_Menu> menuLayers = null;
 
+			if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + (fetchCacheMenus ? " Fetching cache menus." : " Not fetching cache menus."));
 			// Check the cache to determine where to fetch xml menus
 			if(fetchCacheMenus == true) {
 				mainMenuFile = new File( menusCacheDir2, "main_menu.xml");
@@ -1358,26 +1363,31 @@ public class MapApp implements ActionListener,
 				mainMenuURL = PathUtil.getPath("NEW_MENU_PATH_2015",MapApp.BASE_URL+"/gma_menus/main_menu_new_2015.xml");
 
 				if(XML_Menu.validate(mainMenuFile) == false) {
+					if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Cache miss or invalid XML. Menu file: " + mainMenuFile.getCanonicalPath());
 					menuLayers = XML_Menu.parse(mainMenuURL);
 				} else if (XML_Menu.validate(mainMenuFile) == true) {
+					if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Cache hit and valid XML. Menu file: " + mainMenuFile.getCanonicalPath());
 					// Check for File as first item.
 					menuLayers = XML_Menu.parse(mainMenuFile);
 					try{
 						if(menuLayers.get(0).name.contentEquals("File")) {
-							menuLayers = XML_Menu.parse(mainMenuFile);
+							//menuLayers = XML_Menu.parse(mainMenuFile);
 						} else {
 							// First layer doesn't have file. Possible corruption. Set to get from server.
 							ReadMenusCache = false;
+							if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Bad menu file " + mainMenuFile.getCanonicalPath() + ". Fetching from server.");
 							menuLayers = XML_Menu.parse(mainMenuURL);
 						}
 					} catch (IndexOutOfBoundsException ioobex) {
 						// First layer doesn't have file. Possible corruption. Set to get from server.
 						ReadMenusCache = false;
+						if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Bad menu file " + mainMenuFile.getCanonicalPath() + ". Fetching from server.");
 						menuLayers = XML_Menu.parse(mainMenuURL);
 					}
 				}
 				//System.out.println("true");
 			} else if(fetchCacheMenus == false) {
+				if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Fetching menus from server.");
 				//mainMenuURL = PathUtil.getPath("MENU_PATH",MapApp.BASE_URL+"/gma_menus/main_menu.xml"); // 3.5.2 and older
 				mainMenuURL = PathUtil.getPath("NEW_MENU_PATH_2015",MapApp.BASE_URL+"/gma_menus/main_menu_new_2015.xml");
 				menuLayers = XML_Menu.parse(mainMenuURL);
@@ -1385,6 +1395,7 @@ public class MapApp implements ActionListener,
 			}
 			// Menu Bar is created
 			menuBar = XML_Menu.createMainMenuBar(menuLayers);
+			if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Menus have been created.");
 			//menuBar = XML_Menu.createMainMenuBar(XML_Menu.parse(mainMenuURL));
 		} catch (MalformedURLException e1) {
 			e1.printStackTrace();
@@ -1420,6 +1431,7 @@ public class MapApp implements ActionListener,
 
 		// Initializing Elevation
 		String initializingElevation = "Initializing Elevation Data Sources";
+		if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " " + initializingElevation);
 		if( whichMap==MapApp.MERCATOR_MAP ) {
 			start.setText(initializingElevation);
 		} else if (whichMap==MapApp.SOUTH_POLAR_MAP ) {
@@ -2046,9 +2058,11 @@ public class MapApp implements ActionListener,
 				}
 			}
 			String cruiseDir = cruiseRootDir + optStr;
+			String latestUrl = null;
 			try {
 				URL cruiseDirUrl = new URL(cruiseDir);
 				URLConnection conn = cruiseDirUrl.openConnection();
+				latestUrl = cruiseDir;
 				BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				Stream<String> htmlLines = reader.lines();
 				String[] cruises = htmlLines.filter(x -> x.contains("alt=\"[DIR]\""))
@@ -2071,7 +2085,8 @@ public class MapApp implements ActionListener,
 				System.out.println("Malformed URL: " + cruiseDir);
 				murle.printStackTrace();
 			} catch (IOException e) {
-				System.out.println("Could not access the URL: " + cruiseDir);
+				System.out.println("Could not access the URL: " + latestUrl);
+				JOptionPane.showMessageDialog(vPane, "The URL " + latestUrl + " could not be reached.\nThe server might be down.", "", JOptionPane.ERROR_MESSAGE);
 				e.printStackTrace();
 			}
 		}
