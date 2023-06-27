@@ -75,7 +75,7 @@ import haxby.wms.XML_Layer.RequestLayer;
  */
 public class XML_Menu {
 	
-	private static boolean DEBUG_SLOW_PARSING = true;
+	private static boolean DEBUG_SLOW_PARSING = false;
 
 	public static String url = MapApp.NEW_BASE_URL + "gma_menus/main_menu.xml";
 	public static String current_os = System.getProperty("os.name");
@@ -389,12 +389,11 @@ public class XML_Menu {
 		return menus;
 	}
 
-	private static int numCalls = 0;
 	public static List<XML_Menu> parseMenu(Node root) {
-		numCalls++;
 		if(DEBUG_SLOW_PARSING) {
-			StackTraceElement caller = Thread.currentThread().getStackTrace()[2];
-			System.out.println(LocalDateTime.now() + " parseMenu #" + numCalls + " from " + caller.getClassName() + "." + caller.getMethodName() + ":" + caller.getLineNumber());
+			if(!root.getNodeName().equals("layer")) {
+				System.out.println(LocalDateTime.now() + " parsing " + root.getNodeName() + " : " + root.getNodeType());
+			}
 		}
 		boolean switchMe = false;
 		NodeList nodes = root.getChildNodes();

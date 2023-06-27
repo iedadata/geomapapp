@@ -173,7 +173,7 @@ import org.geomapapp.util.OSAdjustment;
 public class MapApp implements ActionListener,
 							   KeyListener {
 	
-	private static boolean DEBUG_SLOW_MENUS = true;
+	private static boolean DEBUG_SLOW_MENUS = false;
 
 	public static final int MERCATOR_MAP = 0;
 	public static final int SOUTH_POLAR_MAP = 1;
@@ -188,7 +188,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.15.9"; // 06/27/2023
+	public final static String VERSION = "3.6.15.13"; // 06/27/2023
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
