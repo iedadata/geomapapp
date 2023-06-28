@@ -1068,6 +1068,7 @@ public class PDB implements Database,
 		} catch (IOException ex) {
 			loaded = false;
 			System.err.println(ex.getMessage());
+			ex.printStackTrace();
 			return false;
 		}
 

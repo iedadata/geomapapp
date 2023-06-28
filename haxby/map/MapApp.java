@@ -173,7 +173,8 @@ import org.geomapapp.util.OSAdjustment;
 public class MapApp implements ActionListener,
 							   KeyListener {
 	
-	private static boolean DEBUG_SLOW_MENUS = false;
+	private static boolean DEBUG_SLOW_MENUS = true;
+	private static boolean DEBUG_SLOW_GRID = true;
 
 	public static final int MERCATOR_MAP = 0;
 	public static final int SOUTH_POLAR_MAP = 1;
@@ -188,7 +189,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.15.13"; // 06/27/2023
+	public final static String VERSION = "3.6.15.25"; // 06/28/2023
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
@@ -2167,11 +2168,15 @@ public class MapApp implements ActionListener,
 
 		else if (name.equals("BrowseGridCmd")) {
 			if (!tools.shapeTB.isSelected()) {
+				if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Selecting tools.shapeTB");
 				tools.shapeTB.doClick();
 			} else {
+				if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " tools.shapeTB is selected");
 				tools.shapes.setVisible(true);
 			}
+			if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Importing grid");
 			tools.suite.importGrid();
+			if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Done importing grid");
 		}
 		else if (name.equals("FormatRequirementsGridCmd")) {
 			BrowseURL.browseURL(
@@ -2604,6 +2609,9 @@ public class MapApp implements ActionListener,
 										map.addOverlay( database.getDBName(), database );
 									}
 									sendLogMessage("Opening Portal$name="+database.getDBName());
+								}
+								else {
+									JOptionPane.showMessageDialog(vPane, "Error loading " + currentDB.getDBName(), "", JOptionPane.ERROR_MESSAGE);
 								}
 							}
 						};
