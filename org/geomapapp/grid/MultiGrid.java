@@ -5,6 +5,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.time.LocalDateTime;
 
 import org.geomapapp.geom.MapProjection;
 import org.geomapapp.geom.Mercator;
@@ -29,6 +30,8 @@ public class MultiGrid {
 	float ve = Float.NaN;
 	String palette;
 	String sun_illum;
+	
+	private static boolean DEBUG_SLOW_SETMAP = true;
 
 //	GMA 1.4.8: public so can be read by zoomTo() in GridLayerDialog
 //	ESRIShapefile shape;
@@ -84,8 +87,11 @@ public class MultiGrid {
 	}
 	
 	public void setMap() {
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " begin MultiGrid.setMap");
 		grid = new Grid2DOverlay( shape.getMap(), shape.toString() );
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Made grid");
 		grid.setBackground( background );
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Set background");
 	if(MapApp.AT_SEA) {
 		grid.setIsImported( !baseURL.contains("www.geomapapp.org/") &&
 				!baseURL.contains("www.marine-geo.org/geomapapp/") &&
@@ -98,15 +104,22 @@ public class MultiGrid {
 				!baseURL.startsWith(MapApp.BASE_URL) && 
 				!baseURL.startsWith(PathUtil.getPath("ROOT_PATH")));
 	}
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Set isImported");
 		applyRenderSettings(grid.getRenderer());
 		
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Applied render settings");
 		MapApp app = (MapApp)shape.getMap().getApp();
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Got map app");
 		GridDialog gridDialog = app.getMapTools().getGridDialog();
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Got grid dialog");
 		gridDialog.gridCBElements.put(grid.name, grid);
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Put the grid in gridCBElements");
 		if (gridDialog.gridCB != null) {
 			gridDialog.addGrid(grid, this);
+			if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Added the grid to the gridDialog");
 		}
 		gridDialog.showDialog(grid.name, this);
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Showed dialog. End MultiGrid.setMap.");
 	}
 	public void showDialog() {
 		MapApp app = (MapApp)shape.getMap().getApp();
@@ -301,22 +314,28 @@ public class MultiGrid {
 	}
 
 	public void applyRenderSettings(RenderingTools renderer) {
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Begin applyRenderSettings");
 		if ("off".equals(sun_illum))
 			renderer.setSunOn(false);
 		else if ("on".equals(sun_illum))
 			renderer.setSunOn(true);
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Set sun");
 		
 		if (palette != null)
 			renderer.setPalette(palette);
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Might have set palette");
 		
 		if (!Float.isNaN(ve)) {
 			renderer.setVE(ve);
+			if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Set VE");
 		}
 
 		if (!Float.isNaN(hist_min) && !Float.isNaN(hist_max) &&
 				hist_min < hist_max) {
 			renderer.setRange(new float[] {hist_min, hist_max});
+			if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Set range");
 		}
+		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " End applyRenderSettings");
 	}
 
 	public void setVE(String ve) {
