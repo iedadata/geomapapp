@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -74,8 +73,6 @@ import haxby.wms.XML_Layer.RequestLayer;
  *
  */
 public class XML_Menu {
-	
-	private static boolean DEBUG_SLOW_PARSING = false;
 
 	public static String url = MapApp.NEW_BASE_URL + "gma_menus/main_menu.xml";
 	public static String current_os = System.getProperty("os.name");
@@ -311,11 +308,6 @@ public class XML_Menu {
 
 	public static List<XML_Menu> parse(File f) throws ParserConfigurationException,
 	SAXException, IOException {
-		if(DEBUG_SLOW_PARSING) {
-			StackTraceElement caller = Thread.currentThread().getStackTrace()[2];
-			System.out.println(LocalDateTime.now() + " XML_Menu.parse(" + f.getCanonicalPath() + ") Called by " + caller.getClassName() + "." + caller.getMethodName() + " : " + caller.getLineNumber());
-			System.out.println(LocalDateTime.now() + " return parse(new BufferedInputStream(new FileInputStream(f)));");
-		}
 		return parse(new BufferedInputStream(new FileInputStream(f)));
 	}
 
@@ -342,59 +334,37 @@ public class XML_Menu {
 
 	public static List<XML_Menu> parse(InputStream in)
 	throws ParserConfigurationException, SAXException, IOException {
-		if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();");
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " dbf.setIgnoringComments(true);");
 		dbf.setIgnoringComments(true);
-		if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " DocumentBuilder db = dbf.newDocumentBuilder();");
 		DocumentBuilder db = dbf.newDocumentBuilder();
-		if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " Document dom = db.parse(in);");
 		Document dom = db.parse(in);
-		if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " Node root = dom.getFirstChild();");
 		Node root = dom.getFirstChild();
 
-		if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " if(!MapApp.ReadMenusCache)");
 		// Cache main xml file
 		if(MapApp.ReadMenusCache == false ) {
-			if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " Transformer transformer;");
 			Transformer transformer;
 			try {
-				if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " transformer = TransformerFactory.newInstance().newTransformer();");
 				transformer = TransformerFactory.newInstance().newTransformer();
-				if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " Result outputRoot = new StreamResult(menusCacheFileFirst);");
 				Result outputRoot = new StreamResult(menusCacheFileFirst);
-				if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " Source input = new DOMSource(dom);");
 				Source input = new DOMSource(dom);
-				if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " transformer.transform(input, outputRoot);");
 				transformer.transform(input, outputRoot);
 			} catch (TransformerConfigurationException e) {
-				if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " Caught " + e.getClass().getName());
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (TransformerFactoryConfigurationError e) {
-				if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " Caught " + e.getClass().getName());
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (TransformerException e) {
-				if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " Caught " + e.getClass().getName());
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " List<XML_Menu> menus = parseMenu(root);");
 		List<XML_Menu> menus = parseMenu(root);
-		if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " MapApp.ReadMenusCache = true;");
 		MapApp.ReadMenusCache = true;
-		if(DEBUG_SLOW_PARSING) System.out.println(LocalDateTime.now() + " return menus;");
 		return menus;
 	}
 
 	public static List<XML_Menu> parseMenu(Node root) {
-		if(DEBUG_SLOW_PARSING) {
-			if(!root.getNodeName().equals("layer")) {
-				System.out.println(LocalDateTime.now() + " parsing " + root.getNodeName() + " : " + root.getNodeType());
-			}
-		}
 		boolean switchMe = false;
 		NodeList nodes = root.getChildNodes();
 		List<XML_Menu> menus = new LinkedList<XML_Menu>();

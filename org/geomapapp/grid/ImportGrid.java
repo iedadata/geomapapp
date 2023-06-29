@@ -9,7 +9,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -161,8 +160,6 @@ public class ImportGrid implements Runnable {
 	protected boolean log = false;
 	private BufferedWriter writer = null;
 	
-	private static boolean DEBUG_SLOW_GRID = false;
-	
 	ProjectionDialog pd = new ProjectionDialog();
 
 	public ImportGrid(JFrame frame, ShapeSuite suite) {
@@ -179,7 +176,6 @@ public class ImportGrid implements Runnable {
 	}
 
 	void init() {
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Starting init");
 		JPanel panel = new JPanel();
 		gridB = new JButton("Import Grid");
 		panel.add(gridB);
@@ -188,16 +184,13 @@ public class ImportGrid implements Runnable {
 				begin();
 			}
 		});
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Added \"Import Grid\" button");
 
 		frame.getContentPane().add( panel, "North");
 	    JScrollPane scroll = new JScrollPane (area);
 
 		frame.getContentPane().add( scroll );
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Added scroll pane");
 		frame.pack();
 		frame.setVisible(true);
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Frame is now visible");
 
 		// GMA 1.4.8: Automatically bring up file chooser to select grid
 		gridB.doClick();
@@ -467,34 +460,27 @@ public class ImportGrid implements Runnable {
 		}
 		if (log) writer.close();
 		
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Decimating");
 		
 		dec.decimate( top , mapType == MapApp.MERCATOR_MAP );
 //		1.4.4: Pass name so that new files are named according
 //		to the name of the original file and not the directory 
 //		the original file is located in.
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Getting shape file");
 		File shp = (new XBGtoShape()).open(dir, name, mapType);
 		if (shp == null) {
-			if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Shape is null");
 			if (!nullGrid) showFormatError(files[0].getName());
 			suite.map.getMapTools().shapeTB.doClick();
 		}
 		
 		frame.dispose();
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Disposed frame");
 		if( shp!=null && suite!=null )suite.addShapeFile(shp);
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Might have added shape file");
 		//add the z-units to the shape file
 		Vector<ESRIShapefile> shapes = suite.getShapes();
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Got " + shapes.size() + " shapes");
 		for (ESRIShapefile shape : shapes) {
 			if (shape.getName().equals(name)) {
 				shape.setDataType(dataType);
 				shape.setUnits(zUnits);
 			}
 		}
-		if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Processed all the shapes. End of ImportGrid.tileGrids");
 		
 	}
 
@@ -717,9 +703,7 @@ public class ImportGrid implements Runnable {
 			grids[k] = new GridFile() {
 				public Grid2D getGrid() throws IOException {
 					GrdProperties gridP = new GrdProperties(file.getPath(), thisFlipGrid);
-					if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Reading grid");
 					Grid2D grid = Grd.readGrd(file.getPath(), null, gridP, thisFlipGrid, noData);
-					if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Read grid");
 					if (grid == null) {
 						return null;
 					}

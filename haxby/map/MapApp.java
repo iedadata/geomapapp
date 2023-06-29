@@ -51,7 +51,6 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -172,9 +171,6 @@ import org.geomapapp.util.OSAdjustment;
 
 public class MapApp implements ActionListener,
 							   KeyListener {
-	
-	private static boolean DEBUG_SLOW_MENUS = false;
-	private static boolean DEBUG_SLOW_GRID = false;
 
 	public static final int MERCATOR_MAP = 0;
 	public static final int SOUTH_POLAR_MAP = 1;
@@ -1353,10 +1349,8 @@ public class MapApp implements ActionListener,
 			} else if (whichMap==MapApp.NORTH_POLAR_MAP) {
 				startNP.setText("Initializing Menu Items");
 			}
-			if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Initializing Menu Items");
 			List<XML_Menu> menuLayers = null;
 
-			if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + (fetchCacheMenus ? " Fetching cache menus." : " Not fetching cache menus."));
 			// Check the cache to determine where to fetch xml menus
 			if(fetchCacheMenus == true) {
 				mainMenuFile = new File( menusCacheDir2, "main_menu.xml");
@@ -1364,10 +1358,8 @@ public class MapApp implements ActionListener,
 				mainMenuURL = PathUtil.getPath("NEW_MENU_PATH_2015",MapApp.BASE_URL+"/gma_menus/main_menu_new_2015.xml");
 
 				if(XML_Menu.validate(mainMenuFile) == false) {
-					if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Cache miss or invalid XML. Menu file: " + mainMenuFile.getCanonicalPath());
 					menuLayers = XML_Menu.parse(mainMenuURL);
 				} else if (XML_Menu.validate(mainMenuFile) == true) {
-					if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Cache hit and valid XML. Menu file: " + mainMenuFile.getCanonicalPath());
 					// Check for File as first item.
 					menuLayers = XML_Menu.parse(mainMenuFile);
 					try{
@@ -1376,19 +1368,16 @@ public class MapApp implements ActionListener,
 						} else {
 							// First layer doesn't have file. Possible corruption. Set to get from server.
 							ReadMenusCache = false;
-							if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Bad menu file " + mainMenuFile.getCanonicalPath() + ". Fetching from server.");
 							menuLayers = XML_Menu.parse(mainMenuURL);
 						}
 					} catch (IndexOutOfBoundsException ioobex) {
 						// First layer doesn't have file. Possible corruption. Set to get from server.
 						ReadMenusCache = false;
-						if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Bad menu file " + mainMenuFile.getCanonicalPath() + ". Fetching from server.");
 						menuLayers = XML_Menu.parse(mainMenuURL);
 					}
 				}
 				//System.out.println("true");
 			} else if(fetchCacheMenus == false) {
-				if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Fetching menus from server.");
 				//mainMenuURL = PathUtil.getPath("MENU_PATH",MapApp.BASE_URL+"/gma_menus/main_menu.xml"); // 3.5.2 and older
 				mainMenuURL = PathUtil.getPath("NEW_MENU_PATH_2015",MapApp.BASE_URL+"/gma_menus/main_menu_new_2015.xml");
 				menuLayers = XML_Menu.parse(mainMenuURL);
@@ -1396,7 +1385,6 @@ public class MapApp implements ActionListener,
 			}
 			// Menu Bar is created
 			menuBar = XML_Menu.createMainMenuBar(menuLayers);
-			if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " Menus have been created.");
 			//menuBar = XML_Menu.createMainMenuBar(XML_Menu.parse(mainMenuURL));
 		} catch (MalformedURLException e1) {
 			e1.printStackTrace();
@@ -1432,7 +1420,6 @@ public class MapApp implements ActionListener,
 
 		// Initializing Elevation
 		String initializingElevation = "Initializing Elevation Data Sources";
-		if(DEBUG_SLOW_MENUS) System.out.println(LocalDateTime.now() + " " + initializingElevation);
 		if( whichMap==MapApp.MERCATOR_MAP ) {
 			start.setText(initializingElevation);
 		} else if (whichMap==MapApp.SOUTH_POLAR_MAP ) {
@@ -2168,15 +2155,11 @@ public class MapApp implements ActionListener,
 
 		else if (name.equals("BrowseGridCmd")) {
 			if (!tools.shapeTB.isSelected()) {
-				if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Selecting tools.shapeTB");
 				tools.shapeTB.doClick();
 			} else {
-				if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " tools.shapeTB is selected");
 				tools.shapes.setVisible(true);
 			}
-			if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Importing grid");
 			tools.suite.importGrid();
-			if(DEBUG_SLOW_GRID) System.out.println(LocalDateTime.now() + " Done importing grid");
 		}
 		else if (name.equals("FormatRequirementsGridCmd")) {
 			BrowseURL.browseURL(

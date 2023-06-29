@@ -6,7 +6,6 @@ import java.awt.GridLayout;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -55,7 +54,6 @@ public class ShapeSuite extends AbstractTableModel {
 	public LayerModel layers;
 	public JTree layerTree;
 	
-	private static boolean DEBUG_SLOW_SHAPES = false;
 
 	// GMA 1.4.8: To be used and accessed through this class by other classes.
 	public ViewShapes viewShapes;
@@ -103,7 +101,6 @@ public class ShapeSuite extends AbstractTableModel {
 
 	public boolean addShapeFile( File file ) throws IOException {
 		if( file.getName().endsWith(".zip") ) {
-			if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Getting from ZIP");
 			ESRIShapefile shape = new ESRIShapefile( new java.util.zip.ZipInputStream( new FileInputStream(file) ));
 			if( map!=null ) shape.setMap(map);
 			shapeFiles.add( shape );
@@ -111,39 +108,28 @@ public class ShapeSuite extends AbstractTableModel {
 			fireTableStructureChanged();
 			return true;
 		}
-		if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Not from a ZIP");
 		String path = file.getParent();
 		String name  = file.getName();
 		name = name.substring( 0, name.lastIndexOf(".") );
-		if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Creating a new shape from the file " + path + "/" + name);
 		ESRIShapefile shape = new ESRIShapefile( path, name);
-		if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Created the shape");
 
 		if (containsShape(shape))
 			return false;
 		
-		if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Does not contain shape");
 
 //		GMA 1.4.8: Must set ShapeSuite for new ESRIShapefile
 		shape.suite = this;
 		shapeFiles.add( shape );
 
-		if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Added shape");
 		
 		if( map!=null ) {
-			if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " map is not null");
 			shape.setMap(map); // shape.forward( map.getProjection(), map.getWrap() );
-			if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Adding overlay");
 			map.addOverlay(shape.filename, shape);
-			if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + ((shape.getMultiImage() == null) ? " Multi image is null" : " Focusing multi image"));
 			if (shape.getMultiImage() != null)
 				shape.getMultiImage().focus();
-			if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Repainting map");
 			map.repaint();
 		}
-		if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Firing table structure change");
 		fireTableStructureChanged();
-		if(DEBUG_SLOW_SHAPES) System.out.println(LocalDateTime.now() + " Fired.");
 		return true;
 	}
 
