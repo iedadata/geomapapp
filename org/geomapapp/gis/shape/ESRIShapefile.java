@@ -19,7 +19,6 @@ import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Vector;
@@ -47,7 +46,6 @@ import haxby.util.XBTable;
 public class ESRIShapefile extends java.awt.geom.Rectangle2D.Double 
 				implements haxby.map.Overlay, TreeNode, WESNSupplier {
 	
-	private static boolean DEBUG_SLOW_SETMAP = false;
 			//	implements ESRIShape {
 	public final static int NULL = 0;
 	public final static int POINT = 1;
@@ -833,9 +831,7 @@ public class ESRIShapefile extends java.awt.geom.Rectangle2D.Double
 		if(map==null)return;
 		if(this.map!=null)return;
 		this.map = map;
-		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Set map");
 		forward(map.getProjection(), map.getWrap());
-		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Forwarded proejction/wrap");
 		if( multiGrid!=null ) {
 			multiGrid.setMap();
 		} else if ( multiImage!= null) {
@@ -843,13 +839,11 @@ public class ESRIShapefile extends java.awt.geom.Rectangle2D.Double
 		} else {
 			// TODO : Polygons and Lines go here.
 		}
-		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Finishing setMap(XMap)");
 	}
 	public XMap getMap() {
 		return map;
 	}
 	public void forward(MapProjection proj, double wrap) {
-		if(DEBUG_SLOW_SETMAP) System.out.println(LocalDateTime.now() + " Begin forward");
 		if( shapes==null || shapes.size()==0 )return;
 		double[][] bounds = new double[4][];
 		for( int k=0 ; k<shapes.size() ; k++) {
