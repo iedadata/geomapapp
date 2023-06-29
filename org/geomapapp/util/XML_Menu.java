@@ -359,6 +359,7 @@ public class XML_Menu {
 				e.printStackTrace();
 			}
 		}
+
 		List<XML_Menu> menus = parseMenu(root);
 		MapApp.ReadMenusCache = true;
 		return menus;
