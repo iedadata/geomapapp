@@ -161,7 +161,7 @@ public class ImportGrid implements Runnable {
 	protected boolean log = false;
 	private BufferedWriter writer = null;
 	
-	private static boolean DEBUG_SLOW_GRID = true;
+	private static boolean DEBUG_SLOW_GRID = false;
 	
 	ProjectionDialog pd = new ProjectionDialog();
 
