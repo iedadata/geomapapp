@@ -460,7 +460,6 @@ public class ImportGrid implements Runnable {
 		}
 		if (log) writer.close();
 		
-		
 		dec.decimate( top , mapType == MapApp.MERCATOR_MAP );
 //		1.4.4: Pass name so that new files are named according
 //		to the name of the original file and not the directory 

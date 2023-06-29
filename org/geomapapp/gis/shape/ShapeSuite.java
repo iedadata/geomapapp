@@ -53,7 +53,6 @@ public class ShapeSuite extends AbstractTableModel {
 	public JRadioButton gridB;
 	public LayerModel layers;
 	public JTree layerTree;
-	
 
 	// GMA 1.4.8: To be used and accessed through this class by other classes.
 	public ViewShapes viewShapes;
@@ -115,13 +114,11 @@ public class ShapeSuite extends AbstractTableModel {
 
 		if (containsShape(shape))
 			return false;
-		
 
 //		GMA 1.4.8: Must set ShapeSuite for new ESRIShapefile
 		shape.suite = this;
 		shapeFiles.add( shape );
 
-		
 		if( map!=null ) {
 			shape.setMap(map); // shape.forward( map.getProjection(), map.getWrap() );
 			map.addOverlay(shape.filename, shape);
