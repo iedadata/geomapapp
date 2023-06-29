@@ -18,6 +18,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JDialog;
@@ -59,6 +60,8 @@ public class Grid2DOverlay extends MapOverlay {
 	public double interval = -1;
 	public double bolding_interval = -1;
 	public int [] cb = new int[2];
+	
+	private static boolean DEBUG_SLOW_INITRENDERER = false;
 
 	public Grid2DOverlay( XMap map ) {
 //		1.3.5: Changed "DEM" to "Topography"
@@ -275,8 +278,11 @@ public class Grid2DOverlay extends MapOverlay {
 	}
 	protected void initRenderer() {
 		if( lut!=null ) return;
+		if(DEBUG_SLOW_INITRENDERER) System.out.println(LocalDateTime.now() + " lut = new RenderingTools(this);");
 		lut = new RenderingTools(this);
+		if(DEBUG_SLOW_INITRENDERER) System.out.println(LocalDateTime.now() + " lut.setBackground(background);");
 		lut.setBackground( background );
+		if(DEBUG_SLOW_INITRENDERER) System.out.println(LocalDateTime.now() + " end initRenderer");
 	}
 	public RenderingTools getRenderer() {
 		initRenderer();

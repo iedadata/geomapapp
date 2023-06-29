@@ -47,7 +47,7 @@ import haxby.util.XBTable;
 public class ESRIShapefile extends java.awt.geom.Rectangle2D.Double 
 				implements haxby.map.Overlay, TreeNode, WESNSupplier {
 	
-	private static boolean DEBUG_SLOW_SETMAP = true;
+	private static boolean DEBUG_SLOW_SETMAP = false;
 			//	implements ESRIShape {
 	public final static int NULL = 0;
 	public final static int POINT = 1;

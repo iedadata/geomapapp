@@ -31,7 +31,7 @@ public class MultiGrid {
 	String palette;
 	String sun_illum;
 	
-	private static boolean DEBUG_SLOW_SETMAP = true;
+	private static boolean DEBUG_SLOW_SETMAP = false;
 
 //	GMA 1.4.8: public so can be read by zoomTo() in GridLayerDialog
 //	ESRIShapefile shape;

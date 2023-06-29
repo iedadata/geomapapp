@@ -55,7 +55,7 @@ public class ShapeSuite extends AbstractTableModel {
 	public LayerModel layers;
 	public JTree layerTree;
 	
-	private static boolean DEBUG_SLOW_SHAPES = true;
+	private static boolean DEBUG_SLOW_SHAPES = false;
 
 	// GMA 1.4.8: To be used and accessed through this class by other classes.
 	public ViewShapes viewShapes;
