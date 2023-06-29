@@ -190,7 +190,7 @@ public class ImportGrid implements Runnable {
 
 		frame.getContentPane().add( scroll );
 		frame.pack();
-		frame.show();
+		frame.setVisible(true);
 
 		// GMA 1.4.8: Automatically bring up file chooser to select grid
 		gridB.doClick();
