@@ -185,7 +185,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.15.2"; // 06/16/2023
+	public final static String VERSION = "3.7.0"; // 06/29/2023
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	public final static boolean DEV_MODE = false; 
 	
@@ -1364,7 +1364,7 @@ public class MapApp implements ActionListener,
 					menuLayers = XML_Menu.parse(mainMenuFile);
 					try{
 						if(menuLayers.get(0).name.contentEquals("File")) {
-							menuLayers = XML_Menu.parse(mainMenuFile);
+							//menuLayers = XML_Menu.parse(mainMenuFile);
 						} else {
 							// First layer doesn't have file. Possible corruption. Set to get from server.
 							ReadMenusCache = false;
@@ -2046,9 +2046,11 @@ public class MapApp implements ActionListener,
 				}
 			}
 			String cruiseDir = cruiseRootDir + optStr;
+			String latestUrl = null;
 			try {
 				URL cruiseDirUrl = new URL(cruiseDir);
 				URLConnection conn = cruiseDirUrl.openConnection();
+				latestUrl = cruiseDir;
 				BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				Stream<String> htmlLines = reader.lines();
 				String[] cruises = htmlLines.filter(x -> x.contains("alt=\"[DIR]\""))
@@ -2071,7 +2073,8 @@ public class MapApp implements ActionListener,
 				System.out.println("Malformed URL: " + cruiseDir);
 				murle.printStackTrace();
 			} catch (IOException e) {
-				System.out.println("Could not access the URL: " + cruiseDir);
+				System.out.println("Could not access the URL: " + latestUrl);
+				JOptionPane.showMessageDialog(vPane, "The URL " + latestUrl + " could not be reached.\nThe server might be down.", "", JOptionPane.ERROR_MESSAGE);
 				e.printStackTrace();
 			}
 		}
@@ -2589,6 +2592,9 @@ public class MapApp implements ActionListener,
 										map.addOverlay( database.getDBName(), database );
 									}
 									sendLogMessage("Opening Portal$name="+database.getDBName());
+								}
+								else {
+									JOptionPane.showMessageDialog(vPane, "Error loading " + currentDB.getDBName(), "", JOptionPane.ERROR_MESSAGE);
 								}
 							}
 						};
