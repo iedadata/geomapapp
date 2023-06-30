@@ -185,7 +185,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.7.0"; // 06/29/2023
+	public final static String VERSION = "3.6.15.38"; // 06/30/2023
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	
