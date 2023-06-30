@@ -690,6 +690,7 @@ public class LineSegmentsObject extends DBTableModel
 	
 	
 	public void mouseDragged( MouseEvent evt ) {
+		dig.insertBtn.setEnabled(dig.table.getSelectedRows().length == 1);
 		if( currentPoint < 0)return;
 		if( evt.isControlDown() ) {
 			currentPoint=-1;
