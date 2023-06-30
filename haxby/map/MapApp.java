@@ -187,7 +187,7 @@ public class MapApp implements ActionListener,
 
 	public final static String VERSION = "3.7.0"; // 06/29/2023
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
-	public final static boolean DEV_MODE = false; 
+	private static boolean DEV_MODE = false; 
 	
 	public static final String PRODUCTION_URL = "http://app.geomapapp.org/";
 	public static String DEFAULT_URL = "http://app.geomapapp.org/";
@@ -455,6 +455,9 @@ public class MapApp implements ActionListener,
 			BASE_URL = baseURL;
 			if( !BASE_URL.endsWith("/") ) BASE_URL += "/";
 		}
+		DEV_MODE = BASE_URL.equals(DEV_URL);
+		versionGMRT = MMapServer.getVersionGMRT();		
+		baseFocusName = "GMRT Image Version " + versionGMRT;
 		whichMap = MapApp.MERCATOR_MAP;
 		directory = dir;
 		File file = new File(dir);
@@ -522,12 +525,13 @@ public class MapApp implements ActionListener,
 		serverURLString = PathUtil.getPath("SERVER_LIST",
 				BASE_URL+"/gma_servers/server_list.dat");
 
-		checkVersion();
 		try {
 			getServerList();
 		} catch (IOException e) {
 			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
 		}
+		DEV_MODE = BASE_URL.equals(DEV_URL);
+		checkVersion();
 
 		// User chooses
 		if (which == -1) {
@@ -541,6 +545,9 @@ public class MapApp implements ActionListener,
 		if( whichMap==-1 ) {
 			System.exit(0);
 		}
+		
+		versionGMRT = MMapServer.getVersionGMRT();		
+		baseFocusName = "GMRT Image Version " + versionGMRT;
 
 		if(whichMap==MapApp.MERCATOR_MAP) {
 			MInit();
@@ -554,6 +561,9 @@ public class MapApp implements ActionListener,
 		processBorder();
 	}
 
+	public static boolean isDevMode() {
+		return DEV_MODE;
+	}
 	private void checkConnection() {
 		if (AT_SEA) {
 			return;
@@ -800,7 +810,8 @@ public class MapApp implements ActionListener,
 		URL url=null;
 		try {
 			String versionURL = PathUtil.getPath("VERSION_PATH",
-					BASE_URL+"/gma_version/") + "version";
+					BASE_URL+"/gma_version/").replace("//","/")
+					.replaceFirst(":/",  "://") + "version";
 			url = URLFactory.url(versionURL);
 
 			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
@@ -3699,9 +3710,8 @@ public class MapApp implements ActionListener,
 
 	public static MapApp createMapApp(String[] args) {		
 		findLaunchFile();
+		
 		if (BASE_URL == null) BASE_URL = PathUtil.getPath("ROOT_PATH");
-		versionGMRT = MMapServer.getVersionGMRT();		
-		baseFocusName = "GMRT Image Version " + versionGMRT;
 		
 		String atSea = System.getProperty("geomapapp.at_sea");
 		if ("true".equalsIgnoreCase(atSea))
@@ -3721,6 +3731,10 @@ public class MapApp implements ActionListener,
 			app = new MapApp(args[0]);
 		} else if( args.length==2) {
 			app =new MapApp(args[0], args[1]);
+		}
+		if(null == app) {
+			versionGMRT = MMapServer.getVersionGMRT();
+			baseFocusName = "GMRT Image Version " + versionGMRT;
 		}
 		return app;
 	}
@@ -5063,11 +5077,12 @@ public class MapApp implements ActionListener,
 		if (DEV_MODE) {
 			String[] software = vSoftware.split("\\.");
 			String[] server = vServer.split("\\.");
-			for (int i=0; i<software.length; i++) {
+			for (int i=0; i<software.length && i < server.length; i++) {
 				int sw = Integer.parseInt(software[i]);
 				int sv = Integer.parseInt(server[i]);
 				if (Integer.compare(sw,sv) != 0) return Integer.compare(sw,sv) ;
 			}
+			return Integer.compare(software.length, server.length);
 		} else {
 			//use this line for release version instead.
 			if (!vSoftware.equals(vServer)) return -1;
