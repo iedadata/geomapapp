@@ -506,6 +506,7 @@ public class LineSegmentsObject extends DBTableModel
 		
 	}
 	public void mouseClicked( MouseEvent evt ) {
+		dig.insertBtn.setEnabled(dig.table.getSelectedRows().length == 1);
 		if(!active || evt.isControlDown())return;
 		drawSeg();
 		Point2D.Double p = (Point2D.Double)map.getScaledPoint( evt.getPoint() );
