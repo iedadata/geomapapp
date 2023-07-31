@@ -647,6 +647,7 @@ public class Digitizer implements Database,
 	public void mouseMoved( MouseEvent evt ) {
 	}
 	public void mouseDragged( MouseEvent evt ) {
+		insertBtn.setEnabled(table.getSelectedRows().length == 1);
 	}
 	public void keyPressed( KeyEvent evt ) {
 	}
