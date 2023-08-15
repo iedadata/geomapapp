@@ -32,3 +32,4 @@ haxby_org
 *.swp
 *.swo
 build_tmp
+codesign.p12
