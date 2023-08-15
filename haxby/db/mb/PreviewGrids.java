@@ -7,6 +7,7 @@ import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.HashMap;
 
 import javax.swing.JToggleButton;
@@ -62,6 +63,14 @@ public class PreviewGrids
     	paths.put("np_path", PathUtil.getPath("DEV_GMRT2/NP_GRID_TILE_PATH"));
     	paths.put("merc_mbPath", PathUtil.getPath("DEV_GMRT2/MERCATOR_GRID_TILE_PATH"));
     }
+    if(MapApp.AT_SEA) { 
+	    for(String key : paths.keySet()) {
+	    	if(new File(paths.get(key)).exists()) {}
+	    	else {
+	    		paths.put(key, paths.get(key).replaceFirst("current", MapApp.which_os.gmrt_current));
+	    	}
+	    }
+    }
     
     int maxRes = 4096;
     MapApp mapApp = MapApp.createMapApp(new String[0]);
@@ -77,6 +86,9 @@ public class PreviewGrids
 		prodPath = PathUtil.getPath("GMRT_LATEST/NP_TILE_PATH");
 	else
 		prodPath = PathUtil.getPath("GMRT_LATEST/MERCATOR_TILE_PATH");
+	if(MapApp.AT_SEA) {
+		prodPath = prodPath.replace("current", MapApp.which_os.gmrt_current);
+	}
     ImageViewer imageViewerProd = new ImageViewer(map, prodPath, maxRes);
     mapApp.getMapTools().maskB.addActionListener(new ActionListener()
     {

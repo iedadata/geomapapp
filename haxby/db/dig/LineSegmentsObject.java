@@ -29,6 +29,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.event.ListSelectionEvent;
 
 import org.geomapapp.geom.XYZ;
 import org.geomapapp.grid.Grid2DOverlay;
@@ -463,13 +464,15 @@ public class LineSegmentsObject extends DBTableModel
 			currentPoint = i;
 			//highlight in table
 			try {
-				dig.table.setRowSelectionInterval(currentPoint, currentPoint);
+				dig.list.setSelectedIndex(currentPoint);
+				dig.list.getListSelectionListeners()[0].valueChanged(new ListSelectionEvent(evt.getSource(), 0, dig.list.getModel().getSize()-1, false));
 		        dig.deletePtsBtn.setEnabled(true);	
 				if (SwingUtilities.isRightMouseButton(evt)) {
 					rightClickMenu.show(evt.getComponent(), evt.getX(), evt.getY());
-				} else {
-					mouseDragged( evt );
 				}
+				dig.table.setRowSelectionInterval(currentPoint, currentPoint);
+				dig.map.repaint();
+				dig.redraw();
 				return;
 				} 
 			catch(Exception e) {
@@ -481,6 +484,7 @@ public class LineSegmentsObject extends DBTableModel
 		currentPoint = -1;
 	}
 	public void mouseReleased( MouseEvent evt ) {
+        
 		if( !editShape ) {
 			currentPoint = -1;
 			return;
@@ -502,6 +506,7 @@ public class LineSegmentsObject extends DBTableModel
 		
 	}
 	public void mouseClicked( MouseEvent evt ) {
+		dig.insertBtn.setEnabled(dig.table.getSelectedRows().length == 1);
 		if(!active || evt.isControlDown())return;
 		drawSeg();
 		Point2D.Double p = (Point2D.Double)map.getScaledPoint( evt.getPoint() );
@@ -527,6 +532,13 @@ public class LineSegmentsObject extends DBTableModel
 			double[] xyz = (double[])point;
 			Point2D.Double p = new Point2D.Double(xyz[0], xyz[1]);
 			xyz[2] = getZ(p);
+		}
+	}
+	
+	void insertPoints(int beforeIndex, LineSegmentsObject other) {
+		other.updatePoints();
+		for(int i = other.points.size()-1; i >= 0; i--) {
+			points.add(beforeIndex, other.points.get(i));
 		}
 	}
 	
@@ -678,6 +690,7 @@ public class LineSegmentsObject extends DBTableModel
 	
 	
 	public void mouseDragged( MouseEvent evt ) {
+		dig.insertBtn.setEnabled(dig.table.getSelectedRows().length == 1);
 		if( currentPoint < 0)return;
 		if( evt.isControlDown() ) {
 			currentPoint=-1;

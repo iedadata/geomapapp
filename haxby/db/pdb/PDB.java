@@ -1068,6 +1068,7 @@ public class PDB implements Database,
 		} catch (IOException ex) {
 			loaded = false;
 			System.err.println(ex.getMessage());
+			ex.printStackTrace();
 			return false;
 		}
 
@@ -1080,9 +1081,10 @@ public class PDB implements Database,
 	//	dialog = new PDBSelectionDialog( this );
 		dialog = new JPanel( new BorderLayout() );
 
-		//Set a min size width
-		dialog.setMinimumSize(new Dimension(438, dialog.getMinimumSize().height));
-		dialog.setPreferredSize(new Dimension(438, dialog.getPreferredSize().height));
+		//Set a min size width and height
+		dialog.setMinimumSize(new Dimension(438, 1000));
+		dialog.setPreferredSize(new Dimension(438, 1000));
+		
 
 		JPanel p = new JPanel(new GridLayout(0,1));
 

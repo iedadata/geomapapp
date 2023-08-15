@@ -15,7 +15,7 @@ import java.util.Vector;
 public class PDBDataType {
 	/* FIXME: Lulin Song leave 'Age' and 'EM' here. It will be removed in the future when pdb_dataC code[i] matches the new list */
 	public final static String[][] dataCode = {
-				{ "A", "Age" },        /*Kerstin recommend to remove this. But pdb_dataC file use this */
+				{ "AGE", "Age" },        /*Kerstin recommend to remove this. But pdb_dataC file use this */
 				{ "MAJ", "Major" },
 				{ "TE", "Trace" },
 				{ "REE", "Rare Earth" },
@@ -24,7 +24,12 @@ public class PDBDataType {
 				{ "NGAS", "Noble Gas" },
 				{ "VO", "Volatile" },
 				{ "US", "U-Series" },
-				{ "EM", "End Member" } /* Kerstin recommend to remove this. But pdb_dataC file use this */
+				{ "EM", "End Member" }, /* Kerstin recommend to remove this. But pdb_dataC file use this */
+				{ "RT", "Ratio" },
+				{ "MODE", "Rock Mode" },
+				{ "MD", "Model Data" },
+				{ "SPEC", "Speciation Ratio" },
+				{ "GEO", "Geospatial" }
 	};
 	static byte[] group;
 	static byte[][] name;
@@ -42,28 +47,23 @@ public class PDBDataType {
 		if( initiallized ) return;
 		Vector<String[]> v = new Vector<String[]>();
 		//URL url = URLFactory.url(PETDB_PATH + "June2014/item_codeA_new.txt");
-		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/item_codeA_new.txt");
+		URL url = URLFactory.url(PETDB_PATH + "petdb_latest/pdb_item_codeA_new.tsv");
 		URLConnection urlConn = url.openConnection();
 		urlConn.setDoInput(true); 
 		urlConn.setUseCaches(false);
 
 		BufferedReader in = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
 
-		String s;
+		//first read the header
+		String s = in.readLine();
+		//then the data
 		while( (s=in.readLine()) != null) {
-			if (s.startsWith("*/")){
-				while (true) try{
-					s = in.readLine();
-					String [] results = s.split("\\t");
-					//The first column in the file is skipped. It is used for pdb_dataC.txt file.
-					v.add( new String[] {results[1], 
-							results[2], 
-							results[3], 
-							results[4]} );
-				} catch (NullPointerException ex) {
-					break;
-				}
-			}
+			String [] results = s.split("\\t");
+			v.add( new String[] {results[0], 
+					results[1], 
+					results[2], 
+					results[3]} );
+			
 		}
 
 		try {

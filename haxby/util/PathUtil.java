@@ -45,7 +45,7 @@ public class PathUtil {
 		if (keyToURL == null) loadPaths();
 		String url = keyToURL.get(key.toLowerCase());
 		// if running in dev mode, replace any production URLs with the dev version
-		if (url != null && MapApp.BASE_URL != null && MapApp.BASE_URL.matches(MapApp.DEV_URL)) {
+		if (url != null && MapApp.isDevMode()) {
 			url = url.replace(MapApp.PRODUCTION_URL, MapApp.DEV_URL);
 		}
 		if (url != null) return url;
