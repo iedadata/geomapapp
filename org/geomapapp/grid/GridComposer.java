@@ -5,8 +5,10 @@ import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.nio.file.Paths;
 
 import haxby.map.GetGrid;
+import haxby.map.MapApp;
 import haxby.map.MapOverlay;
 import haxby.map.XMap;
 import haxby.proj.PolarStereo;
@@ -22,6 +24,15 @@ public class GridComposer extends GetGrid {
 	public static String vo_base = PathUtil.getPath("GMRT_LATEST/VO_GRID_TILE_PATH");
 	public static String spBase = PathUtil.getPath("GMRT_LATEST/SP_GRID_TILE_PATH");
 	public static String npBase = PathUtil.getPath("GMRT_LATEST/NP_GRID_TILE_PATH");
+	static {
+		if(MapApp.AT_SEA) {
+			base = base.replaceFirst("current", MapApp.which_os.gmrt_current);
+			mbPath = mbPath.replaceFirst("current", MapApp.which_os.gmrt_current);
+			vo_base = vo_base.replaceFirst("current", MapApp.which_os.gmrt_current);
+			spBase = spBase.replaceFirst("current", MapApp.which_os.gmrt_current);
+			npBase = npBase.replaceFirst("current", MapApp.which_os.gmrt_current);
+		}
+	}
 	
 	static int oceanGridMaxResLevel = 512;
 	static HiResGrid[] hiRes;

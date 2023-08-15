@@ -95,7 +95,7 @@ public class ColorScaleLayer extends AbstractLayer
 				!scaleSupplier.isColorScaleValid()) return;
 		
 		//GL gl = dc.getGL();
-		GL2 gl = dc.getGL().getGL2(); // GL initialization checks for GL2 compatibility.
+		GL2 gl = (GL2)dc.getGL().getGL2(); // GL initialization checks for GL2 compatibility.
 
 		boolean attribsPushed = false;
 		boolean modelviewPushed = false;

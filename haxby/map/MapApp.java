@@ -9,6 +9,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.Point;
@@ -48,15 +50,22 @@ import java.net.ProxySelector;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
+import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -80,6 +89,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JWindow;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.Border;
@@ -113,6 +123,7 @@ import haxby.db.dig.Digitizer;
 import haxby.db.eq.EQ;
 import haxby.db.fms.FocalMechanismSolutionDB;
 import haxby.db.mb.MBTracks;
+import haxby.db.mb.PreviewCruise;
 import haxby.db.mgg.MGG;
 import haxby.db.pdb.PDB;
 import haxby.db.pmel.PMEL;
@@ -156,6 +167,8 @@ import haxby.wms.WMS_ESPG_3031_Overlay;
 import haxby.wms.WMS_ESPG_4326_Overlay;
 import haxby.wms.XML_Layer;
 
+import org.geomapapp.util.OSAdjustment;
+
 public class MapApp implements ActionListener,
 							   KeyListener {
 
@@ -172,9 +185,9 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.6.15"; // 08/29/2022
+	public final static String VERSION = "3.7.1"; // 08/10/2023
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
-	public final static boolean DEV_MODE = false; 
+	private static boolean DEV_MODE = false; 
 	
 	public static final String PRODUCTION_URL = "http://app.geomapapp.org/";
 	public static String DEFAULT_URL = "http://app.geomapapp.org/";
@@ -325,9 +338,14 @@ public class MapApp implements ActionListener,
 	protected Object autoFocusLock = new Object(); // Lock Object for the autoFocus method
 	protected Object processingTaskLock = new Object();
 	protected Object silentProcessingTaskLock = new Object();
+	
+	public static OSAdjustment.OS which_os = OSAdjustment.getOS();
 
 	public static JFileChooser chooser = null;
 	public static ArrayList<String> portal_commands;
+	
+	private JCheckBox loadAltTiles;
+	//private JTextField altTilesUrlTextField;
 
 	public StartUp start,
 					startNP,
@@ -398,7 +416,7 @@ public class MapApp implements ActionListener,
 							public void actionPerformed(ActionEvent ae) {
 								JMenuItem selectedMI = (JMenuItem) ae.getSource();
 								for (int j = 0; j < frames.length; j++) {
-									if (frames[j].getTitle().matches(selectedMI.getText())) {
+									if (frames[j].getTitle().matches(Pattern.quote(selectedMI.getText()))) {
 										frames[j].toFront();
 									}
 								}
@@ -437,6 +455,9 @@ public class MapApp implements ActionListener,
 			BASE_URL = baseURL;
 			if( !BASE_URL.endsWith("/") ) BASE_URL += "/";
 		}
+		DEV_MODE = BASE_URL.equals(DEV_URL);
+		versionGMRT = MMapServer.getVersionGMRT();		
+		baseFocusName = "GMRT Image Version " + versionGMRT;
 		whichMap = MapApp.MERCATOR_MAP;
 		directory = dir;
 		File file = new File(dir);
@@ -504,12 +525,13 @@ public class MapApp implements ActionListener,
 		serverURLString = PathUtil.getPath("SERVER_LIST",
 				BASE_URL+"/gma_servers/server_list.dat");
 
-		checkVersion();
 		try {
 			getServerList();
 		} catch (IOException e) {
 			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
 		}
+		DEV_MODE = BASE_URL.equals(DEV_URL);
+		checkVersion();
 
 		// User chooses
 		if (which == -1) {
@@ -523,6 +545,9 @@ public class MapApp implements ActionListener,
 		if( whichMap==-1 ) {
 			System.exit(0);
 		}
+		
+		versionGMRT = MMapServer.getVersionGMRT();		
+		baseFocusName = "GMRT Image Version " + versionGMRT;
 
 		if(whichMap==MapApp.MERCATOR_MAP) {
 			MInit();
@@ -536,6 +561,9 @@ public class MapApp implements ActionListener,
 		processBorder();
 	}
 
+	public static boolean isDevMode() {
+		return DEV_MODE;
+	}
 	private void checkConnection() {
 		if (AT_SEA) {
 			return;
@@ -782,7 +810,8 @@ public class MapApp implements ActionListener,
 		URL url=null;
 		try {
 			String versionURL = PathUtil.getPath("VERSION_PATH",
-					BASE_URL+"/gma_version/") + "version";
+					BASE_URL+"/gma_version/").replace("//","/")
+					.replaceFirst(":/",  "://") + "version";
 			url = URLFactory.url(versionURL);
 
 			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
@@ -1287,7 +1316,7 @@ public class MapApp implements ActionListener,
 
 		dialog = new JPanel(new BorderLayout());
 		dialog.add( panel, "North");
-		dialog.setPreferredSize(new Dimension(125, 700));
+		dialog.setPreferredSize(new Dimension(125, 1000));
 		dialog.setMinimumSize(new Dimension(125,8));
 		// For vPane Panel to scroll
 		dialogScroll = new JScrollPane(dialog);
@@ -1346,7 +1375,7 @@ public class MapApp implements ActionListener,
 					menuLayers = XML_Menu.parse(mainMenuFile);
 					try{
 						if(menuLayers.get(0).name.contentEquals("File")) {
-							menuLayers = XML_Menu.parse(mainMenuFile);
+							//menuLayers = XML_Menu.parse(mainMenuFile);
 						} else {
 							// First layer doesn't have file. Possible corruption. Set to get from server.
 							ReadMenusCache = false;
@@ -1917,6 +1946,173 @@ public class MapApp implements ActionListener,
 	protected void importImage() {
 		new ImportImageLayer().importImage(this);
 	}
+	
+	public void addCruisePreview(String url, String altTilesPath) {
+		//figure out the name of the cruise and the info file path
+		String[] pathParts = url.split("/");
+		String folderName = pathParts[pathParts.length-1];
+		String infoFile = url + "/" + folderName + ".gmrt.xml";
+		try {
+			//fetch and read the info file (XML)
+			URL cruiseInfoUrl = new URL(infoFile);
+			URLConnection rootConn = cruiseInfoUrl.openConnection();
+			BufferedReader infoReader = new BufferedReader(new InputStreamReader(rootConn.getInputStream()));
+
+			//Should be a one- or two-line file, but can't be too careful
+			String infoXml = "";
+			String line = null;
+			while(null != (line = infoReader.readLine())) {
+				infoXml += " " + line.trim();
+				infoXml = infoXml.trim();
+			}
+			infoReader.close();
+			int cruiseInputIndex = infoXml.indexOf("<CRUISE_INPUT");
+			
+			//get the best resolution available
+			String resolutionAttr = "resolution=\"";
+			int resStartIndex = infoXml.indexOf(resolutionAttr, cruiseInputIndex) + resolutionAttr.length();
+			int resEndIndex = infoXml.indexOf("\"", resStartIndex);
+			String bestRes = infoXml.substring(resStartIndex, resEndIndex);
+			
+			int shouldContinue = JOptionPane.showConfirmDialog(vPane, "Best resolution found: " + bestRes + "\nContinue loading from " + url.replace("file://", "") + "?", "", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if(shouldContinue == JOptionPane.CANCEL_OPTION || shouldContinue == JOptionPane.CLOSED_OPTION || shouldContinue == JOptionPane.NO_OPTION) return;
+			cancelOps();
+			//pass off the rest of the work to previously existing PreviewCruise
+			if(null == altTilesPath) {
+				PreviewCruise.showCruise(this, new String[] {url, bestRes});
+			}
+			else {
+				PreviewCruise.showCruise(this, new String[] {url, bestRes, altTilesPath});
+			}
+		}
+		catch (MalformedURLException murle) {
+			murle.printStackTrace();
+		}
+		catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
+		
+	}
+	
+	public void previewCruiseFromMenu(boolean fromLocalFile) {
+		String url = null, altTilesUrl = null;
+		if(fromLocalFile) {
+			JFileChooser chooser = new JFileChooser();
+			chooser.setMultiSelectionEnabled(false);
+			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			int option = chooser.showOpenDialog(null);
+			if(JFileChooser.APPROVE_OPTION == option) {
+				String path = chooser.getSelectedFile().getAbsolutePath();
+				if(which_os == OSAdjustment.OS.WINDOWS) {
+					path = "/" + Character.toLowerCase(path.charAt(0)) + path.substring(1).replaceAll("\\\\", "/");
+				}
+				url = "file://" + path;
+				/*
+				JPanel chooseAltTilesPanel = new JPanel();
+				JCheckBox loadAltTiles = new JCheckBox("Load alternate base map tiles? If yes, specify URL: ");
+				JTextField altTilesUrlTextField = new JTextField("http://www.dev2.geomapapp.org/");
+				chooseAltTilesPanel.add(loadAltTiles);
+				chooseAltTilesPanel.add(altTilesUrlTextField);
+				int optionChosen = JOptionPane.showConfirmDialog(null, chooseAltTilesPanel, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+				if(optionChosen == JOptionPane.CANCEL_OPTION || optionChosen == JOptionPane.CLOSED_OPTION) return;
+				if(loadAltTiles.isSelected()) {
+					altTilesUrl = altTilesUrlTextField.getText();
+				}
+				*/
+			}
+		}
+		else {
+			//TODO may later want to add fully custom URLs for cruises
+			String cruiseRootDir = "http://dev2.geomapapp.org/cruises/";
+			JPanel chooseDirPanel = new JPanel(new GridLayout(0,1));
+			JLabel chooseDirLabel = new JLabel("Choose a directory to search in:");
+			chooseDirPanel.add(chooseDirLabel);
+			JRadioButton todoButton = new JRadioButton("todo", true),
+					doneButton = new JRadioButton("done"),
+					submittedButton = new JRadioButton("submitted");
+			ButtonGroup chooseDirButtons = new ButtonGroup();
+			chooseDirButtons.add(todoButton);
+			chooseDirButtons.add(doneButton);
+			chooseDirButtons.add(submittedButton);
+			chooseDirPanel.add(todoButton);
+			chooseDirPanel.add(doneButton);
+			chooseDirPanel.add(submittedButton);
+			/*
+			JTextField altTilesUrlTextField = new JTextField("http://dev2.geomapapp.org/");
+			JCheckBox loadAltTiles = new JCheckBox("Load alternate base map tiles? If yes, specify URL:");
+			chooseDirPanel.add(loadAltTiles);
+			chooseDirPanel.add(altTilesUrlTextField);
+			*/
+			int optionChosen = JOptionPane.showConfirmDialog(vPane, chooseDirPanel, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if(optionChosen != JOptionPane.OK_OPTION) return;
+			/*if(loadAltTiles.isSelected()) {
+				altTilesUrl = altTilesUrlTextField.getText();
+			}*/
+			Enumeration<AbstractButton> buttons = chooseDirButtons.getElements();
+			String optStr = null;
+			while(buttons.hasMoreElements()) {
+				AbstractButton b = buttons.nextElement();
+				if(b.isSelected()) {
+					optStr = b.getText();
+				}
+			}
+			String cruiseDir = cruiseRootDir + optStr;
+			String latestUrl = null;
+			try {
+				URL cruiseDirUrl = new URL(cruiseDir);
+				URLConnection conn = cruiseDirUrl.openConnection();
+				latestUrl = cruiseDir;
+				BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				Stream<String> htmlLines = reader.lines();
+				String[] cruises = htmlLines.filter(x -> x.contains("alt=\"[DIR]\""))
+						.map(new Function<String, String>() {
+							@Override
+							public String apply(String line) {
+								String linkTag = "a href=\"";
+								int startIndex = line.indexOf(linkTag) + linkTag.length();
+								int endIndex = line.indexOf("/", startIndex);
+								return line.substring(startIndex, endIndex);
+							}
+						})
+						.collect(Collectors.toList()).toArray(new String[] {});
+				String cruiseNameStr = (String)JOptionPane.showInputDialog(vPane, "Preview which cruise?", "Choose a cruise (" + optStr + ")", JOptionPane.PLAIN_MESSAGE, null, cruises, cruises[0]);
+				if(null != cruiseNameStr) {
+					url = cruiseDir + "/" + cruiseNameStr;
+				}
+			}
+			catch(MalformedURLException murle) {
+				System.out.println("Malformed URL: " + cruiseDir);
+				murle.printStackTrace();
+			} catch (IOException e) {
+				System.out.println("Could not access the URL: " + latestUrl);
+				JOptionPane.showMessageDialog(vPane, "The URL " + latestUrl + " could not be reached.\nThe server might be down.", "", JOptionPane.ERROR_MESSAGE);
+				e.printStackTrace();
+			}
+		}
+		if(null != url) {
+			ButtonGroup showDevTiles = new ButtonGroup();
+			JRadioButton useDevTilesBtn = new JRadioButton("Development"),
+					useProdTilesBtn = new JRadioButton("Production");
+			showDevTiles.add(useDevTilesBtn);
+			showDevTiles.add(useProdTilesBtn);
+			JPanel devTilesDecision = new JPanel(new GridLayout(0,1));
+			devTilesDecision.add(new JLabel("Choose the base map tiles:"));
+			devTilesDecision.add(useProdTilesBtn);
+			devTilesDecision.add(useDevTilesBtn);
+			useProdTilesBtn.setSelected(true);
+			int shouldContinue = JOptionPane.showConfirmDialog(vPane, devTilesDecision, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if(JOptionPane.OK_OPTION == shouldContinue) {
+				if(useDevTilesBtn.isSelected()) {
+					altTilesUrl = "http://dev2.geomapapp.org/";
+				}
+				System.out.println(url);
+				if(null != altTilesUrl) {
+					System.out.println(altTilesUrl);
+				}
+				addCruisePreview(url, altTilesUrl);
+			}
+		}
+	}
 
 	public synchronized void actionPerformed(ActionEvent evt) throws OutOfMemoryError {
 		String name = evt.getActionCommand();
@@ -2408,6 +2604,9 @@ public class MapApp implements ActionListener,
 									}
 									sendLogMessage("Opening Portal$name="+database.getDBName());
 								}
+								else {
+									JOptionPane.showMessageDialog(vPane, "Error loading " + currentDB.getDBName(), "", JOptionPane.ERROR_MESSAGE);
+								}
 							}
 						};
 						addProcessingTask(mi.getText(), loadDB);
@@ -2755,6 +2954,12 @@ public class MapApp implements ActionListener,
 			System.out.println("Starting Mercator Projection");
 			MInit2();
 		}
+		else if(name.equals("loadTilesLocalCmd")) {
+			previewCruiseFromMenu(true);
+		}
+		else if(name.equals("loadTilesRemoteCmd")) {
+			previewCruiseFromMenu(false);
+		}
 
 		// Close DB button action
 		if(evt.getSource() == closeDB) {
@@ -3083,7 +3288,7 @@ public class MapApp implements ActionListener,
 
 		option.getContentPane().add(prefer);
 		option.pack();
-		option.show();
+		option.setVisible(true);
 
 // Tab Add Menu Options
 //JPanel menuOptions = new JPanel(new BorderLayout());
@@ -3125,16 +3330,38 @@ public class MapApp implements ActionListener,
 
 
 		// Development Options
-		JPanel devOptions = new JPanel();
+		JPanel devOptions = new JPanel(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.fill = GridBagConstraints.BOTH;
+		JButton loadLocalTiles = new JButton("Load cruise tiles from your computer"),
+				loadRemoteTiles = new JButton("Load cruise tiles from the server");
+		loadLocalTiles.setActionCommand("loadTilesLocalCmd");
+		loadRemoteTiles.setActionCommand("loadTilesRemoteCmd");
+		loadLocalTiles.addActionListener(this);
+		loadRemoteTiles.addActionListener(this);
+		c.gridwidth = 2;
+		c.gridy = 0;
+		c.gridx = 0;
+		c.weightx = 0.5;
+		devOptions.add(loadRemoteTiles, c);
+		c.gridx = 2;
+		devOptions.add(loadLocalTiles, c);
+		c.gridwidth = 4;
+		c.gridx = 0;
+		c.gridy = 1;
+		c.weightx = 0.0;
 		showTileNames = new JCheckBox("Show Tile Names", MMapServer.DRAW_TILE_LABELS);
-		devOptions.add(showTileNames);
+		showTileNames.setHorizontalAlignment(SwingConstants.CENTER);
+		devOptions.add(showTileNames, c);
+		
 
 		// Tab Server Options
-		prefer.addTab( "Development Options", devOptions);
+		prefer.addTab( "GMRT Tiles", devOptions);
 
 		option.getContentPane().add(prefer);
+		option.setMinimumSize(new Dimension(prefer.getPreferredSize().width + 100, option.getPreferredSize().height));
 		option.pack();
-		option.show();
+		option.setVisible(true);
 	}
 
 	private void defaultOps() {
@@ -3216,7 +3443,7 @@ public class MapApp implements ActionListener,
 
 	private void cancelOps() {
 		this.resetOps();
-		option.hide();
+		option.setVisible(false);
 		option.dispose();
 		map.addMouseListener(zoomer);
 	}
@@ -3483,9 +3710,8 @@ public class MapApp implements ActionListener,
 
 	public static MapApp createMapApp(String[] args) {		
 		findLaunchFile();
+		
 		if (BASE_URL == null) BASE_URL = PathUtil.getPath("ROOT_PATH");
-		versionGMRT = MMapServer.getVersionGMRT();		
-		baseFocusName = "GMRT Image Version " + versionGMRT;
 		
 		String atSea = System.getProperty("geomapapp.at_sea");
 		if ("true".equalsIgnoreCase(atSea))
@@ -3505,6 +3731,10 @@ public class MapApp implements ActionListener,
 			app = new MapApp(args[0]);
 		} else if( args.length==2) {
 			app =new MapApp(args[0], args[1]);
+		}
+		if(null == app) {
+			versionGMRT = MMapServer.getVersionGMRT();
+			baseFocusName = "GMRT Image Version " + versionGMRT;
 		}
 		return app;
 	}
@@ -4847,11 +5077,12 @@ public class MapApp implements ActionListener,
 		if (DEV_MODE) {
 			String[] software = vSoftware.split("\\.");
 			String[] server = vServer.split("\\.");
-			for (int i=0; i<software.length; i++) {
+			for (int i=0; i<software.length && i < server.length; i++) {
 				int sw = Integer.parseInt(software[i]);
 				int sv = Integer.parseInt(server[i]);
 				if (Integer.compare(sw,sv) != 0) return Integer.compare(sw,sv) ;
 			}
+			return Integer.compare(software.length, server.length);
 		} else {
 			//use this line for release version instead.
 			if (!vSoftware.equals(vServer)) return -1;

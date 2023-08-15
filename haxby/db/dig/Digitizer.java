@@ -76,9 +76,11 @@ public class Digitizer implements Database,
 	JPanel tools;
 	boolean enabled;
 	DigitizerObject currentObject;
+	private DigitizerObject inserterObject;
+	private int lastPointSelected;
 	int lastSelectedIndex;
 	public JToggleButton startStopBtn;
-	public JButton deleteBtn, helpBtn, saveBtn, deletePtsBtn, addBtn;
+	public JButton deleteBtn, helpBtn, saveBtn, deletePtsBtn, addBtn, insertBtn;
 	JCheckBox autoscaleCB;
 	public JRadioButton greatCircleRB, straightLineRB;
 	public JTextField speedTF;
@@ -102,6 +104,7 @@ public class Digitizer implements Database,
 		this.map = map;
 		objects = new Vector<Object>();
 		currentObject = null;
+		inserterObject = null;
 		model = new DigListModel( this );
 		list = new JList(model);
 		list.setCellRenderer( new DigCellRenderer() );
@@ -192,7 +195,13 @@ public class Digitizer implements Database,
 		deleteBtn.addActionListener(this);
 		panel.add(deleteBtn);
 		
-		addBtn = new JButton("Add to segment");
+		insertBtn = new JButton("Insert before selected point");
+		insertBtn.setToolTipText("Insert new points before the selected point.");
+		insertBtn.addActionListener(this);
+		insertBtn.setEnabled(false);
+		panel.add(insertBtn);
+		
+		addBtn = new JButton("Append to segment");
 		addBtn.addActionListener(this);
 		addBtn.setEnabled(false);
 		panel.add(addBtn);
@@ -394,6 +403,15 @@ public class Digitizer implements Database,
 						obj_ind++;
 					} else {
 						editing = false;
+						if(null != inserterObject) {
+							inserterObject.finish();
+							LineSegmentsObject temp = (LineSegmentsObject) inserterObject;
+							((LineSegmentsObject)currentObject).insertPoints(lastPointSelected, temp);
+							((LineSegmentsObject)currentObject).getProfile();
+							map.repaint();
+							currentObject.redraw();
+							inserterObject = null;
+						}
 					}
 					
 					for( int k=0 ; k<objects.size() ; k++ ) {
@@ -433,6 +451,38 @@ public class Digitizer implements Database,
 				} catch(Exception ex ) {
 					ex.printStackTrace();
 				}
+		}
+		if(evt.getSource() == insertBtn) {
+			if(table.getSelectedRows().length != 1) {
+				JOptionPane.showMessageDialog(null, "Please select a point from the table or map.", "", JOptionPane.PLAIN_MESSAGE);
+			}
+			else {
+				JOptionPane.showMessageDialog(null, "The previously digitized points will temporarily disappear from the table while new points are being chosen.", "", JOptionPane.PLAIN_MESSAGE);
+				lastPointSelected = table.getSelectedRow();
+				// similar to Start Digitizing
+				startStopBtn.setSelected(true);
+				//make sure zoom and pan buttons are de-selected
+				map.getMapTools().selectB.doClick();
+				//always default to Digitized Points
+				tabs[0].doClick();
+				saveBtn.setEnabled(false);
+				map.removeMouseListener( this );
+				map.removeMouseMotionListener( this );
+				map.removeKeyListener( this );
+				listening = false;
+				try {
+					Class[] classes = new Class[] { map.getClass(), getClass() };
+					Object[] objects = new Object[] { map, this };
+					inserterObject = (DigitizerObject) 
+							objectClasses[1].getConstructor(classes).newInstance(objects);
+					currentObject = (LineSegmentsObject) table.getModel();
+					inserterObject.start();
+					editing = true;
+				}
+				catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		if(evt.getSource() == deleteBtn) {
 			//get selected indices from list
@@ -525,6 +575,7 @@ public class Digitizer implements Database,
 	}
 	public void mouseClicked( MouseEvent evt ) {
 		if (table.getSelectedRows().length == 0) deletePtsBtn.setEnabled(false);
+		insertBtn.setEnabled(table.getSelectedRows().length == 1);
 		//make sure Digitizer is at the top of the Layer Manager so that segments can be displayed
 		moveDigitizerLayerToTop();
 		if( evt.getSource()==list ) {
@@ -596,6 +647,7 @@ public class Digitizer implements Database,
 	public void mouseMoved( MouseEvent evt ) {
 	}
 	public void mouseDragged( MouseEvent evt ) {
+		insertBtn.setEnabled(table.getSelectedRows().length == 1);
 	}
 	public void keyPressed( KeyEvent evt ) {
 	}
@@ -630,10 +682,18 @@ public class Digitizer implements Database,
 				JTextArea text = new JTextArea(sb.toString());
 				text.selectAll();
 				text.cut();
-/*
+
 			} else if( evt.getKeyCode() == evt.VK_A ) {
 				table.selectAll();
-*/
+
+			}
+		}
+		if(evt.getSource() == table) {
+			map.repaint();
+			redraw();
+			insertBtn.setEnabled(table.getSelectedRows().length == 1);
+			if (tabs[0].isSelected() && table.getSelectedRows().length > 0) {
+				deletePtsBtn.setEnabled(true);
 			}
 		}
 		if(evt.isControlDown() && evt.getKeyCode() == KeyEvent.VK_S ) {
