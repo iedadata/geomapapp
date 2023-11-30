@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.JOptionPane;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -92,6 +93,8 @@ public class PathUtil {
 
 		} catch (IOException ex) {
 			ex.printStackTrace();
+			JOptionPane.showMessageDialog(null, "Could not connect to the GeoMapApp server. It's likely that you have internet issues or the server is down.", "", JOptionPane.ERROR_MESSAGE);
+			System.exit(1);
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		} catch (SAXException e) {
