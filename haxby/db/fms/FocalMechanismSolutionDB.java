@@ -62,7 +62,7 @@ public class FocalMechanismSolutionDB implements Database {
 	protected  JPanel panelDisplay;
 	protected JPanel panelRight = null;
 	protected int selection;
-	protected String infoURL = "http://www.globalcmt.org/";
+	protected String infoURL = "https://www.globalcmt.org/";
 	protected JButton info;
 
 	protected MouseAdapter processClick = new MouseAdapter() {

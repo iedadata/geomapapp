@@ -43,7 +43,7 @@ public class UIDTracker {
 			// Send the required parameters out of application to search tracker tool
 			PathUtil.loadNewPaths(MARINE_GEO_PATH_URLS);
 			String DOWNLOAD_PING_FILE_PATH = PathUtil.getPath("DOWNLOAD_PING_FILE_PATH",
-			"http://www.marine-geo.org/tools/search/GMADownload.php");
+			"https://www.marine-geo.org/tools/search/GMADownload.php");
 			String logString =null;
 
 			// Presidence is data_uid, data_set_uid or default to no value.

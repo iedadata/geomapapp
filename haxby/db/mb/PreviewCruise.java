@@ -60,7 +60,7 @@ public class PreviewCruise
     int maxRes = inputArgs.length >= 2 ? Integer.parseInt(inputArgs[1]) : 512;
     String cruiseID = inputArgs[0].substring(inputArgs[0].lastIndexOf("/") + 1);
     String cruiseDir = inputArgs[0];
-    if ((!cruiseDir.startsWith("http://")) && (!cruiseDir.startsWith("file:/"))) {
+    if ((!(cruiseDir.startsWith("http://") || cruiseDir.startsWith("https://"))) && (!cruiseDir.startsWith("file:/"))) {
       cruiseDir = "file://" + new File(cruiseDir).getPath();
     }
     
@@ -144,7 +144,7 @@ public class PreviewCruise
 	    int maxRes = args.length >= 2 ? Integer.parseInt(args[1]) : 512;
 	    String cruiseID = args[0].substring(args[0].lastIndexOf("/") + 1);
 	    String cruiseDir = args[0];
-	    if ((!cruiseDir.startsWith("http://")) && (!cruiseDir.startsWith("file:/"))) {
+	    if ((!(cruiseDir.startsWith("http://") || cruiseDir.startsWith("https://"))) && (!cruiseDir.startsWith("file:/"))) {
 	      cruiseDir = "file://" + new File(cruiseDir).getPath();
 	    }
 	    

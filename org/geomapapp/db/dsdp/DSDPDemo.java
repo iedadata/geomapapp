@@ -126,7 +126,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 
 	static String JANUS_QUERY_PATH = 
 		PathUtil.getPath("DSDP/JANUS_QUERY_PATH", 
-						"http://iodp.tamu.edu/janusweb/coring_summaries/holesumm.cgi");
+						"https://iodp.tamu.edu/janusweb/coring_summaries/holesumm.cgi");
 
 	static String CHRONOS_PATH = 
 		PathUtil.getPath("DSDP/CHRONOS_PATH", 
@@ -984,7 +984,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 	void openURL() {
 //		ODP legs are in online2, DSDP legs are in online3
 		String url = PathUtil.getPath("BRG_ROOT_PATH",
-				"http://brg.ldeo.columbia.edu/");
+				"https://lamont.columbia.edu/research-divisions/marine-large-programs");
 		BrowseURL.browseURL(url);
 	}
 	void setLog( BRGEntry entry ) {
@@ -2349,7 +2349,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 		}
 
 		else if ( me.getSource().equals(iSpeciesLabel) ) {
-			String inputURLString = "http://www.ispecies.org/?q=";
+			String inputURLString = "https://www.ispecies.org/?q=";
 			String [] speciesName = speciesLabel.getText().split("\\s");
 //			for ( int i = 0; i < speciesName.length; i++ ) {
 //				inputURLString += ( speciesName[i] + "+" );

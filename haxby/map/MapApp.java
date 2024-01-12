@@ -185,17 +185,17 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.7.1"; // 08/10/2023
+	public final static String VERSION = "3.7.1.1"; // 01/12/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	
-	public static final String PRODUCTION_URL = "http://app.geomapapp.org/";
-	public static String DEFAULT_URL = "http://app.geomapapp.org/";
-	public static final String DEV_URL = "http://app-dev.geomapapp.org/"; 
+	public static final String PRODUCTION_URL = "https://app.geomapapp.org/";
+	public static String DEFAULT_URL = "https://app.geomapapp.org/";
+	public static final String DEV_URL = "https://app-dev.geomapapp.org/"; 
 	private static String DEV_PASSWORD_PATH = "gma_passwords/dev_server_password";
 	public static String BASE_URL;
 	public static String NEW_BASE_URL;
-	public static String TEMP_BASE_URL = "http://app.geomapapp.org/"; // stay for old references, mostly all changed or not in use.
+	public static String TEMP_BASE_URL = "https://app.geomapapp.org/"; // stay for old references, mostly all changed or not in use.
 
 //	Name for base map image overlay
 	public static String baseMapName = "GMRT Basemap";
@@ -2007,18 +2007,6 @@ public class MapApp implements ActionListener,
 					path = "/" + Character.toLowerCase(path.charAt(0)) + path.substring(1).replaceAll("\\\\", "/");
 				}
 				url = "file://" + path;
-				/*
-				JPanel chooseAltTilesPanel = new JPanel();
-				JCheckBox loadAltTiles = new JCheckBox("Load alternate base map tiles? If yes, specify URL: ");
-				JTextField altTilesUrlTextField = new JTextField("http://www.dev2.geomapapp.org/");
-				chooseAltTilesPanel.add(loadAltTiles);
-				chooseAltTilesPanel.add(altTilesUrlTextField);
-				int optionChosen = JOptionPane.showConfirmDialog(null, chooseAltTilesPanel, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-				if(optionChosen == JOptionPane.CANCEL_OPTION || optionChosen == JOptionPane.CLOSED_OPTION) return;
-				if(loadAltTiles.isSelected()) {
-					altTilesUrl = altTilesUrlTextField.getText();
-				}
-				*/
 			}
 		}
 		else {
@@ -3667,7 +3655,7 @@ public class MapApp implements ActionListener,
 					String GMRTRootURL = PathUtil.getPath("GMRT2_ROOT_PATH"); 
 					URLFactory.addSubEntry(BASE_URL, "htdocs/");
 					URLFactory.addSubEntry(GMRTRootURL, "htdocs/gmrt/");
-					URLFactory.addSubEntry(BASE_URL.replace("http://", ""), base + "htdocs/");
+					URLFactory.addSubEntry(BASE_URL.replace("http://", "").replace("https://", ""), base + "htdocs/");
 				}
 			}
 			in.close();
@@ -3698,7 +3686,7 @@ public class MapApp implements ActionListener,
 					String GMRTRootURL = PathUtil.getPath("GMRT2_ROOT_PATH"); 
 					URLFactory.addSubEntry(GMRTRootURL, "htdocs/gmrt/");
 					URLFactory.addSubEntry(BASE_URL, "htdocs/");
-					URLFactory.addSubEntry(BASE_URL.replace("http://", ""), base + "htdocs/");
+					URLFactory.addSubEntry(BASE_URL.replace("http://", "").replace("https://", ""), base + "htdocs/");
 				}
 			}
 			in.close();

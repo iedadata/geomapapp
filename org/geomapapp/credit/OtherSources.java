@@ -30,10 +30,10 @@ public class OtherSources {
 	//Path on server to locate source xml file
 	String CREDIT_PATH_URLS = PathUtil.getPath("CREDIT_PATH_URLS",
 			MapApp.BASE_URL+"/gma_credit/html/GMA_Credit_paths.xml");
-	String MARINE_URL = "http://www.gebco.net";
-	String LAND_URL = "http://asterweb.jpl.nasa.gov/gdem.asp";
+	String MARINE_URL = "https://www.gebco.net";
+	String LAND_URL = "https://asterweb.jpl.nasa.gov/gdem.asp";
 	String ANTARCTIC_URL = "http://www.antarctica.ac.uk/bas_research/data/access/bedmap/";
-	String ARCTIC_URL = "http://www.ngdc.noaa.gov/mgg/bathymetry/arctic/arctic.html";
+	String ARCTIC_URL = "https://www.ngdc.noaa.gov/mgg/bathymetry/arctic/arctic.html";
 	String SRTM_URL = "http://www2.jpl.nasa.gov/srtm/";
 	String NED_URL = "http://ned.usgs.gov/";
 	
