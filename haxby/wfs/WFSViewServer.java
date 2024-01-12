@@ -240,7 +240,7 @@ public class WFSViewServer implements ActionListener {
 //		connectPane = new JPanel( new BorderLayout() );
 
 //		***** GMA 1.6.2: Changed example URL in "Connect to WFS"
-		exampleWFSURL = new JLabel( "Example: \"http://www.marine-geo.org/services/wfs?service=WFS&version=1.0.0&request=GetCapabilities\"" );
+		exampleWFSURL = new JLabel( "Example: \"https://www.marine-geo.org/services/wfs?service=WFS&version=1.0.0&request=GetCapabilities\"" );
 //		***** GMA 1.6.2
 
 		txt = new JTextField( 10 );
@@ -1435,7 +1435,7 @@ public class WFSViewServer implements ActionListener {
 
 	public String searchAndReplaceAndpersanInURL(String input) {
 		String output = null;
-		if ( input != null && input.indexOf( "http://" ) != -1 ) {
+		if ( input != null && (input.indexOf( "http://" ) != -1  || input.indexOf("https://") != -1)) {
 			output = input.replaceAll( "&amp;", "&" );
 			output = output.replaceAll( "&lt;", "<");
 			output = output.replaceAll( "&gt;", ">");

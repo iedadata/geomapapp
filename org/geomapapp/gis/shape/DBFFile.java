@@ -84,7 +84,7 @@ public class DBFFile extends // org.geomappapp.db.util.GTable {
 		return order;
 	}
 	void init() throws IOException {
-		boolean url = path.startsWith( "http://" ) || path.startsWith( "file://" );
+		boolean url = path.startsWith( "http://" ) || path.startsWith("https://") || path.startsWith( "file://" );
 		if( url&& !path.endsWith("/") ) path += "/";
 		InputStream in = url ?
 			(URLFactory.url( path+filename+".dbf")).openStream()

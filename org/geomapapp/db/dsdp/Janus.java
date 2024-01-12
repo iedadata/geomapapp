@@ -14,7 +14,7 @@ import java.util.Vector;
 import javax.swing.JOptionPane;
 
 public class Janus {
-	public static final String BASE = "http://iodp.tamu.edu/janusweb/";
+	public static final String BASE = "https://iodp.tamu.edu/janusweb/";
 	public static final int SITE_SUMM = 0; 	// Site/Hole Summary (meters recovered)
 	public static final int CORE_SUMM = 1; 	// Hole/Core Summary (cores)
 	public static final int SECT_SUMM = 2; 	// Core/Section Summary (sections)

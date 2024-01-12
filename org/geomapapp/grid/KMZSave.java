@@ -68,7 +68,7 @@ public class KMZSave {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		PrintStream out = new PrintStream(bytes);
 		out.println( "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" );
-		out.println( "<kml xmlns=\"http://earth.google.com/kml/2.0\">" );
+		out.println( "<kml xmlns=\"https://earth.google.com/kml/2.0\">" );
 		Vector p0 = new Vector();
 		Vector p1 = new Vector();
 		p0.add( new Object[] { "GroundOverlay", p1 });

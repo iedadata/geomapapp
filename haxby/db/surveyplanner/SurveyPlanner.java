@@ -166,7 +166,8 @@ public class SurveyPlanner extends JFrame implements Database, MouseListener, Mo
 		String s = "";
 		URL helpURL = null;
 		if(MapApp.BASE_URL.matches(MapApp.DEV_URL)){
-			SURVEY_PLANNER_HELP_URL = SURVEY_PLANNER_HELP_URL.replace("http://app.", "http://app-dev.");
+			SURVEY_PLANNER_HELP_URL = SURVEY_PLANNER_HELP_URL.replace("http://app.", "http://app-dev.")
+					.replace("https://app.", "https://app-dev.");
 		}
 		try {
 			helpURL = URLFactory.url(SURVEY_PLANNER_HELP_URL);

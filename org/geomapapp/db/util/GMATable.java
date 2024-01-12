@@ -383,7 +383,7 @@ public class GMATable extends TableDB implements Overlay {
 		});
 	}
 	public static GMATable readDBF(String path, String filename) throws IOException {
-		boolean url = path.startsWith( "http://" ) || path.startsWith( "file://" );
+		boolean url = path.startsWith( "http://" ) || path.startsWith("https://") || path.startsWith( "file://" );
 		if( url&& !path.endsWith("/") ) path += "/";
 		InputStream in = url ?
 			(URLFactory.url( path+filename+".dbf")).openStream()

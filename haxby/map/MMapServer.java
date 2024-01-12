@@ -80,7 +80,7 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 	public static String GMRT_VERSION_FILE = "gmrt_version/current";
 
 	/*
-	 * Read in GMRT version from gmrt_version/version file
+	 * Read in GMRT version from gmrt_version/current file
 	 */
 	public static String getVersionGMRT() {
 		String versionNum = "Unknown";

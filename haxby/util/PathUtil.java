@@ -140,7 +140,7 @@ public class PathUtil {
 		for (String key : keyToURL2.keySet()) {
 			String url = keyToURL2.get(key);
 			System.out.println("np url"+ url);
-			if (url.contains("http://"))
+			if (url.contains("http://") || url.contains("https://"))
 				continue;
 
 			keyToURL2.put(key, rootPath + url);

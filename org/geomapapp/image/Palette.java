@@ -190,7 +190,7 @@ public class Palette implements Cloneable {
 	/*
 	 * Create a hashtable to convert color names to RGB values.
 	 * Read in values from a CSV file derived from 
-	 * http://cloford.com/resources/colours/500col.htm
+	 * https://cloford.com/resources/colours/500col.htm
 	 */
 	public static Hashtable<String, List<Float>> getColor2RGB() {	
 		Hashtable<String, List<Float>> color2RGB = new Hashtable<String, List<Float>>();			
