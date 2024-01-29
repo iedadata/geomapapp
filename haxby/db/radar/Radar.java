@@ -353,6 +353,7 @@ public class Radar implements ActionListener,
 				setSelectedLine( null );
 			}
 		}else if(cmd.equals("Download Cruise Data")){
+			//Is this part ever called?
 			if(currentLine==null)return;
 
 			selectedPingFile = currentLine.getID();
@@ -475,7 +476,7 @@ public class Radar implements ActionListener,
 			if(selectedDataUID.isEmpty())
 				return;
 
-			String str = "http://www.marine-geo.org/tools/search/Files.php?client=GMA&data_set_uid="+ selectedDataUID;
+			String str = "https://www.marine-geo.org/tools/search/Files.php?client=GMA&data_set_uid="+ selectedDataUID;
 			BrowseURL.browseURL(str);
 
 		}else if(cmd.equals("Cruise Info")) {
@@ -499,7 +500,7 @@ public class Radar implements ActionListener,
 					ex.printStackTrace();
 				}
 
-				BrowseURL.browseURL("http://www.marine-geo.org/tools/search/entry.php?id="+name);
+				BrowseURL.browseURL("https://www.marine-geo.org/tools/search/entry.php?id="+name);
 
 		}else if( cmd.equals("view-1") ) {
 			if( currentLine==null )return;

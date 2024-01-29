@@ -191,7 +191,7 @@ public class MapApp implements ActionListener,
 	
 	public static final String PRODUCTION_URL = "https://app.geomapapp.org/";
 	public static String DEFAULT_URL = "https://app.geomapapp.org/";
-	public static final String DEV_URL = "https://app-dev.geomapapp.org/"; 
+	public static final String DEV_URL = "http://app-dev.geomapapp.org/"; 
 	private static String DEV_PASSWORD_PATH = "gma_passwords/dev_server_password";
 	public static String BASE_URL;
 	public static String NEW_BASE_URL;
@@ -434,17 +434,7 @@ public class MapApp implements ActionListener,
 		this( dir, null );
 	}
 	public MapApp( String dir, String baseURL ) {
-		try {
-			getProxies();
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-		checkConnection();
-
-		BASE_URL = PathUtil.getPath("ROOT_PATH");
-		NEW_BASE_URL = PathUtil.getPath("ROOT_PATH"); // need to clean if same as base
-		serverURLString = PathUtil.getPath("SERVER_LIST",BASE_URL+"/gma_servers/server_list.dat");
-
+		
 		try {
 			getServerList();
 		} catch (IOException e) {
@@ -456,6 +446,19 @@ public class MapApp implements ActionListener,
 			if( !BASE_URL.endsWith("/") ) BASE_URL += "/";
 		}
 		DEV_MODE = BASE_URL.equals(DEV_URL);
+		
+		try {
+			getProxies();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		checkConnection();
+
+		//BASE_URL = PathUtil.getPath("ROOT_PATH");
+		NEW_BASE_URL = PathUtil.getPath("ROOT_PATH"); // need to clean if same as base
+		//serverURLString = PathUtil.getPath("SERVER_LIST",BASE_URL+"/gma_servers/server_list.dat");
+
+		
 		versionGMRT = MMapServer.getVersionGMRT();		
 		baseFocusName = "GMRT Image Version " + versionGMRT;
 		whichMap = MapApp.MERCATOR_MAP;
@@ -511,6 +514,14 @@ public class MapApp implements ActionListener,
 	}
 
 	public MapApp( int which ) {
+		
+		try {
+			getServerList();
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
+		}
+		DEV_MODE = BASE_URL.equals(DEV_URL);
+		
 		try {
 			getProxies();
 			fetchCacheMenus = getMenusCache(); // add menu cache dir
@@ -520,17 +531,9 @@ public class MapApp implements ActionListener,
 		}
 		checkConnection();
 
-		BASE_URL = PathUtil.getPath("ROOT_PATH");
+		//BASE_URL = PathUtil.getPath("ROOT_PATH");
 		NEW_BASE_URL = PathUtil.getPath("ROOT_PATH");
-		serverURLString = PathUtil.getPath("SERVER_LIST",
-				BASE_URL+"/gma_servers/server_list.dat");
 
-		try {
-			getServerList();
-		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
-		}
-		DEV_MODE = BASE_URL.equals(DEV_URL);
 		checkVersion();
 
 		// User chooses
@@ -3699,6 +3702,15 @@ public class MapApp implements ActionListener,
 	public static MapApp createMapApp(String[] args) {		
 		findLaunchFile();
 		
+		MapApp app = null;
+		if( args.length==0) {
+			app = new MapApp();
+		} else if( args.length==1) {
+			app = new MapApp(args[0]);
+		} else if( args.length==2) {
+			app =new MapApp(args[0], args[1]);
+		}
+		
 		if (BASE_URL == null) BASE_URL = PathUtil.getPath("ROOT_PATH");
 		
 		String atSea = System.getProperty("geomapapp.at_sea");
@@ -3712,14 +3724,7 @@ public class MapApp implements ActionListener,
 
 		com.Ostermiller.util.Browser.init();
 
-		MapApp app = null;
-		if( args.length==0) {
-			app = new MapApp();
-		} else if( args.length==1) {
-			app = new MapApp(args[0]);
-		} else if( args.length==2) {
-			app =new MapApp(args[0], args[1]);
-		}
+		
 		if(null == app) {
 			versionGMRT = MMapServer.getVersionGMRT();
 			baseFocusName = "GMRT Image Version " + versionGMRT;
@@ -4412,6 +4417,8 @@ public class MapApp implements ActionListener,
 			out.flush();
 			out.close();
 		}
+		serverURLString = PathUtil.getPath("SERVER_LIST",
+				BASE_URL+"/gma_servers/server_list.dat");
 		URL serverURL = URLFactory.url(serverURLString);
 		BufferedReader serverURLIn = new BufferedReader( new InputStreamReader( serverURL.openStream()));
 		String s = null;

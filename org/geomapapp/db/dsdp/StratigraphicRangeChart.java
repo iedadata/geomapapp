@@ -38,7 +38,7 @@ public class StratigraphicRangeChart extends JComponent implements MouseListener
 	JButton zoomInB;
 	JButton zoomOutB;
 	JButton wikiB;
-	String wikiURLString = "http://en.wikipedia.org/wiki/List_of_Global_Boundary_Stratotype_Sections_and_Points";
+	String wikiURLString = "https://en.wikipedia.org/wiki/List_of_Global_Boundary_Stratotype_Sections_and_Points";
 	ImageComponent stratImage;
 	int prevAge = -1;
 	double zScale = 1.0;
