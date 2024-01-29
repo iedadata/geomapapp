@@ -1020,6 +1020,9 @@ public class XMImage extends haxby.util.ScaledComponent
 						saving = false;
 					}
 					catch (IOException ex) { }
+					catch (Throwable t) {
+						t.printStackTrace();
+					}
 				}
 			}.start();
 /*
@@ -1209,7 +1212,7 @@ public class XMImage extends haxby.util.ScaledComponent
 			
 			try{
 				//I assume every segy and nav are in the database under the same uid or else they are unavailable.
-				URL url = URLFactory.url(MULTI_CHANNEL_PATH + "mcs/sdls/"+line.getCruiseID()+"/nav/" + line.getCruiseID()+"-"+line.getID() + ".nav");
+				URL url = URLFactory.url(MULTI_CHANNEL_PATH + "sdls/"+line.getCruiseID()+"/nav/" + line.getCruiseID()+"-"+line.getID() + ".nav");
 				BufferedReader in = new BufferedReader( new InputStreamReader(url.openStream()) );
 				
 				navCB.setEnabled(true);

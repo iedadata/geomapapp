@@ -1008,7 +1008,7 @@ public class RImage extends haxby.util.ScaledComponent
 		if(selectedDataUID.isEmpty())
 			return;
 		
-		String str = "http://www.marine-geo.org/tools/search/Files.php?client=GMA&data_set_uid="+ selectedDataUID;
+		String str = "https://www.marine-geo.org/tools/search/Files.php?client=GMA&data_set_uid="+ selectedDataUID;
 		BrowseURL.browseURL(str);
 		
 				

@@ -240,7 +240,7 @@ public class WFSViewServer implements ActionListener {
 //		connectPane = new JPanel( new BorderLayout() );
 
 //		***** GMA 1.6.2: Changed example URL in "Connect to WFS"
-		exampleWFSURL = new JLabel( "Example: \"https://www.marine-geo.org/services/wfs?service=WFS&version=1.0.0&request=GetCapabilities\"" );
+		exampleWFSURL = new JLabel( "Example: \"https://www.marine-geo.org/services/mapserver/eventwfs?request=GetCapabilities&service=WFS&version=1.0.0\"" );
 //		***** GMA 1.6.2
 
 		txt = new JTextField( 10 );

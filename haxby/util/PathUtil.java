@@ -33,7 +33,7 @@ public class PathUtil {
 		pathURL = System.getProperty("geomapapp.paths_location");
 		if (pathURL == null)
 			try {
-				pathURL = URLFactory.url(MapApp.DEFAULT_URL) + "/gma_paths/GMA_paths.xml";
+				pathURL = URLFactory.url(MapApp.DEFAULT_URL) + "gma_paths/GMA_paths.xml";
 			} catch (MalformedURLException e) {
 				System.err.println("Can't find GMA_paths.xml file");
 			}

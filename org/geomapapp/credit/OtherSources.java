@@ -29,13 +29,14 @@ public class OtherSources {
 	JPanel panel;
 	//Path on server to locate source xml file
 	String CREDIT_PATH_URLS = PathUtil.getPath("CREDIT_PATH_URLS",
-			MapApp.BASE_URL+"/gma_credit/html/GMA_Credit_paths.xml");
+			MapApp.BASE_URL+"/gma_credit/html/GMA_Credit_paths.xml")
+			.replaceAll(MapApp.PRODUCTION_URL, MapApp.BASE_URL);
 	String MARINE_URL = "https://www.gebco.net";
 	String LAND_URL = "https://asterweb.jpl.nasa.gov/gdem.asp";
-	String ANTARCTIC_URL = "http://www.antarctica.ac.uk/bas_research/data/access/bedmap/";
+	String ANTARCTIC_URL = "https://www.bas.ac.uk/project/bedmap/";
 	String ARCTIC_URL = "https://www.ngdc.noaa.gov/mgg/bathymetry/arctic/arctic.html";
-	String SRTM_URL = "http://www2.jpl.nasa.gov/srtm/";
-	String NED_URL = "http://ned.usgs.gov/";
+	String SRTM_URL = "https://www2.jpl.nasa.gov/srtm/";
+	String NED_URL = "https://www.usgs.gov/publications/national-elevation-dataset";
 	
 	public OtherSources() {
 		panel = new JPanel(new BorderLayout());
