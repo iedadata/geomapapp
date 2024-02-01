@@ -130,7 +130,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 
 	static String CHRONOS_PATH = 
 		PathUtil.getPath("DSDP/CHRONOS_PATH", 
-						"http://portal.chronos.org:80/gridsphere/gridsphere?cid=label_arc");
+						"https://doi.org/10.1130/GES00009.1");
 
 //	GMA 1.4.8: Add button to bring DSDP in front of any layers
 	JButton bringToFront;
@@ -2334,6 +2334,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 			}
 			inputURLString = inputURLString.substring(0,inputURLString.lastIndexOf("%20"));
 			inputURLString += "&";
+			//BrowseURL.browseURL("https://doi.org/10.1130/GES00009.1");
 			BrowseURL.browseURL(inputURLString);
 		}
 
@@ -2350,13 +2351,14 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 
 		else if ( me.getSource().equals(iSpeciesLabel) ) {
 			String inputURLString = "https://www.ispecies.org/?q=";
-			String [] speciesName = speciesLabel.getText().split("\\s");
+			//String [] speciesName = speciesLabel.getText().split("\\s");
 //			for ( int i = 0; i < speciesName.length; i++ ) {
 //				inputURLString += ( speciesName[i] + "+" );
 //			}
 //			inputURLString = inputURLString.substring(0,inputURLString.lastIndexOf("+"));
-			inputURLString += speciesName[0];
-			inputURLString += "&submit=Go";
+			//inputURLString += speciesName[0];
+			//inputURLString += "&submit=Go";
+			inputURLString += speciesLabel.getText().replaceAll("\\s+", "%20");
 			BrowseURL.browseURL(inputURLString);
 		}
 	}
