@@ -19,6 +19,7 @@ import haxby.map.MapApp;
 import haxby.util.BrowseURL;
 import haxby.util.PathUtil;
 import haxby.util.URLFactory;
+import haxby.util.VersionUtil;
 /**
  * Creation of buttons which will perform a browseURL call to outside sources.
  * Retrieves the destination url from a remote xml file with PathUtil.
@@ -45,19 +46,19 @@ public class OtherSources {
 		
 		
 		URL url = null;
-		String btn_txt = "GEBCO";
+		String btn_txt = VersionUtil.getVersion("GEBCO"); //"GEBCO";
 	
 	
-		try {
+		/*try {
 			String btnTxtURL = PathUtil.getPath("CREDIT_PATH") + "btn_txt/gebco";
 			url = URLFactory.url(btnTxtURL);
 			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
 			btn_txt = in.readLine();
 		} catch (IOException e) {
 			e.printStackTrace();
-		}
+		}*/
 			
-		
+		btn_txt = VersionUtil.getVersion("GEBCO");
 
 
 		
