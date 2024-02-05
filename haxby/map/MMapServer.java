@@ -46,6 +46,8 @@ import java.util.zip.ZipInputStream;
 
 import javax.imageio.ImageIO;
 
+import org.json.JSONException;
+
 public class MMapServer extends MapOverlay implements FocusOverlay {
 
 	public MMapServer(XMap map) {
@@ -103,7 +105,12 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 			System.err.println("Not able to find GMRT Version");
 		}
 		*/
-		versionNum = VersionUtil.getVersion("GMRT");
+		try {
+			versionNum = VersionUtil.getVersion("GMRT");
+		}
+		catch(JSONException e) {
+			e.printStackTrace();
+		}
 		return versionNum;
 	}
 

@@ -112,6 +112,7 @@ import org.geomapapp.util.NetUtil;
 import org.geomapapp.util.ProgressDialog;
 import org.geomapapp.util.SymbolScaleTool;
 import org.geomapapp.util.XML_Menu;
+import org.json.JSONException;
 import org.xml.sax.SAXException;
 
 import haxby.db.Database;
@@ -821,7 +822,13 @@ public class MapApp implements ActionListener,
 
 			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
 			String version = in.readLine();*/
-			String version = VersionUtil.getVersion("GeoMapApp");
+			String version = "Unknown";
+			try {
+				version = VersionUtil.getVersion("GeoMapApp");
+			}
+			catch(JSONException e) {
+				e.printStackTrace();
+			}
 			if( compareVersions(VERSION, version) < 0) {
 				GMADownload.download( VERSION, version);
 			}
@@ -838,6 +845,7 @@ public class MapApp implements ActionListener,
 				JOptionPane.showMessageDialog( null, panel, "GeoMapApp Alert", JOptionPane.INFORMATION_MESSAGE);
 			//	System.out.println( jep.getText() );
 			} catch(Exception e) {
+				e.printStackTrace();
 			}
 		/*} catch (IOException ex ) {
 			JOptionPane.showMessageDialog(frame,

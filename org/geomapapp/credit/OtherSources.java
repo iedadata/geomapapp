@@ -15,6 +15,8 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.json.JSONException;
+
 import haxby.map.MapApp;
 import haxby.util.BrowseURL;
 import haxby.util.PathUtil;
@@ -46,7 +48,7 @@ public class OtherSources {
 		
 		
 		URL url = null;
-		String btn_txt = VersionUtil.getVersion("GEBCO"); //"GEBCO";
+		String btn_txt = "GEBCO";
 	
 	
 		/*try {
@@ -57,8 +59,12 @@ public class OtherSources {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}*/
-			
-		btn_txt = VersionUtil.getVersion("GEBCO");
+		try {
+			btn_txt = VersionUtil.getVersion("GEBCO");
+		}
+		catch(JSONException e) {
+			e.printStackTrace();
+		}
 
 
 		
