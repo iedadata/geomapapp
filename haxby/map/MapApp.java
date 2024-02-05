@@ -845,7 +845,6 @@ public class MapApp implements ActionListener,
 				JOptionPane.showMessageDialog( null, panel, "GeoMapApp Alert", JOptionPane.INFORMATION_MESSAGE);
 			//	System.out.println( jep.getText() );
 			} catch(Exception e) {
-				e.printStackTrace();
 			}
 		/*} catch (IOException ex ) {
 			JOptionPane.showMessageDialog(frame,

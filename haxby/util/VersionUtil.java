@@ -8,7 +8,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 /**
- * 
+ * 2/2/2024 This code reads version information relevant to GMA from a single JSON file.
  * @author Alex Strong
  *
  */
