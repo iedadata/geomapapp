@@ -432,6 +432,22 @@ public class XMCS implements ActionListener,
 		g.setColor(Color.black);
 	//	while(k!=k0) {
 		for(k=0 ; k<cruises.length ; k++) {
+			if(cruises[k].getLines().length == 0) {
+				System.out.println("Loading lines for cruise #" + k + " of " + cruises.length);
+				String path = MULTI_CHANNEL_PATH;
+				if (mcsDataSelect[1].isSelected()) {
+					path = USGS_MULTI_CHANNEL_PATH;
+				} else if (mcsDataSelect[2].isSelected()) {
+					path = USGS_SINGLE_CHANNEL_PATH;
+				} else if(mcsDataSelect[3].isSelected()){
+					path = ANTARCTIC_SDLS_PATH;
+				}
+				try {
+					cruises[k].loadLines(path);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		// Draw the selected cruise to white
 			if (currentCruise == cruises[k]) {
 				g.setColor(Color.white);
@@ -439,6 +455,7 @@ public class XMCS implements ActionListener,
 				g.setColor(Color.black);
 			}
 			cruises[k].draw(g);
+			//cruises[k].drawLines(g);
 		}
 
 		if(currentCruise!=null) {
