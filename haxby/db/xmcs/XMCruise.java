@@ -296,11 +296,13 @@ public class XMCruise implements Overlay {
 		}
 		if( bounds.x+offset > rect.getX()+rect.getWidth() ) return;
 		g.translate( offset, 0.);
-		g.draw(bounds);
+		//g.draw(bounds);
+		drawLines(g);
 		while( wrap>0. && bounds.x +offset < rect.getX()+rect.getWidth() ) {
 			offset += wrap;
 			g.translate( wrap, 0.);
-			g.draw(bounds);
+			//g.draw(bounds);
+			drawLines(g);
 		}
 		g.setTransform(at);
 	}
