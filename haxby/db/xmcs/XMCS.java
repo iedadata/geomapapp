@@ -765,6 +765,9 @@ public class XMCS implements ActionListener,
 		double scale = map.getZoom();
 		double wrap = map.getWrap();
 		Point2D.Double p = (Point2D.Double) map.getScaledPoint( e.getPoint() );
+		if(wrap > 0.) {
+			p.x = p.x % wrap;
+		}
 		
 		//find and select cruise closest to p
 		if(cruises.length > 0) {
@@ -787,7 +790,7 @@ public class XMCS implements ActionListener,
 					}
 				}
 			}
-			if(shortestDistSq <= 5) { //TODO this threshold needs trial and error to be determined
+			if(shortestDistSq <= 15/scale) { //TODO this threshold needs trial and error to be determined
 				//setSelectedCruise(cruises[cruiseIndex]);
 				cruiseList.setSelectedItem(cruises[cruiseIndex]);
 				//setSelectedLine(cruises[cruiseIndex].lines.get(lineIndex));
