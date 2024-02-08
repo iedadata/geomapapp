@@ -1,8 +1,10 @@
 package haxby.db.xmcs;
 
 import java.awt.BasicStroke;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Frame;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -19,17 +21,20 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Vector;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
 
@@ -150,6 +155,14 @@ public class XMCS implements ActionListener,
 	protected static XMLine currentLine = null;
 	protected boolean mouseE = false;
 	protected boolean enabled = false;
+	
+	protected JDialog dialogProgress;
+	protected JProgressBar pb;
+	protected JPanel progressPanel;
+	protected JLabel progressLabel;
+	private boolean clickEvent = false;
+	
+	protected static final Color SELECTED_CRUISE_COLOR = new Color(0, 0xFF, 0);
 
 	JMenu[] menus;
 	XMImage image = null;
@@ -430,18 +443,34 @@ public class XMCS implements ActionListener,
 		}
 		g.setStroke(new BasicStroke(2f/(float)map.getZoom()));
 		g.setColor(Color.black);
+		String path = MULTI_CHANNEL_PATH;
+		if (mcsDataSelect[1].isSelected()) {
+			path = USGS_MULTI_CHANNEL_PATH;
+		} else if (mcsDataSelect[2].isSelected()) {
+			path = USGS_SINGLE_CHANNEL_PATH;
+		} else if(mcsDataSelect[3].isSelected()){
+			path = ANTARCTIC_SDLS_PATH;
+		}
+		dialogProgress = new JDialog((Frame)null, "Loading Cruises");
+		progressPanel = new JPanel(new BorderLayout());
+		progressPanel.setBorder(BorderFactory.createEmptyBorder(5, 1, 5, 1));
+		dialogProgress.setLocationRelativeTo(map);
+		pb = new JProgressBar(1,cruises.length);
+		progressLabel = new JLabel("Loading lines for " + cruises.length + " cruises");
+		progressPanel.add(progressLabel, BorderLayout.NORTH);
+		progressPanel.add(pb);
+		dialogProgress.getContentPane().add(progressPanel);
+		dialogProgress.setPreferredSize(new Dimension(180,60));
+		dialogProgress.pack();
+		dialogProgress.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+		dialogProgress.setAlwaysOnTop(true);
 	//	while(k!=k0) {
 		for(k=0 ; k<cruises.length ; k++) {
-			if(cruises[k].getLines().length == 0) {
-				System.out.println("Loading lines for cruise #" + k + " of " + cruises.length);
-				String path = MULTI_CHANNEL_PATH;
-				if (mcsDataSelect[1].isSelected()) {
-					path = USGS_MULTI_CHANNEL_PATH;
-				} else if (mcsDataSelect[2].isSelected()) {
-					path = USGS_SINGLE_CHANNEL_PATH;
-				} else if(mcsDataSelect[3].isSelected()){
-					path = ANTARCTIC_SDLS_PATH;
-				}
+			pb.setValue(k+1);
+			pb.repaint();
+			if(!cruises[k].isLoaded()) {
+				dialogProgress.setVisible(true);
+				//System.out.println("Loading lines for cruise #" + (k+1) + " of " + cruises.length);
 				try {
 					cruises[k].loadLines(path);
 				} catch (IOException e) {
@@ -450,17 +479,19 @@ public class XMCS implements ActionListener,
 			}
 		// Draw the selected cruise to white
 			if (currentCruise == cruises[k]) {
-				g.setColor(Color.white);
+				g.setColor(SELECTED_CRUISE_COLOR);
 			} else {
 				g.setColor(Color.black);
 			}
-			cruises[k].draw(g);
-			//cruises[k].drawLines(g);
+			//cruises[k].draw(g);
+			cruises[k].drawLines(g);
 		}
+		dialogProgress.setVisible(false);
 
 		if(currentCruise!=null) {
-			g.setColor(Color.black);
+			g.setColor(SELECTED_CRUISE_COLOR);
 			currentCruise.drawLines(g);
+			g.setColor(Color.black);
 			if(currentLine!=null) {
 				if( currentLine.getCruise() != currentCruise ) {
 					currentLine=null;
@@ -539,7 +570,7 @@ public class XMCS implements ActionListener,
 		for( int i=0 ; i<lines.length ; i++) {
 			lineList.addItem(lines[i]);
 		}
-		zoomToCruise();
+		//zoomToCruise();
 	}
 	protected void zoomToCruise() {
 			// zoom history set first zoom checks it for the first time only, Zoom to Cruise Box, tracks zoom after
@@ -555,7 +586,8 @@ public class XMCS implements ActionListener,
 		try {
 			cruise = (XMCruise) cruiseList.getSelectedItem();
 		} catch ( ClassCastException e ) {
-			return;
+			if(null == currentCruise) return;
+			cruise = currentCruise;
 		}
 		synchronized (map.getTreeLock()) {
 			Graphics2D g = map.getGraphics2D();
@@ -597,6 +629,9 @@ public class XMCS implements ActionListener,
 				}else {
 					setSelectedCruise((XMCruise) cruiseList.getSelectedItem());
 					lineList.setVisible(true);
+				}
+				if(!clickEvent) {
+					zoomToCruise();
 				}
 			} catch ( ClassCastException ex ) {
 				setSelectedCruise( null );
@@ -720,6 +755,7 @@ public class XMCS implements ActionListener,
 	}
 
 	public void mouseClicked(MouseEvent e) {
+		clickEvent = true;
 		if(e.isControlDown())return;
 		if(e.getSource() != map) return;
 		if(e.getButton()==e.BUTTON3){
@@ -729,8 +765,37 @@ public class XMCS implements ActionListener,
 		double scale = map.getZoom();
 		double wrap = map.getWrap();
 		Point2D.Double p = (Point2D.Double) map.getScaledPoint( e.getPoint() );
+		
+		//find and select cruise closest to p
+		if(cruises.length > 0) {
+			int cruiseIndex = 0, lineIndex = 0;
+			double shortestDistSq = cruises[0].lines.get(0).distanceSq(p.x, p.y);
+			for(int i = 1; i < cruises[0].lines.size(); i++) {
+				double distSq = cruises[0].lines.get(i).distanceSq(p.x, p.y);
+				if(distSq < shortestDistSq) {
+					shortestDistSq = distSq;
+					lineIndex = i;
+				}
+			}
+			for(int i = 1; i < cruises.length; i++) {
+				for(int j = 0; j < cruises[i].lines.size(); j++) {
+					double distSq = cruises[i].lines.get(j).distanceSq(p.x, p.y);
+					if(distSq < shortestDistSq) {
+						shortestDistSq = distSq;
+						cruiseIndex = i;
+						lineIndex = j;
+					}
+				}
+			}
+			if(shortestDistSq <= 30) { //TODO this threshold needs trial and error to be determined
+				//setSelectedCruise(cruises[cruiseIndex]);
+				cruiseList.setSelectedItem(cruises[cruiseIndex]);
+				//setSelectedLine(cruises[cruiseIndex].lines.get(lineIndex));
+				lineList.setSelectedItem(currentCruise.lines.get(lineIndex));
+			}
+		}
 
-		if (currentCruise != null && currentCruise.contains(p.x, p.y, wrap)) {
+		/*if (currentCruise != null && currentCruise.contains(p.x, p.y, wrap)) {
 			// Select Line
 			XMLine[] lines = currentCruise.getLines();
 			if(lines==null || lines.length==0) return;
@@ -796,7 +861,8 @@ public class XMCS implements ActionListener,
 			}
 			cruiseList.setSelectedItem(retCruise);
 			//cruiseList.setSelectedIndex(0);
-		}
+		}*/
+		clickEvent = false;
 	}
 	public void mousePressed(MouseEvent e) {
 	}
