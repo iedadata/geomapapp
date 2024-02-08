@@ -334,7 +334,7 @@ public class XMCS implements ActionListener,
 		}
 		mcsDataSelect[0].setSelected(true);
 
-		label1 = new JLabel("Expedition");
+		label1 = new JLabel("Cruise");
 		cruiseList = new JComboBox();
 		cruiseList.addItem("- Select -");
 		for(int i=0 ; i<cruises.length ; i++) {
@@ -795,6 +795,7 @@ public class XMCS implements ActionListener,
 			}
 			else if(null != currentLine) {
 				currentLine = null;
+				lineList.setSelectedItem("- Select Line -");
 			}
 			map.repaint();
 		}
