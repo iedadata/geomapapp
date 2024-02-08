@@ -787,12 +787,16 @@ public class XMCS implements ActionListener,
 					}
 				}
 			}
-			if(shortestDistSq <= 30) { //TODO this threshold needs trial and error to be determined
+			if(shortestDistSq <= 5) { //TODO this threshold needs trial and error to be determined
 				//setSelectedCruise(cruises[cruiseIndex]);
 				cruiseList.setSelectedItem(cruises[cruiseIndex]);
 				//setSelectedLine(cruises[cruiseIndex].lines.get(lineIndex));
 				lineList.setSelectedItem(currentCruise.lines.get(lineIndex));
 			}
+			else if(null != currentLine) {
+				currentLine = null;
+			}
+			map.repaint();
 		}
 
 		/*if (currentCruise != null && currentCruise.contains(p.x, p.y, wrap)) {
