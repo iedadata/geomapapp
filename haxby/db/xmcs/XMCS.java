@@ -459,8 +459,8 @@ public class XMCS implements ActionListener,
 		progressLabel = new JLabel("Loading lines for " + cruises.length + " cruises");
 		progressPanel.add(progressLabel, BorderLayout.NORTH);
 		progressPanel.add(pb);
-		dialogProgress.getContentPane().add(progressPanel);
-		dialogProgress.setPreferredSize(new Dimension(180,60));
+		dialogProgress.setContentPane(progressPanel);
+		dialogProgress.setPreferredSize(new Dimension(380,60));
 		dialogProgress.pack();
 		dialogProgress.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		dialogProgress.setAlwaysOnTop(true);
@@ -468,6 +468,8 @@ public class XMCS implements ActionListener,
 		for(k=0 ; k<cruises.length ; k++) {
 			pb.setValue(k+1);
 			pb.repaint();
+			dialogProgress.setTitle("Loading Cruise #" + (k+1) + " of " + cruises.length);
+			dialogProgress.pack();
 			if(!cruises[k].isLoaded()) {
 				dialogProgress.setVisible(true);
 				//System.out.println("Loading lines for cruise #" + (k+1) + " of " + cruises.length);

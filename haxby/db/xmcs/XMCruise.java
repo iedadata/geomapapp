@@ -287,7 +287,7 @@ public class XMCruise implements Overlay {
 		lines.clear();
 	}
 	
-	public boolean isLoaded() {
+	public synchronized boolean isLoaded() {
 		return loaded;
 	}
 
