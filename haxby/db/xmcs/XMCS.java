@@ -161,6 +161,7 @@ public class XMCS implements ActionListener,
 	protected JPanel progressPanel;
 	protected JLabel progressLabel;
 	private boolean clickEvent = false;
+	private boolean loaded = false;
 	
 	protected static final Color SELECTED_CRUISE_COLOR = new Color(0, 0xFF, 0);
 
@@ -470,7 +471,7 @@ public class XMCS implements ActionListener,
 			pb.repaint();
 			dialogProgress.setTitle("Loading Cruise #" + (k+1) + " of " + cruises.length);
 			dialogProgress.pack();
-			if(!cruises[k].isLoaded()) {
+			if(!loaded && !cruises[k].isLoaded()) {
 				dialogProgress.setVisible(true);
 				//System.out.println("Loading lines for cruise #" + (k+1) + " of " + cruises.length);
 				try {
@@ -488,6 +489,7 @@ public class XMCS implements ActionListener,
 			//cruises[k].draw(g);
 			cruises[k].drawLines(g);
 		}
+		loaded = true;
 		dialogProgress.setVisible(false);
 
 		if(currentCruise!=null) {
@@ -603,6 +605,7 @@ public class XMCS implements ActionListener,
 		// Toggle of radio buttons will obtain different expedition lists
 		if( e.getSource() instanceof JRadioButton ) {
 			selectDataSource(e.getSource());
+			loaded = false;
 			map.repaint();
 			
 		}
@@ -632,7 +635,7 @@ public class XMCS implements ActionListener,
 					setSelectedCruise((XMCruise) cruiseList.getSelectedItem());
 					lineList.setVisible(true);
 				}
-				if(!clickEvent) {
+				if(!clickEvent && null != currentCruise) {
 					zoomToCruise();
 				}
 			} catch ( ClassCastException ex ) {
@@ -774,35 +777,48 @@ public class XMCS implements ActionListener,
 		//find and select cruise closest to p
 		if(cruises.length > 0) {
 			int cruiseIndex = 0, lineIndex = 0;
-			double shortestDistSq = cruises[0].lines.get(0).distanceSq(p.x, p.y);
-			for(int i = 1; i < cruises[0].lines.size(); i++) {
-				double distSq = cruises[0].lines.get(i).distanceSq(p.x, p.y);
-				if(distSq < shortestDistSq) {
-					shortestDistSq = distSq;
-					lineIndex = i;
-				}
+			while(cruiseIndex < cruises.length && cruises[cruiseIndex].lines.isEmpty()) {
+				cruiseIndex++;
 			}
-			for(int i = 1; i < cruises.length; i++) {
-				for(int j = 0; j < cruises[i].lines.size(); j++) {
-					double distSq = cruises[i].lines.get(j).distanceSq(p.x, p.y);
+			if(cruiseIndex < cruises.length) { 
+				double shortestDistSq = cruises[cruiseIndex].lines.get(0).distanceSq(p.x, p.y);
+				for(int i = 1; i < cruises[cruiseIndex].lines.size(); i++) {
+					double distSq = cruises[cruiseIndex].lines.get(i).distanceSq(p.x, p.y);
 					if(distSq < shortestDistSq) {
 						shortestDistSq = distSq;
-						cruiseIndex = i;
-						lineIndex = j;
+						lineIndex = i;
 					}
 				}
+				for(int i = cruiseIndex+1; i < cruises.length; i++) {
+					for(int j = 0; j < cruises[i].lines.size(); j++) {
+						double distSq = cruises[i].lines.get(j).distanceSq(p.x, p.y);
+						if(distSq < shortestDistSq) {
+							shortestDistSq = distSq;
+							cruiseIndex = i;
+							lineIndex = j;
+						}
+					}
+				}
+				if(shortestDistSq <= 15/scale) { //TODO this threshold needs trial and error to be determined
+					//setSelectedCruise(cruises[cruiseIndex]);
+					cruiseList.setSelectedItem(cruises[cruiseIndex]);
+					//setSelectedLine(cruises[cruiseIndex].lines.get(lineIndex));
+					lineList.setSelectedItem(currentCruise.lines.get(lineIndex));
+				}
+				else if(null != currentLine) {
+					currentLine = null;
+					lineList.setSelectedItem("- Select Line -");
+				}
+				map.repaint();
 			}
-			if(shortestDistSq <= 15/scale) { //TODO this threshold needs trial and error to be determined
-				//setSelectedCruise(cruises[cruiseIndex]);
-				cruiseList.setSelectedItem(cruises[cruiseIndex]);
-				//setSelectedLine(cruises[cruiseIndex].lines.get(lineIndex));
-				lineList.setSelectedItem(currentCruise.lines.get(lineIndex));
-			}
-			else if(null != currentLine) {
-				currentLine = null;
+			else {
+				cruiseList.setSelectedItem("- Select -");
 				lineList.setSelectedItem("- Select Line -");
 			}
-			map.repaint();
+		}
+		else {
+			cruiseList.setSelectedItem("- Select -");
+			lineList.setSelectedItem("- Select Line -");
 		}
 
 		/*if (currentCruise != null && currentCruise.contains(p.x, p.y, wrap)) {
