@@ -471,8 +471,8 @@ public class XMCS implements ActionListener,
 			pb.repaint();
 			dialogProgress.setTitle("Loading Cruise #" + (k+1) + " of " + cruises.length);
 			dialogProgress.pack();
-			if(!cruises[k].isLoaded()) {
-				dialogProgress.setVisible(!linesLoaded);
+			if(!linesLoaded && !cruises[k].isLoaded()) {
+				dialogProgress.setVisible(true);
 				//System.out.println("Loading lines for cruise #" + (k+1) + " of " + cruises.length);
 				try {
 					cruises[k].loadLines(path);
@@ -544,8 +544,8 @@ public class XMCS implements ActionListener,
 		currentLine = null;
 		lineList.removeAllItems();
 		lineList.addItem("- Select Line -");
-		if (currentCruise != null)
-			currentCruise.clearLines();
+		/*if (currentCruise != null)
+			currentCruise.clearLines();*/
 		currentCruise = cruise;
 		map.repaint();
 
