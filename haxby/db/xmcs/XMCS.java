@@ -161,7 +161,7 @@ public class XMCS implements ActionListener,
 	protected JPanel progressPanel;
 	protected JLabel progressLabel;
 	private boolean clickEvent = false;
-	private boolean loaded = false;
+	public boolean linesLoaded = false;
 	
 	protected static final Color SELECTED_CRUISE_COLOR = new Color(0, 0xFF, 0);
 
@@ -471,8 +471,8 @@ public class XMCS implements ActionListener,
 			pb.repaint();
 			dialogProgress.setTitle("Loading Cruise #" + (k+1) + " of " + cruises.length);
 			dialogProgress.pack();
-			if(!loaded && !cruises[k].isLoaded()) {
-				dialogProgress.setVisible(true);
+			if(!cruises[k].isLoaded()) {
+				dialogProgress.setVisible(!linesLoaded);
 				//System.out.println("Loading lines for cruise #" + (k+1) + " of " + cruises.length);
 				try {
 					cruises[k].loadLines(path);
@@ -489,7 +489,7 @@ public class XMCS implements ActionListener,
 			//cruises[k].draw(g);
 			cruises[k].drawLines(g);
 		}
-		loaded = true;
+		linesLoaded = true;
 		dialogProgress.setVisible(false);
 
 		if(currentCruise!=null) {
@@ -605,7 +605,7 @@ public class XMCS implements ActionListener,
 		// Toggle of radio buttons will obtain different expedition lists
 		if( e.getSource() instanceof JRadioButton ) {
 			selectDataSource(e.getSource());
-			loaded = false;
+			linesLoaded = false;
 			map.repaint();
 			
 		}
