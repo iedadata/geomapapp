@@ -251,7 +251,7 @@ public class AgeDepthModel implements ScalableXYPoints, AdjustmentListener, Acti
 		firstBPanel.add(plotRange);
 		firstBPanel.add( graph.getDigitizeButton() );
 		secondBPanel.add(saveB);
-		secondBPanel.add(chronosAdpPortalB);
+		//secondBPanel.add(chronosAdpPortalB);
 		secondBPanel.add(normalizeB);
 		gpanel.add(firstBPanel);
 		gpanel.add(secondBPanel);

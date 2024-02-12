@@ -605,13 +605,13 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 		speciesPanel.add(speciesLabel);
 		speciesGBC.weightx = 0.0;
 		speciesGBL.setConstraints(chronosLabel, speciesGBC);
-		speciesPanel.add(chronosLabel);
+		//speciesPanel.add(chronosLabel);
 		speciesPanel.add(emptyLabel);
 		speciesGBL.setConstraints(paleoBioLabel, speciesGBC);
-		speciesPanel.add(paleoBioLabel);
+		//speciesPanel.add(paleoBioLabel);
 		speciesPanel.add(emptyLabel2);
 		speciesGBL.setConstraints(iSpeciesLabel, speciesGBC);
-		speciesPanel.add(iSpeciesLabel);
+		//speciesPanel.add(iSpeciesLabel);
 
 		JTextField field = new JTextField(20);
 		JTextField field2 = new JTextField(20);
@@ -695,7 +695,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 				BrowseURL.browseURL(CHRONOS_PATH);
 			}
 		});
-		buttonPanel.add(chronosArcB);
+		//buttonPanel.add(chronosArcB);
 
 		logs = new JToggleButton("Logs");
 		logs.addActionListener( new ActionListener() {
