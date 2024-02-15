@@ -216,7 +216,7 @@ public class ImportGrid implements Runnable {
 
 	void open() throws IOException {
 		// show choice of which grid to import
-		Object c = JOptionPane.showInputDialog(null,
+		/*Object c = JOptionPane.showInputDialog(null,
 								"<html><b>Select a grid type to import.</b></html>\n" + " ",
 								"Import 2-D Grid File", 
 								JOptionPane.QUESTION_MESSAGE,
@@ -238,7 +238,7 @@ public class ImportGrid implements Runnable {
 			else { 
 				k++;
 			}
-		}
+		}*/
 
 		// add Event Dispatch thread
 		SwingUtilities.invokeLater(new Runnable() {
@@ -249,9 +249,12 @@ public class ImportGrid implements Runnable {
 				chooser.setMultiSelectionEnabled( true );
 				chooser.setFileSelectionMode( JFileChooser.FILES_ONLY );
 
-				FileFilter fileFilter = (FileFilter) gridFilter.get( new Integer(gridType));
+				//FileFilter fileFilter = (FileFilter) gridFilter.get( new Integer(gridType));
 
-				chooser.addChoosableFileFilter(fileFilter);
+				//chooser.addChoosableFileFilter(fileFilter);
+				for(FileFilter ff : gridFilter.values()) {
+					chooser.addChoosableFileFilter(ff);
+				}
 				int ok = chooser.showOpenDialog(frame);
 				File[] choice = null;
 				if( ok!=JFileChooser.CANCEL_OPTION ) {
@@ -259,7 +262,10 @@ public class ImportGrid implements Runnable {
 				}
 				chooser.setMultiSelectionEnabled(multi);
 				chooser.setFileSelectionMode( mode );
-				chooser.removeChoosableFileFilter(fileFilter);
+				//chooser.removeChoosableFileFilter(fileFilter);
+				for(FileFilter ff : gridFilter.values()) {
+					chooser.removeChoosableFileFilter(ff);
+				}
 				if( ok==JFileChooser.CANCEL_OPTION ) {
 					return;
 				}
