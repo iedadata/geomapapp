@@ -258,6 +258,13 @@ public class ImportGrid implements Runnable {
 				int ok = chooser.showOpenDialog(frame);
 				File[] choice = null;
 				if( ok!=JFileChooser.CANCEL_OPTION ) {
+					FileFilter ff = chooser.getFileFilter();
+					for(int i = 0; i < gridFilter.size(); i++) {
+						if(ff == gridFilter.get(i)) {
+							gridType = i;
+							break;
+						}
+					}
 					choice = chooser.getSelectedFiles();
 				}
 				chooser.setMultiSelectionEnabled(multi);
