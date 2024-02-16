@@ -112,6 +112,7 @@ import org.geomapapp.util.NetUtil;
 import org.geomapapp.util.ProgressDialog;
 import org.geomapapp.util.SymbolScaleTool;
 import org.geomapapp.util.XML_Menu;
+import org.json.JSONException;
 import org.xml.sax.SAXException;
 
 import haxby.db.Database;
@@ -168,6 +169,7 @@ import haxby.wms.WMS_ESPG_4326_Overlay;
 import haxby.wms.XML_Layer;
 
 import org.geomapapp.util.OSAdjustment;
+import haxby.util.VersionUtil;
 
 public class MapApp implements ActionListener,
 							   KeyListener {
@@ -444,6 +446,8 @@ public class MapApp implements ActionListener,
 		BASE_URL = PathUtil.getPath("ROOT_PATH");
 		NEW_BASE_URL = PathUtil.getPath("ROOT_PATH"); // need to clean if same as base
 		serverURLString = PathUtil.getPath("SERVER_LIST",BASE_URL+"/gma_servers/server_list.dat");
+		
+		VersionUtil.init(BASE_URL + "versions.json");
 
 		try {
 			getServerList();
@@ -524,13 +528,15 @@ public class MapApp implements ActionListener,
 		NEW_BASE_URL = PathUtil.getPath("ROOT_PATH");
 		serverURLString = PathUtil.getPath("SERVER_LIST",
 				BASE_URL+"/gma_servers/server_list.dat");
-
+		
 		try {
 			getServerList();
 		} catch (IOException e) {
 			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
 		}
 		DEV_MODE = BASE_URL.equals(DEV_URL);
+
+		VersionUtil.init(BASE_URL + "versions.json");
 		checkVersion();
 
 		// User chooses
@@ -808,14 +814,21 @@ public class MapApp implements ActionListener,
 			return;
 		}
 		URL url=null;
-		try {
+		/*try {
 			String versionURL = PathUtil.getPath("VERSION_PATH",
 					BASE_URL+"/gma_version/").replace("//","/")
 					.replaceFirst(":/",  "://") + "version";
 			url = URLFactory.url(versionURL);
 
 			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
-			String version = in.readLine();
+			String version = in.readLine();*/
+			String version = "Unknown";
+			try {
+				version = VersionUtil.getVersion("GeoMapApp");
+			}
+			catch(JSONException e) {
+				e.printStackTrace();
+			}
 			if( compareVersions(VERSION, version) < 0) {
 				GMADownload.download( VERSION, version);
 			}
@@ -833,13 +846,13 @@ public class MapApp implements ActionListener,
 			//	System.out.println( jep.getText() );
 			} catch(Exception e) {
 			}
-		} catch (IOException ex ) {
+		/*} catch (IOException ex ) {
 			JOptionPane.showMessageDialog(frame,
 					"The server: " + url.getHost() + "\n is not available. Please be patient.",
 					getBaseURL(), JOptionPane.ERROR_MESSAGE);
 			ex.printStackTrace();
 			// System.exit(0);
-		}
+		}*/
 	}
 
 	/*
@@ -3747,7 +3760,6 @@ public class MapApp implements ActionListener,
 	public static void main( String[] args) {
 		//fixes issue with column sorting
 		System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
-		
 		createMapApp(args);
 	}
 

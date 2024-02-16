@@ -6,6 +6,7 @@ import haxby.util.PathUtil;
 import haxby.util.ProcessingDialog;
 import haxby.util.SilentProcessingTask;
 import haxby.util.URLFactory;
+import haxby.util.VersionUtil;
 
 import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
@@ -44,6 +45,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import javax.imageio.ImageIO;
+
+import org.json.JSONException;
 
 public class MMapServer extends MapOverlay implements FocusOverlay {
 
@@ -84,7 +87,7 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 	 */
 	public static String getVersionGMRT() {
 		String versionNum = "Unknown";
-		try {
+		/*try {
 			BufferedReader in = new BufferedReader(new InputStreamReader(
 					new URL(URLFactory.url(MapApp.getBaseURL()), GMRT_VERSION_FILE).openStream()));
 			versionNum = in.readLine();
@@ -101,7 +104,13 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 		} catch (Exception e) {
 			System.err.println("Not able to find GMRT Version");
 		}
-		
+		*/
+		try {
+			versionNum = VersionUtil.getVersion("GMRT");
+		}
+		catch(JSONException e) {
+			e.printStackTrace();
+		}
 		return versionNum;
 	}
 
