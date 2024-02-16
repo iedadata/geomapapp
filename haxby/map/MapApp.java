@@ -1974,7 +1974,12 @@ public class MapApp implements ActionListener,
 			int resEndIndex = infoXml.indexOf("\"", resStartIndex);
 			String bestRes = infoXml.substring(resStartIndex, resEndIndex);
 			
-			int shouldContinue = JOptionPane.showConfirmDialog(vPane, "Best resolution found: " + bestRes + "\nContinue loading from " + url.replace("file://", "") + "?", "", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
+			String weightAttr = "weight=\"";
+			int weightStartIndex = infoXml.indexOf(weightAttr, cruiseInputIndex) + weightAttr.length();
+			int weightEndIndex = infoXml.indexOf("\"", weightStartIndex);
+			String weightFctr = infoXml.substring(weightStartIndex, weightEndIndex);
+			
+			int shouldContinue = JOptionPane.showConfirmDialog(vPane, "Best resolution found: " + bestRes + "\nWeight: " + weightFctr + "\nContinue loading from " + url.replace("file://", "") + "?", "", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
 			if(shouldContinue == JOptionPane.CANCEL_OPTION || shouldContinue == JOptionPane.CLOSED_OPTION || shouldContinue == JOptionPane.NO_OPTION) return;
 			cancelOps();
 			//pass off the rest of the work to previously existing PreviewCruise
