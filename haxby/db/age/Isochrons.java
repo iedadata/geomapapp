@@ -225,7 +225,7 @@ public class Isochrons implements Database,
 			selectDialog.add(button);
 			button.addActionListener( new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					BrowseURL.browseURL("http://www.earthbyte.org/Resources/Agegrid/1997/digit_isochrons.html");
+					BrowseURL.browseURL("https://www.earthbyte.org/Resources/Agegrid/1997/digit_isochrons.html");
 				}
 			});
 			selectDialog.add( plotCB);

@@ -43,7 +43,7 @@ public class ViewImages extends ImageComponent {
 		imageNumber = 0;
 		image = new BufferedImage[2];
 		this.dir = dir;
-		baseURL = "http://4dgeo.whoi.edu/DAQ/" + dir.getName() +"/";
+		baseURL = "https://4dgeo.whoi.edu/DAQ/" + dir.getName() +"/";
 		File[] files = dir.listFiles( new FileFilter() {
 			public boolean accept(File f) {
 				return f.getName().endsWith(".images");
@@ -162,7 +162,7 @@ public class ViewImages extends ImageComponent {
 		imageNumber = (imageNumber+1)%2;
 		setImage(image[imageNumber]);
 	}
-// http://4dgeo.whoi.edu/DAQ/AT11-07/Alvin-D3961/Src2/Images0001/SubSea2.20040203_172415.jpg
+// https://4dgeo.whoi.edu/DAQ/AT11-07/Alvin-D3961/Src2/Images0001/SubSea2.20040203_172415.jpg
 	public static void main(String[] args) {
 		try {
 			new ViewImages( new File(args[0]) );

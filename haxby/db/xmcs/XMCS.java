@@ -179,14 +179,14 @@ public class XMCS implements ActionListener,
 			MapApp.BASE_URL+"/data/portals/mcs/expedition_list");
 	//USGS Multi Channel Seismic
 	static String USGS_MULTI_CHANNEL_PATH = PathUtil.getPath("PORTALS/USGS_MULTI_CHANNEL_PATH",
-								"http://cmgds.marine.usgs.gov/gma/USGS_MCS/");
+								"https://cmgds.marine.usgs.gov/gma/USGS_MCS/");
 	static String USGS_MULTI_CHANNEL_EXP_LIST = PathUtil.getPath("PORTALS/USGS_MULTI_CHANNEL_EXP_LIST",
-								"http://cmgds.marine.usgs.gov/gma/USGS_MCS/expedition_list_USGS_MCS");
+								"https://cmgds.marine.usgs.gov/gma/USGS_MCS/expedition_list_USGS_MCS");
 	//USGS Single Channel Seismic
 	static String USGS_SINGLE_CHANNEL_PATH = PathUtil.getPath("PORTALS/USGS_SINGLE_CHANNEL_PATH",
-								"http://cmgds.marine.usgs.gov/gma/USGS_SCS/");
+								"https://cmgds.marine.usgs.gov/gma/USGS_SCS/");
 	static String USGS_SINGLE_CHANNEL_EXP_LIST = PathUtil.getPath("PORTALS/USGS_SINGLE_CHANNEL_EXP_LIST",
-								"http://cmgds.marine.usgs.gov/gma/USGS_SCS/expedition_list_USGS_SCS");
+								"https://cmgds.marine.usgs.gov/gma/USGS_SCS/expedition_list_USGS_SCS");
 
 	//TODO
 	static String ANTARCTIC_SDLS_PATH = PathUtil.getPath("PORTALS/ANTARCTIC_SDLS",

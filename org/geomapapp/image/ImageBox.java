@@ -84,7 +84,7 @@ public class ImageBox extends JComponent {
 
 	public static void main(String[] args) {
 		JDialog dlg = new JDialog();
-		dlg.add(new ImageBox("http://www.google.com/logos/winter_holiday05_1.gif"));
+		dlg.add(new ImageBox("https://www.google.com/logos/winter_holiday05_1.gif"));
 		dlg.pack();
 		dlg.setVisible(true);
 	}

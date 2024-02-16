@@ -99,6 +99,6 @@ public class SedimentThicknessSurfaceLayer extends BasicScalingTiledImageLayer
 	}
 	
 	public String getInfoURL() {
-		return "http://www.ngdc.noaa.gov/mgg/sedthick/sedthick.html";
+		return "https://www.ngdc.noaa.gov/mgg/sedthick/index.html";
 	}
 }

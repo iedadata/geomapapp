@@ -124,7 +124,7 @@ public class CreditDialog implements WindowListener, KeyListener {
 		if( !mask.isSelected() ) credit.mask( null );
 		else credit.mask( getSelectedObject() );
 	}
-	static String base_url = "http://www.marine-geo.org/tools/search/";
+	static String base_url = "https://www.marine-geo.org/tools/search/";
 	GMAObject getSelectedObject() {
 		Object o = grids.getSelectedValue();
 		if( o==null ) o = cruises.getSelectedValue();
