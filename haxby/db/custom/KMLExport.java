@@ -180,7 +180,7 @@ public class KMLExport {
 		try {
 			Document doc2 = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
 			Element kml = doc2.createElement("kml");
-			kml.setAttribute("xmlns", "http://earth.google.com/kml/2.1");
+			kml.setAttribute("xmlns", "https://earth.google.com/kml/2.1");
 			doc2.appendChild(kml);
 
 			Element topFolder = doc2.createElement("Document");
@@ -268,7 +268,7 @@ public class KMLExport {
 
 				Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
 				kml = doc.createElement("kml");
-				kml.setAttribute("xmlns", "http://earth.google.com/kml/2.1");
+				kml.setAttribute("xmlns", "https://earth.google.com/kml/2.1");
 				doc.appendChild(kml);
 
 				topFolder = doc.createElement("Document");
@@ -657,11 +657,11 @@ public class KMLExport {
 				"$[description]" +
 				"<br/><br/><hr/>" +
 				"<align='right'>" +
-				"<a href='http://www.marine-geo.org/'>" +
-					"<img src='http://www.marine-geo.org/images/MGDS.gif' width='144' height='57'/>" +
+				"<a href='https://www.marine-geo.org/'>" +
+					"<img src='https://www.marine-geo.org/images/MGDS.gif' width='144' height='57'/>" +
 				"</a>" +
 				"<br><br>" +
-				"Funded by the <a href='http://www.nsf.gov/'> National Science Foundation</a>.</font></tr>";
+				"Funded by the <a href='https://www.nsf.gov/'> National Science Foundation</a>.</font></tr>";
 
 	}
 

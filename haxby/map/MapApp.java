@@ -187,17 +187,17 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.7.1"; // 08/10/2023
+	public final static String VERSION = "3.7.1.1"; // 01/12/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	
-	public static final String PRODUCTION_URL = "http://app.geomapapp.org/";
-	public static String DEFAULT_URL = "http://app.geomapapp.org/";
+	public static final String PRODUCTION_URL = "https://app.geomapapp.org/";
+	public static String DEFAULT_URL = "https://app.geomapapp.org/";
 	public static final String DEV_URL = "http://app-dev.geomapapp.org/"; 
 	private static String DEV_PASSWORD_PATH = "gma_passwords/dev_server_password";
 	public static String BASE_URL;
 	public static String NEW_BASE_URL;
-	public static String TEMP_BASE_URL = "http://app.geomapapp.org/"; // stay for old references, mostly all changed or not in use.
+	public static String TEMP_BASE_URL = "https://app.geomapapp.org/"; // stay for old references, mostly all changed or not in use.
 
 //	Name for base map image overlay
 	public static String baseMapName = "GMRT Basemap";
@@ -437,6 +437,11 @@ public class MapApp implements ActionListener,
 	}
 	public MapApp( String dir, String baseURL ) {
 		try {
+			getServerList();
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
+		}
+		try {
 			getProxies();
 		} catch (IOException e1) {
 			e1.printStackTrace();
@@ -449,17 +454,17 @@ public class MapApp implements ActionListener,
 		
 		VersionUtil.init(BASE_URL + "versions.json");
 
-		try {
-			getServerList();
-		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
-		}
-
 		if( baseURL != null ) {
 			BASE_URL = baseURL;
 			if( !BASE_URL.endsWith("/") ) BASE_URL += "/";
 		}
 		DEV_MODE = BASE_URL.equals(DEV_URL);
+
+		//BASE_URL = PathUtil.getPath("ROOT_PATH");
+		NEW_BASE_URL = PathUtil.getPath("ROOT_PATH"); // need to clean if same as base
+		//serverURLString = PathUtil.getPath("SERVER_LIST",BASE_URL+"/gma_servers/server_list.dat");
+
+		
 		versionGMRT = MMapServer.getVersionGMRT();		
 		baseFocusName = "GMRT Image Version " + versionGMRT;
 		whichMap = MapApp.MERCATOR_MAP;
@@ -515,6 +520,14 @@ public class MapApp implements ActionListener,
 	}
 
 	public MapApp( int which ) {
+		
+		try {
+			getServerList();
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
+		}
+		DEV_MODE = BASE_URL.equals(DEV_URL);
+		
 		try {
 			getProxies();
 			fetchCacheMenus = getMenusCache(); // add menu cache dir
@@ -524,11 +537,8 @@ public class MapApp implements ActionListener,
 		}
 		checkConnection();
 
-		BASE_URL = PathUtil.getPath("ROOT_PATH");
-		NEW_BASE_URL = PathUtil.getPath("ROOT_PATH");
-		serverURLString = PathUtil.getPath("SERVER_LIST",
-				BASE_URL+"/gma_servers/server_list.dat");
-		
+		//BASE_URL = PathUtil.getPath("ROOT_PATH");
+		NEW_BASE_URL = PathUtil.getPath("ROOT_PATH");		
 		try {
 			getServerList();
 		} catch (IOException e) {
@@ -537,7 +547,6 @@ public class MapApp implements ActionListener,
 		DEV_MODE = BASE_URL.equals(DEV_URL);
 
 		VersionUtil.init(BASE_URL + "versions.json");
-		checkVersion();
 
 		// User chooses
 		if (which == -1) {
@@ -2025,18 +2034,6 @@ public class MapApp implements ActionListener,
 					path = "/" + Character.toLowerCase(path.charAt(0)) + path.substring(1).replaceAll("\\\\", "/");
 				}
 				url = "file://" + path;
-				/*
-				JPanel chooseAltTilesPanel = new JPanel();
-				JCheckBox loadAltTiles = new JCheckBox("Load alternate base map tiles? If yes, specify URL: ");
-				JTextField altTilesUrlTextField = new JTextField("http://www.dev2.geomapapp.org/");
-				chooseAltTilesPanel.add(loadAltTiles);
-				chooseAltTilesPanel.add(altTilesUrlTextField);
-				int optionChosen = JOptionPane.showConfirmDialog(null, chooseAltTilesPanel, "", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-				if(optionChosen == JOptionPane.CANCEL_OPTION || optionChosen == JOptionPane.CLOSED_OPTION) return;
-				if(loadAltTiles.isSelected()) {
-					altTilesUrl = altTilesUrlTextField.getText();
-				}
-				*/
 			}
 		}
 		else {
@@ -3688,7 +3685,7 @@ public class MapApp implements ActionListener,
 					String GMRTRootURL = PathUtil.getPath("GMRT2_ROOT_PATH"); 
 					URLFactory.addSubEntry(BASE_URL, "htdocs/");
 					URLFactory.addSubEntry(GMRTRootURL, "htdocs/gmrt/");
-					URLFactory.addSubEntry(BASE_URL.replace("http://", ""), base + "htdocs/");
+					URLFactory.addSubEntry(BASE_URL.replace("http://", "").replace("https://", ""), base + "htdocs/");
 				}
 			}
 			in.close();
@@ -3719,7 +3716,7 @@ public class MapApp implements ActionListener,
 					String GMRTRootURL = PathUtil.getPath("GMRT2_ROOT_PATH"); 
 					URLFactory.addSubEntry(GMRTRootURL, "htdocs/gmrt/");
 					URLFactory.addSubEntry(BASE_URL, "htdocs/");
-					URLFactory.addSubEntry(BASE_URL.replace("http://", ""), base + "htdocs/");
+					URLFactory.addSubEntry(BASE_URL.replace("http://", "").replace("https://", ""), base + "htdocs/");
 				}
 			}
 			in.close();
@@ -3731,6 +3728,15 @@ public class MapApp implements ActionListener,
 
 	public static MapApp createMapApp(String[] args) {		
 		findLaunchFile();
+		
+		MapApp app = null;
+		if( args.length==0) {
+			app = new MapApp();
+		} else if( args.length==1) {
+			app = new MapApp(args[0]);
+		} else if( args.length==2) {
+			app =new MapApp(args[0], args[1]);
+		}
 		
 		if (BASE_URL == null) BASE_URL = PathUtil.getPath("ROOT_PATH");
 		
@@ -3745,14 +3751,7 @@ public class MapApp implements ActionListener,
 
 		com.Ostermiller.util.Browser.init();
 
-		MapApp app = null;
-		if( args.length==0) {
-			app = new MapApp();
-		} else if( args.length==1) {
-			app = new MapApp(args[0]);
-		} else if( args.length==2) {
-			app =new MapApp(args[0], args[1]);
-		}
+		
 		if(null == app) {
 			versionGMRT = MMapServer.getVersionGMRT();
 			baseFocusName = "GMRT Image Version " + versionGMRT;
@@ -4444,6 +4443,8 @@ public class MapApp implements ActionListener,
 			out.flush();
 			out.close();
 		}
+		serverURLString = PathUtil.getPath("SERVER_LIST",
+				BASE_URL+"/gma_servers/server_list.dat");
 		URL serverURL = URLFactory.url(serverURLString);
 		BufferedReader serverURLIn = new BufferedReader( new InputStreamReader( serverURL.openStream()));
 		String s = null;

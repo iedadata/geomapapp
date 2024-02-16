@@ -33,7 +33,7 @@ public class PathUtil {
 		pathURL = System.getProperty("geomapapp.paths_location");
 		if (pathURL == null)
 			try {
-				pathURL = URLFactory.url(MapApp.DEFAULT_URL) + "/gma_paths/GMA_paths.xml";
+				pathURL = URLFactory.url(MapApp.DEFAULT_URL) + "gma_paths/GMA_paths.xml";
 			} catch (MalformedURLException e) {
 				System.err.println("Can't find GMA_paths.xml file");
 			}
@@ -140,7 +140,7 @@ public class PathUtil {
 		for (String key : keyToURL2.keySet()) {
 			String url = keyToURL2.get(key);
 			System.out.println("np url"+ url);
-			if (url.contains("http://"))
+			if (url.contains("http://") || url.contains("https://"))
 				continue;
 
 			keyToURL2.put(key, rootPath + url);

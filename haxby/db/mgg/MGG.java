@@ -155,7 +155,7 @@ public class MGG implements Database,
 							} catch (EOFException ex) {
 								break;
 							}
-							int nseg = in.readInt();
+							int nseg = in.readInt(); //nseg is number of segments
 							ControlPt.Float[][] cpt = new ControlPt.Float[nseg][];
 							byte types = 0;
 							int type1 = 999;

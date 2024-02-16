@@ -136,14 +136,14 @@ public class GridDialog implements ItemListener, WindowListener {
 		GRID_UNITS.put(TOPO_9, DEM_UNITS);
 		GRID_UNITS.put(NASA_ELEV_MODEL, NASA_ELEV_MODEL_UNITS);
 
-		GRID_URL.put(AGE, "http://www.ngdc.noaa.gov/mgg/ocean_age/ocean_age_2008.html");
-		GRID_URL.put(SPREADING_RATE, "http://www.ngdc.noaa.gov/mgg/ocean_age/ocean_age_2008.html");
-		GRID_URL.put(SPREADING_ASYMMETRY, "http://www.ngdc.noaa.gov/mgg/ocean_age/ocean_age_2008.html");
-		GRID_URL.put(GRAVITY, "http://topex.ucsd.edu/marine_grav/mar_grav.html");
-		GRID_URL.put(GRAVITY_18, "http://topex.ucsd.edu/marine_grav/mar_grav.html");
+		GRID_URL.put(AGE, "https://www.ngdc.noaa.gov/mgg/ocean_age/ocean_age_2008.html");
+		GRID_URL.put(SPREADING_RATE, "https://www.ngdc.noaa.gov/mgg/ocean_age/ocean_age_2008.html");
+		GRID_URL.put(SPREADING_ASYMMETRY, "https://www.ngdc.noaa.gov/mgg/ocean_age/ocean_age_2008.html");
+		GRID_URL.put(GRAVITY, "https://topex.ucsd.edu/marine_grav/mar_grav.html");
+		GRID_URL.put(GRAVITY_18, "https://topex.ucsd.edu/marine_grav/mar_grav.html");
 		GRID_URL.put(GEOID, "http://www.ngdc.noaa.gov/mgg/bathymetry/predicted/explore.HTML");
-		GRID_URL.put(TOPO_9, "http://topex.ucsd.edu/WWW_html/mar_topo.html");
-		GRID_URL.put(NASA_ELEV_MODEL, "http://asterweb.jpl.nasa.gov/gdem.asp");
+		GRID_URL.put(TOPO_9, "https://topex.ucsd.edu/WWW_html/mar_topo.html");
+		GRID_URL.put(NASA_ELEV_MODEL, "https://asterweb.jpl.nasa.gov/gdem.asp");
 
 		GRID_LOADERS.put(DEM, new GridLoader() {
 			public void loadGrid(Grid2DOverlay grid) {

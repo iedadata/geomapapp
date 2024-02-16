@@ -98,6 +98,6 @@ public class OceanAgesSurfaceLayer extends BasicScalingTiledImageLayer
 	}
 	
 	public String getInfoURL() {
-		return "http://www.ngdc.noaa.gov/mgg/ocean_age/ocean_age_2008.html";
+		return "https://www.ngdc.noaa.gov/mgg/ocean_age/ocean_age_2008.html";
 	}
 }

@@ -1008,7 +1008,7 @@ public class RImage extends haxby.util.ScaledComponent
 		if(selectedDataUID.isEmpty())
 			return;
 		
-		String str = "http://www.marine-geo.org/tools/search/Files.php?client=GMA&data_set_uid="+ selectedDataUID;
+		String str = "https://www.marine-geo.org/tools/search/Files.php?client=GMA&data_set_uid="+ selectedDataUID;
 		BrowseURL.browseURL(str);
 		
 				
@@ -1135,7 +1135,7 @@ public class RImage extends haxby.util.ScaledComponent
 	private void saveMAT(OutputStream out, int count) throws IOException {
 		if(image==null) throw new IOException("no image loaded");
 		
-		URL url = URLFactory.url ( "http://www.marine-geo.org/data/field/AGAP_GAMBIT/radar/mat/"+getID()+"-"+count + "_1D_SAR.mat.gz");
+		URL url = URLFactory.url ( "https://www.marine-geo.org/data/field/AGAP_GAMBIT/radar/mat/"+getID()+"-"+count + "_1D_SAR.mat.gz");
 		URLConnection urlCon = url.openConnection();
 		BufferedInputStream in = new BufferedInputStream(urlCon.getInputStream());
 		int length = urlCon.getContentLength();

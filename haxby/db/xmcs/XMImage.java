@@ -118,13 +118,13 @@ public class XMImage extends haxby.util.ScaledComponent
 			MapApp.BASE_URL+"/data/portals/mcs/");
 	//USGS MCS
 	static String USGS_MULTI_CHANNEL_PATH = PathUtil.getPath("PORTALS/USGS_MULTI_CHANNEL_PATH",
-								"http://cmgds.marine.usgs.gov/gma/USGS_MCS/");
+								"https://cmgds.marine.usgs.gov/gma/USGS_MCS/");
 	//USGS SCS
 	static String USGS_SINGLE_CHANNEL_PATH = PathUtil.getPath("PORTALS/USGS_SINGLE_CHANNEL_PATH",
-								"http://cmgds.marine.usgs.gov/gma/USGS_SCS/");
+								"https://cmgds.marine.usgs.gov/gma/USGS_SCS/");
 	//USGS Industry
 	static String USGS_INDUSTRY_PATH = PathUtil.getPath("PORTALS/USGS_INDUSTRY_PATH",
-								"http://cmgds.marine.usgs.gov/gma/USGS_INDUSTRY/");
+								"https://cmgds.marine.usgs.gov/gma/USGS_INDUSTRY/");
 
 	static String ANTARCTIC_SDLS_PATH = PathUtil.getPath("PORTALS/ANTARCTIC_SDLS",
 			MapApp.BASE_URL+"/data/portals/mcs/sdls/");
@@ -1020,6 +1020,9 @@ public class XMImage extends haxby.util.ScaledComponent
 						saving = false;
 					}
 					catch (IOException ex) { }
+					catch (Throwable t) {
+						t.printStackTrace();
+					}
 				}
 			}.start();
 /*
@@ -1209,7 +1212,7 @@ public class XMImage extends haxby.util.ScaledComponent
 			
 			try{
 				//I assume every segy and nav are in the database under the same uid or else they are unavailable.
-				URL url = URLFactory.url(MULTI_CHANNEL_PATH + "mcs/sdls/"+line.getCruiseID()+"/nav/" + line.getCruiseID()+"-"+line.getID() + ".nav");
+				URL url = URLFactory.url(MULTI_CHANNEL_PATH + "sdls/"+line.getCruiseID()+"/nav/" + line.getCruiseID()+"-"+line.getID() + ".nav");
 				BufferedReader in = new BufferedReader( new InputStreamReader(url.openStream()) );
 				
 				navCB.setEnabled(true);
@@ -1500,16 +1503,16 @@ public class XMImage extends haxby.util.ScaledComponent
 
 			}
 			else if (haxby.db.xmcs.XMCS.mcsDataSelect[1].isSelected()){
-				urlString = "http://cmgds.marine.usgs.gov/cruise.php?cruise=" + getCruiseID().toLowerCase();
+				urlString = "https://cmgds.marine.usgs.gov/cruise.php?cruise=" + getCruiseID().toLowerCase();
 				BrowseURL.browseURL(urlString);
 			} else if (haxby.db.xmcs.XMCS.mcsDataSelect[2].isSelected()) {
-				urlString = "http://cmgds.marine.usgs.gov/cruise.php?cruise=" + getCruiseID().toLowerCase();
+				urlString = "https://cmgds.marine.usgs.gov/cruise.php?cruise=" + getCruiseID().toLowerCase();
 				BrowseURL.browseURL(urlString);
 			}else if (haxby.db.xmcs.XMCS.mcsDataSelect[3].isSelected()){
-				urlString = "http://sdls.ogs.trieste.it/CORE/SelFile1.php?FileType=Seismics&Field=LineName&val="+getCruiseID().toLowerCase();
+				urlString = "https://sdls.ogs.trieste.it/CORE/SelFile1.php?FileType=Seismics&Field=LineName&val="+getCruiseID().toLowerCase();
 				BrowseURL.browseURL(urlString);
 			}else {
-				urlString = "http://www.ig.utexas.edu/sdc/cruise.php?cruiseIn=" + getCruiseID().toLowerCase();
+				urlString = "https://www.ig.utexas.edu/sdc/cruise.php?cruiseIn=" + getCruiseID().toLowerCase();
 				BrowseURL.browseURL(urlString);
 			}
 //			***** GMA 1.6.2

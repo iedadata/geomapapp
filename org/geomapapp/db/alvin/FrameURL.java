@@ -20,7 +20,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 public class FrameURL {
-	String IMAGE_PREFIX = "http://4dgeo.whoi.edu/DAQ/";
+	String IMAGE_PREFIX = "https://4dgeo.whoi.edu/DAQ/";
 	String navFileURL = File.separator +"data" + File.separator + "mgds" +
 						File.separator +"field" + File.separator +"Alvin" + File.separator;
 	//String navFileURL = "http://www.marine-geo.org/scratch/Alvin/";
@@ -71,7 +71,7 @@ public class FrameURL {
 					System.out.println("Dive Id: " +diveID);
 					
 					if ( platform.indexOf("Alvin") != -1 ) {
-						String urlString = "http://4dgeo.whoi.edu/DAQ/"+cruiseID+"/"+diveIDForURL+"/Src1/Images0001/proof.page1.html";
+						String urlString = IMAGE_PREFIX+cruiseID+"/"+diveIDForURL+"/Src1/Images0001/proof.page1.html";
 						url = URLFactory.url(urlString);
 						System.out.println(urlString);
 						try {
@@ -113,8 +113,8 @@ public class FrameURL {
 
 						file = new File(file, "images");
 						PrintStream out = new PrintStream(new FileOutputStream( file ));
-						String url1 = "http://4dgeo.whoi.edu/DAQ/"+cruiseID+"/"+diveIDForURL+"/Src1/Images0001/";
-						String url2 = "http://4dgeo.whoi.edu/DAQ/"+cruiseID+"/"+diveIDForURL+"/Src2/Images0001/";
+						String url1 = IMAGE_PREFIX+cruiseID+"/"+diveIDForURL+"/Src1/Images0001/";
+						String url2 = IMAGE_PREFIX+cruiseID+"/"+diveIDForURL+"/Src2/Images0001/";
 						out.println( url1 + "SubSea1." );
 						out.println( url2 + "SubSea2.");
 						Vector pages = new Vector();
@@ -198,7 +198,7 @@ public class FrameURL {
 							String[] imageDirSplit = sJason.split("\\.");
 							if ( imageDirSplit.length > 2 ) {
 								imageDirSplit[0] = imageDirSplit[0].substring(imageDirSplit[0].indexOf("/DAQ"));
-								imageDirSplit[0] = "http://4dgeo.whoi.edu" + imageDirSplit[0] + ".";
+								imageDirSplit[0] = "https://4dgeo.whoi.edu" + imageDirSplit[0] + ".";
 								String[] imageDirSplitTwo = imageDirSplit[0].split("Jason");
 								if ( !imageURLs.containsKey(imageDirSplitTwo[0]) ) {
 									imageURLs.put(imageDirSplitTwo[0] + "Jason/", imageDirSplitTwo[0] + "Jason/");

@@ -259,7 +259,7 @@ public class LayerExplorer extends JPanel {
 	public static void main(String[] args) throws Exception {
 //		Capabilities cap = CapabilitiesParser.parseCapabilities("http://www.marine-geo.org/services/wms?service=WMS&version=1.1.1&request=GetCapabilities");
 //		Capabilities cap = CapabilitiesParser.parseCapabilities("http://wms.jpl.nasa.gov/wms.cgi?request=GetCapabilities");
-		Capabilities cap = CapabilitiesParser.parseCapabilities("http://neowms.sci.gsfc.nasa.gov/wms/wms?version=1.1.1&service=WMS&request=GetCapabilities");
+		Capabilities cap = CapabilitiesParser.parseCapabilities("https://neo.gsfc.nasa.gov/wms/wms?version=1.1.1&service=WMS&request=GetCapabilities");
 
 		JFrame frame = new JFrame();
 		LayerExplorer le = new LayerExplorer(cap);
