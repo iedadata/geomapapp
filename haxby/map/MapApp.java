@@ -2981,6 +2981,9 @@ public class MapApp implements ActionListener,
 
 		// Close DB button action
 		if(evt.getSource() == closeDB) {
+			if(currentDB instanceof XMCS) {
+				((XMCS)currentDB).linesLoaded = false;
+			}
 			closeCurrentDB();
 			return;
 		} else if (evt.getSource() == detach_attachB) {
