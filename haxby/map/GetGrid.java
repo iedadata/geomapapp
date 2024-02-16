@@ -467,12 +467,12 @@ public class GetGrid {
 	            if (!basePath.equals(mbPath)) fillFloatGrid( "" , res , res0, basePath, isGMRT );
 		    }
 	    } else {
-	        //Bypasses normal workflow if res is 64 or less
+	        //Bypasses normal workflow if res is 128 or less
 	        //The normal mbPath has GEBCO burned in from 64 to 1
 	        //The swathDir is only multibeam data.
 	        //Using the swathDir eliminates interpolation overshoots
 	        //    introduced by burning in GEBCO
-	        String fillDir = ((res >= 128)?"":swathDir);
+	        String fillDir = ((res >= 256)?"":swathDir);
 			fillFloatGrid( fillDir , res , res , mbPath, isGMRT );
 	        if (!basePath.equals(mbPath)) fillFloatGrid( fillDir , res , res , basePath, isGMRT);
 		}
@@ -485,7 +485,7 @@ public class GetGrid {
 			      (Grid2D) finalGrid);*/
 		} else {
 		// fill in remaining NaNs with GEBCO
-	        int basemapRes = Math.min(res,64);
+	        int basemapRes = Math.min(res,128);
 			fillFloatGrid(basemapDir, res, basemapRes, basePath, isGMRT);
 		}
 	                
