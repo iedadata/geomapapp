@@ -683,7 +683,8 @@ public class VelocityVectors extends JFrame implements Database, ActionListener,
 		String s = "";
 		URL helpURL = null;
 		if(MapApp.BASE_URL.matches(MapApp.DEV_URL)){
-			VELOCITY_VECTOR_HELP_URL = VELOCITY_VECTOR_HELP_URL.replace("http://app.", "http://app-dev.");
+			VELOCITY_VECTOR_HELP_URL = VELOCITY_VECTOR_HELP_URL.replace("http://app.", "http://app-dev.")
+					.replace("https://app.", "https://app-dev.");
 		}
 		try {
 			helpURL = URLFactory.url(VELOCITY_VECTOR_HELP_URL);

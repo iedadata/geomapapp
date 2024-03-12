@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.JOptionPane;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -32,7 +33,7 @@ public class PathUtil {
 		pathURL = System.getProperty("geomapapp.paths_location");
 		if (pathURL == null)
 			try {
-				pathURL = URLFactory.url(MapApp.DEFAULT_URL) + "/gma_paths/GMA_paths.xml";
+				pathURL = URLFactory.url(MapApp.DEFAULT_URL) + "gma_paths/GMA_paths.xml";
 			} catch (MalformedURLException e) {
 				System.err.println("Can't find GMA_paths.xml file");
 			}
@@ -92,6 +93,8 @@ public class PathUtil {
 
 		} catch (IOException ex) {
 			ex.printStackTrace();
+			JOptionPane.showMessageDialog(null, "Could not connect to the GeoMapApp server. It's likely that you have internet issues or the server is down.", "", JOptionPane.ERROR_MESSAGE);
+			System.exit(1);
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		} catch (SAXException e) {
@@ -137,7 +140,7 @@ public class PathUtil {
 		for (String key : keyToURL2.keySet()) {
 			String url = keyToURL2.get(key);
 			System.out.println("np url"+ url);
-			if (url.contains("http://"))
+			if (url.contains("http://") || url.contains("https://"))
 				continue;
 
 			keyToURL2.put(key, rootPath + url);

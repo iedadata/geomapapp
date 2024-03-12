@@ -229,7 +229,7 @@ public class ShapeSuite extends AbstractTableModel {
 	public String getURLString() {
 		JTextField txt = new JTextField(60);
 		JPanel panel = new JPanel(new GridLayout(2,0));
-		panel.add(new JLabel("Enter URL (example: \"http://www.ldeo.columbia.edu/~akm/shape_files/WF2004_T741.shp\")"));
+		panel.add(new JLabel("Enter URL (example: \"https://www.ldeo.columbia.edu/~akm/shape_files/WF2004_T741.shp\")"));
 		panel.add(txt);
 		int ok = JOptionPane.showConfirmDialog((JFrame)map.getTopLevelAncestor(),
 					panel,

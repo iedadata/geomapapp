@@ -101,7 +101,7 @@ public class MBSelection implements ActionListener, ItemListener, MouseListener 
 		//	String name = ((MBCruise)cruises.getSelectedItem()).toString().toUpperCase();
 		//	if( name.indexOf( "_" ) >=0 ) name = name.substring(0, name.indexOf( "_" ));
 			System.out.println( name);
-			BrowseURL.browseURL("http://www.marine-geo.org/tools/search/entry.php?id="+name);
+			BrowseURL.browseURL("https://www.marine-geo.org/tools/search/entry.php?id="+name);
 		}
 	}
 	public JComponent getDialog() {

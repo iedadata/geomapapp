@@ -563,7 +563,7 @@ public class MBTracks implements Database, Overlay, MouseListener {
 		if ( evt.getSource().equals(retrievePingFile) ) {
 			PathUtil.loadNewPaths(MARINE_GEO_PATH_URLS);
 			String DOWNLOAD_PING_FILE_PATH = PathUtil.getPath("DOWNLOAD_PING_FILE_PATH", 
-									"http://www.marine-geo.org/tools/search/GMADownload.php");
+									"https://www.marine-geo.org/tools/search/GMADownload.php");
 			String str = DOWNLOAD_PING_FILE_PATH + "?client=GMA&data_uid=" + selectedDataUID;
 
 			if (selectedDataUID == null) return;

@@ -251,7 +251,7 @@ public class AgeDepthModel implements ScalableXYPoints, AdjustmentListener, Acti
 		firstBPanel.add(plotRange);
 		firstBPanel.add( graph.getDigitizeButton() );
 		secondBPanel.add(saveB);
-		secondBPanel.add(chronosAdpPortalB);
+		//secondBPanel.add(chronosAdpPortalB);
 		secondBPanel.add(normalizeB);
 		gpanel.add(firstBPanel);
 		gpanel.add(secondBPanel);
@@ -1344,7 +1344,7 @@ public class AgeDepthModel implements ScalableXYPoints, AdjustmentListener, Acti
 			saveB.setEnabled(true);
 		}
 		else if ( aevt.getSource().equals(chronosAdpPortalB) ) {
-			String inputURLString = "http://portal.chronos.org:80/gridsphere/gridsphere?cid=tools_adp";
+			String inputURLString = "https://doi.org/10.1130/GES00009.1";
 			BrowseURL.browseURL(inputURLString);
 		}
 		else if ( aevt.getSource().equals(normalizeB) ) {

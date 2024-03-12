@@ -34,6 +34,7 @@ public class XMCruise implements Overlay {
 	XMap map;
 	String id;
 	Vector<XMLine> lines;
+	private boolean loaded;
 	Rectangle2D.Double bounds;
 	boolean cruiseIDL;
 	// LDEO Multi Channel Seismic
@@ -276,12 +277,18 @@ public class XMCruise implements Overlay {
 			}
 		}
 		setBounds();
+		loaded = true;
 		return getLines();
 
 	}
 
 	public void clearLines() {
+		loaded = false;
 		lines.clear();
+	}
+	
+	public synchronized boolean isLoaded() {
+		return loaded;
 	}
 
 	public void draw(Graphics2D g) {
@@ -296,11 +303,13 @@ public class XMCruise implements Overlay {
 		}
 		if( bounds.x+offset > rect.getX()+rect.getWidth() ) return;
 		g.translate( offset, 0.);
-		g.draw(bounds);
+		//g.draw(bounds);
+		drawLines(g);
 		while( wrap>0. && bounds.x +offset < rect.getX()+rect.getWidth() ) {
 			offset += wrap;
 			g.translate( wrap, 0.);
-			g.draw(bounds);
+			//g.draw(bounds);
+			drawLines(g);
 		}
 		g.setTransform(at);
 	}

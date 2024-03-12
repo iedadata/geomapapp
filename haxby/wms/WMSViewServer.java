@@ -159,7 +159,7 @@ public class WMSViewServer implements ActionListener {
 		secondPane = new JPanel( new BorderLayout( 5, 5 ) );
 //		exampleWFSURLPane = new JPanel( new BorderLayout() );
 //		connectPane = new JPanel( new BorderLayout() );
-		exampleWMSURL = new JLabel( "Example: \"http://wms.jpl.nasa.gov/wms.cgi?request=GetCapabilities\"" );
+		exampleWMSURL = new JLabel( "Example: \"https://neo.gsfc.nasa.gov/wms/wms?request=GetCapabilities\"" );
 		txt = new JTextField( 50 );
 		connect = new JButton( "Connect" );
 		disposeButton = new JButton( "Dispose" );
