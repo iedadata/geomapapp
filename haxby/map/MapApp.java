@@ -187,7 +187,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.7.1.1"; // 01/12/2024
+	public final static String VERSION = "3.7.2"; // 03/04/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	
@@ -453,6 +453,7 @@ public class MapApp implements ActionListener,
 		serverURLString = PathUtil.getPath("SERVER_LIST",BASE_URL+"/gma_servers/server_list.dat");
 		
 		VersionUtil.init(BASE_URL + "versions.json");
+		checkVersion();
 
 		if( baseURL != null ) {
 			BASE_URL = baseURL;
@@ -524,7 +525,8 @@ public class MapApp implements ActionListener,
 		try {
 			getServerList();
 		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
+			//JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
+			BASE_URL = DEFAULT_URL;
 		}
 		DEV_MODE = BASE_URL.equals(DEV_URL);
 		
@@ -547,6 +549,7 @@ public class MapApp implements ActionListener,
 		DEV_MODE = BASE_URL.equals(DEV_URL);
 
 		VersionUtil.init(BASE_URL + "versions.json");
+		checkVersion();
 
 		// User chooses
 		if (which == -1) {
