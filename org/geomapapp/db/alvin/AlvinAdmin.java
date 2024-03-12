@@ -129,7 +129,7 @@ public class AlvinAdmin {
 								new FileReader( images ));
 							Vector vectorOfURLs = new Vector();
 							String temp = null;
-							while ( (temp=in.readLine()).indexOf("http://") != -1 ) {
+							while ( (temp=in.readLine()).matches("^http(s)?://")) {
 								vectorOfURLs.add(temp);
 							}
 							Vector names = new Vector(6);
@@ -288,7 +288,7 @@ public class AlvinAdmin {
 							for ( int j = 0; j < vectorOfURLs.size(); j++ ) {
 								out.println(" <url>"+((String)vectorOfURLs.get(j))+"${1}.jpg</url>");
 							}
-							out.println(" <info>http://www.marine-geo.org/tools/search/entry.php?id=" + cruise.toUpperCase() + "</info>");
+							out.println(" <info>https://www.marine-geo.org/tools/search/entry.php?id=" + cruise.toUpperCase() + "</info>");
 							out.println("</data>");
 							out.close();
 							tempAlvinShapes.timeToAltitude = new Hashtable();

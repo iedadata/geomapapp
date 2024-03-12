@@ -156,10 +156,10 @@ public class SCS implements Database,
 			ImageIcon icon = new ImageIcon( url );
 			JLabel logo = new JLabel(icon);
 			logo.setBorder( BorderFactory.createEtchedBorder() );
-			logo.setToolTipText("http://www.ngdc.noaa.gov/  (click to open URL)");
+			logo.setToolTipText("https://www.ngdc.noaa.gov/  (click to open URL)");
 			logo.addMouseListener( new MouseAdapter() {
 					public void mouseClicked( MouseEvent evt ) {
-						BrowseURL.browseURL("http://www.ngdc.noaa.gov");
+						BrowseURL.browseURL("https://www.ngdc.noaa.gov");
 					}
 				});
 			JPanel logoPanel = new JPanel( new BorderLayout() );
@@ -169,10 +169,10 @@ public class SCS implements Database,
 			logo = new JLabel(icon);
 			logo.setBorder( BorderFactory.createEtchedBorder() );
 		//	logo.setToolTipText("http://www.ldeo.columbia.edu/  (click to copy to clipboard)");
-			logo.setToolTipText("http://www.ldeo.columbia.edu/  (click to open URL)");
+			logo.setToolTipText("https://lamont.columbia.edu/  (click to open URL)");
 			logo.addMouseListener( new MouseAdapter() {
 					public void mouseClicked( MouseEvent evt ) {
-						BrowseURL.browseURL("http://www.ldeo.columbia.edu");
+						BrowseURL.browseURL("https://lamont.columbia.edu");
 					}
 				});
 			logoPanel.add( logo, "West" );

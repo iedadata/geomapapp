@@ -15,10 +15,13 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.json.JSONException;
+
 import haxby.map.MapApp;
 import haxby.util.BrowseURL;
 import haxby.util.PathUtil;
 import haxby.util.URLFactory;
+import haxby.util.VersionUtil;
 /**
  * Creation of buttons which will perform a browseURL call to outside sources.
  * Retrieves the destination url from a remote xml file with PathUtil.
@@ -29,13 +32,14 @@ public class OtherSources {
 	JPanel panel;
 	//Path on server to locate source xml file
 	String CREDIT_PATH_URLS = PathUtil.getPath("CREDIT_PATH_URLS",
-			MapApp.BASE_URL+"/gma_credit/html/GMA_Credit_paths.xml");
-	String MARINE_URL = "http://www.gebco.net";
-	String LAND_URL = "http://asterweb.jpl.nasa.gov/gdem.asp";
-	String ANTARCTIC_URL = "http://www.antarctica.ac.uk/bas_research/data/access/bedmap/";
-	String ARCTIC_URL = "http://www.ngdc.noaa.gov/mgg/bathymetry/arctic/arctic.html";
-	String SRTM_URL = "http://www2.jpl.nasa.gov/srtm/";
-	String NED_URL = "http://ned.usgs.gov/";
+			MapApp.BASE_URL+"/gma_credit/html/GMA_Credit_paths.xml")
+			.replaceAll(MapApp.PRODUCTION_URL, MapApp.BASE_URL);
+	String MARINE_URL = "https://www.gebco.net";
+	String LAND_URL = "https://asterweb.jpl.nasa.gov/gdem.asp";
+	String ANTARCTIC_URL = "https://www.bas.ac.uk/project/bedmap/";
+	String ARCTIC_URL = "https://www.ngdc.noaa.gov/mgg/bathymetry/arctic/arctic.html";
+	String SRTM_URL = "https://www2.jpl.nasa.gov/srtm/";
+	String NED_URL = "https://www.usgs.gov/publications/national-elevation-dataset";
 	
 	public OtherSources() {
 		panel = new JPanel(new BorderLayout());
@@ -48,16 +52,20 @@ public class OtherSources {
 		String btn_txt = "GEBCO";
 	
 	
-		try {
+		/*try {
 			String btnTxtURL = PathUtil.getPath("CREDIT_PATH") + "btn_txt/gebco";
 			url = URLFactory.url(btnTxtURL);
 			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
 			btn_txt = in.readLine();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}*/
+		try {
+			btn_txt = VersionUtil.getVersion("GEBCO");
 		}
-			
-		
+		catch(JSONException e) {
+			e.printStackTrace();
+		}
 
 
 		

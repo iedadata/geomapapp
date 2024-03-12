@@ -126,11 +126,11 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 
 	static String JANUS_QUERY_PATH = 
 		PathUtil.getPath("DSDP/JANUS_QUERY_PATH", 
-						"http://iodp.tamu.edu/janusweb/coring_summaries/holesumm.cgi");
+						"https://iodp.tamu.edu/janusweb/coring_summaries/holesumm.cgi");
 
 	static String CHRONOS_PATH = 
 		PathUtil.getPath("DSDP/CHRONOS_PATH", 
-						"http://portal.chronos.org:80/gridsphere/gridsphere?cid=label_arc");
+						"https://doi.org/10.1130/GES00009.1");
 
 //	GMA 1.4.8: Add button to bring DSDP in front of any layers
 	JButton bringToFront;
@@ -605,13 +605,13 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 		speciesPanel.add(speciesLabel);
 		speciesGBC.weightx = 0.0;
 		speciesGBL.setConstraints(chronosLabel, speciesGBC);
-		speciesPanel.add(chronosLabel);
+		//speciesPanel.add(chronosLabel);
 		speciesPanel.add(emptyLabel);
 		speciesGBL.setConstraints(paleoBioLabel, speciesGBC);
-		speciesPanel.add(paleoBioLabel);
+		//speciesPanel.add(paleoBioLabel);
 		speciesPanel.add(emptyLabel2);
 		speciesGBL.setConstraints(iSpeciesLabel, speciesGBC);
-		speciesPanel.add(iSpeciesLabel);
+		//speciesPanel.add(iSpeciesLabel);
 
 		JTextField field = new JTextField(20);
 		JTextField field2 = new JTextField(20);
@@ -695,7 +695,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 				BrowseURL.browseURL(CHRONOS_PATH);
 			}
 		});
-		buttonPanel.add(chronosArcB);
+		//buttonPanel.add(chronosArcB);
 
 		logs = new JToggleButton("Logs");
 		logs.addActionListener( new ActionListener() {
@@ -984,7 +984,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 	void openURL() {
 //		ODP legs are in online2, DSDP legs are in online3
 		String url = PathUtil.getPath("BRG_ROOT_PATH",
-				"http://brg.ldeo.columbia.edu/");
+				"https://lamont.columbia.edu/research-divisions/marine-large-programs");
 		BrowseURL.browseURL(url);
 	}
 	void setLog( BRGEntry entry ) {
@@ -2334,6 +2334,7 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 			}
 			inputURLString = inputURLString.substring(0,inputURLString.lastIndexOf("%20"));
 			inputURLString += "&";
+			//BrowseURL.browseURL("https://doi.org/10.1130/GES00009.1");
 			BrowseURL.browseURL(inputURLString);
 		}
 
@@ -2349,14 +2350,15 @@ public class DSDPDemo implements WindowListener, MouseMotionListener, Adjustment
 		}
 
 		else if ( me.getSource().equals(iSpeciesLabel) ) {
-			String inputURLString = "http://www.ispecies.org/?q=";
-			String [] speciesName = speciesLabel.getText().split("\\s");
+			String inputURLString = "https://www.ispecies.org/?q=";
+			//String [] speciesName = speciesLabel.getText().split("\\s");
 //			for ( int i = 0; i < speciesName.length; i++ ) {
 //				inputURLString += ( speciesName[i] + "+" );
 //			}
 //			inputURLString = inputURLString.substring(0,inputURLString.lastIndexOf("+"));
-			inputURLString += speciesName[0];
-			inputURLString += "&submit=Go";
+			//inputURLString += speciesName[0];
+			//inputURLString += "&submit=Go";
+			inputURLString += speciesLabel.getText().replaceAll("\\s+", "%20");
 			BrowseURL.browseURL(inputURLString);
 		}
 	}
