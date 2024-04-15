@@ -15,6 +15,7 @@ import haxby.proj.PolarStereo;
 import haxby.proj.Projection;
 import haxby.proj.ProjectionFactory;
 import haxby.util.PathUtil;
+import haxby.util.VersionUtil;
 
 public class GridComposer extends GetGrid {
 //	static String base = "/local/data/home/bill/db/merc_320_1024/";
@@ -26,11 +27,11 @@ public class GridComposer extends GetGrid {
 	public static String npBase = PathUtil.getPath("GMRT_LATEST/NP_GRID_TILE_PATH");
 	static {
 		if(MapApp.AT_SEA) {
-			base = base.replaceFirst("current", MapApp.which_os.gmrt_current);
-			mbPath = mbPath.replaceFirst("current", MapApp.which_os.gmrt_current);
-			vo_base = vo_base.replaceFirst("current", MapApp.which_os.gmrt_current);
-			spBase = spBase.replaceFirst("current", MapApp.which_os.gmrt_current);
-			npBase = npBase.replaceFirst("current", MapApp.which_os.gmrt_current);
+			base = base.replaceFirst("current", VersionUtil.getVersion("GMRT"));
+			mbPath = mbPath.replaceFirst("current", VersionUtil.getVersion("GMRT"));
+			vo_base = vo_base.replaceFirst("current", VersionUtil.getVersion("GMRT"));
+			spBase = spBase.replaceFirst("current", VersionUtil.getVersion("GMRT"));
+			npBase = npBase.replaceFirst("current", VersionUtil.getVersion("GMRT"));
 		}
 	}
 	
