@@ -7,10 +7,11 @@ import java.nio.file.Paths;
 
 public class OSAdjustment {
 	public static enum OS {
-		LINUX("current"), MACOS("current_mac"), WINDOWS("current_win");
-		public final String gmrt_current;
-		private OS(String gmrt_cur_in) {
-			gmrt_current = gmrt_cur_in;
+		//LINUX("current"), MACOS("current_mac"), WINDOWS("current_win");
+		LINUX, MACOS, WINDOWS;
+		//public final String gmrt_current;
+		private OS(/*String gmrt_cur_in*/) {
+			//gmrt_current = gmrt_cur_in;
 		}
 	}
 	private static OS whichOs = null;

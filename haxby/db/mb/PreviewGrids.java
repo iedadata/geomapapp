@@ -30,6 +30,7 @@ import haxby.proj.PolarStereo;
 import haxby.proj.Projection;
 import haxby.proj.ProjectionFactory;
 import haxby.util.PathUtil;
+import haxby.util.VersionUtil;
 
 public class PreviewGrids
 {
@@ -67,7 +68,7 @@ public class PreviewGrids
 	    for(String key : paths.keySet()) {
 	    	if(new File(paths.get(key)).exists()) {}
 	    	else {
-	    		paths.put(key, paths.get(key).replaceFirst("current", MapApp.which_os.gmrt_current));
+	    		paths.put(key, paths.get(key).replaceFirst("current", VersionUtil.getVersion("GMRT")));
 	    	}
 	    }
     }
@@ -87,7 +88,7 @@ public class PreviewGrids
 	else
 		prodPath = PathUtil.getPath("GMRT_LATEST/MERCATOR_TILE_PATH");
 	if(MapApp.AT_SEA) {
-		prodPath = prodPath.replace("current", MapApp.which_os.gmrt_current);
+		prodPath = prodPath.replace("current", VersionUtil.getVersion("GMRT"));
 	}
     ImageViewer imageViewerProd = new ImageViewer(map, prodPath, maxRes);
     mapApp.getMapTools().maskB.addActionListener(new ActionListener()
