@@ -5,6 +5,7 @@ import haxby.proj.Projection;
 import haxby.util.PathUtil;
 import haxby.util.SilentProcessingTask;
 import haxby.util.URLFactory;
+import haxby.util.VersionUtil;
 
 import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
@@ -53,7 +54,7 @@ public class PoleMapServer {
 	static {
 		if(MapApp.AT_SEA) { 
 			for(int i = 0; i < base.length; i++) {
-				base[i] = base[i].replaceFirst("current", MapApp.which_os.gmrt_current);
+				base[i] = base[i].replaceFirst("current", VersionUtil.getVersion("GMRT"));
 			}
 		}
 	}

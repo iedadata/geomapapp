@@ -76,7 +76,7 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 	public static String base = PathUtil.getPath("GMRT_LATEST/MERCATOR_TILE_PATH");
 	static {
 		if(MapApp.AT_SEA) {
-			base = base.replaceFirst("current", MapApp.which_os.gmrt_current);
+			base = base.replaceFirst("current", VersionUtil.getVersion("GMRT"));
 		}
 	}
 	//public static String[] splitBase = base.split("/");
@@ -439,12 +439,14 @@ public class MMapServer extends MapOverlay implements FocusOverlay {
 				break;
 			}
 			catch (BindException ex) {
+				ex.printStackTrace();
 				try {
 					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 				}
 			}
 			catch (IOException ex) {
+				ex.printStackTrace();
 				tries--;
 				if (tries <= 0) {
 					if (DRAW_TILE_LABELS) {

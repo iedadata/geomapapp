@@ -187,7 +187,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.7.2"; // 03/04/2024
+	public final static String VERSION = "3.7.3"; // 04/12/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	
@@ -521,12 +521,13 @@ public class MapApp implements ActionListener,
 	}
 
 	public MapApp( int which ) {
-		
-		try {
-			getServerList();
-		} catch (IOException e) {
-			//JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
-			BASE_URL = DEFAULT_URL;
+		if(null == System.getProperty("geomapapp.paths_location") || System.getProperty("geomapapp.paths_location").startsWith("http")) {
+			try {
+				getServerList();
+			} catch (IOException e) {
+				//JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
+				BASE_URL = DEFAULT_URL;
+			}
 		}
 		DEV_MODE = BASE_URL.equals(DEV_URL);
 		
@@ -541,12 +542,12 @@ public class MapApp implements ActionListener,
 
 		//BASE_URL = PathUtil.getPath("ROOT_PATH");
 		NEW_BASE_URL = PathUtil.getPath("ROOT_PATH");		
-		try {
+		/*try {
 			getServerList();
 		} catch (IOException e) {
 			JOptionPane.showMessageDialog(null, "Error reading remote server list", "Non-Critical Error", JOptionPane.ERROR_MESSAGE);
 		}
-		DEV_MODE = BASE_URL.equals(DEV_URL);
+		DEV_MODE = BASE_URL.equals(DEV_URL);*/
 
 		VersionUtil.init(BASE_URL + "versions.json");
 		checkVersion();
@@ -3687,7 +3688,9 @@ public class MapApp implements ActionListener,
 					BASE_URL = PathUtil.getPath("ROOT_PATH");
 					String GMRTRootURL = PathUtil.getPath("GMRT2_ROOT_PATH"); 
 					URLFactory.addSubEntry(BASE_URL, "htdocs/");
+					URLFactory.addSubEntry(BASE_URL.replace("https://", "http://"), "htdocs/");
 					URLFactory.addSubEntry(GMRTRootURL, "htdocs/gmrt/");
+					URLFactory.addSubEntry(GMRTRootURL.replace("https://", "http://"), "htdocs/gmrt/");
 					URLFactory.addSubEntry(BASE_URL.replace("http://", "").replace("https://", ""), base + "htdocs/");
 				}
 			}
@@ -3718,7 +3721,9 @@ public class MapApp implements ActionListener,
 					BASE_URL = PathUtil.getPath("ROOT_PATH");
 					String GMRTRootURL = PathUtil.getPath("GMRT2_ROOT_PATH"); 
 					URLFactory.addSubEntry(GMRTRootURL, "htdocs/gmrt/");
+					URLFactory.addSubEntry(GMRTRootURL.replace("https://", "http://"), "htdocs/gmrt/");
 					URLFactory.addSubEntry(BASE_URL, "htdocs/");
+					URLFactory.addSubEntry(BASE_URL.replace("https://", "http://"), "htdocs/");
 					URLFactory.addSubEntry(BASE_URL.replace("http://", "").replace("https://", ""), base + "htdocs/");
 				}
 			}
@@ -3731,15 +3736,6 @@ public class MapApp implements ActionListener,
 
 	public static MapApp createMapApp(String[] args) {		
 		findLaunchFile();
-		
-		MapApp app = null;
-		if( args.length==0) {
-			app = new MapApp();
-		} else if( args.length==1) {
-			app = new MapApp(args[0]);
-		} else if( args.length==2) {
-			app =new MapApp(args[0], args[1]);
-		}
 		
 		if (BASE_URL == null) BASE_URL = PathUtil.getPath("ROOT_PATH");
 		
@@ -3754,6 +3750,15 @@ public class MapApp implements ActionListener,
 
 		com.Ostermiller.util.Browser.init();
 
+		
+		MapApp app = null;
+		if( args.length==0) {
+			app = new MapApp();
+		} else if( args.length==1) {
+			app = new MapApp(args[0]);
+		} else if( args.length==2) {
+			app =new MapApp(args[0], args[1]);
+		}
 		
 		if(null == app) {
 			versionGMRT = MMapServer.getVersionGMRT();
