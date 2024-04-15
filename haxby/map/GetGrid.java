@@ -4,6 +4,7 @@ import haxby.proj.Mercator;
 import haxby.proj.Projection;
 import haxby.proj.ProjectionFactory;
 import haxby.util.PathUtil;
+import haxby.util.VersionUtil;
 import haxby.grid.NetCDFGrid;
 
 import java.awt.Rectangle;
@@ -61,8 +62,8 @@ public class GetGrid {
 	public static String mb_base = PathUtil.getPath("GMRT_LATEST/MERCATOR_GRID_TILE_PATH");
 	static {
 		if(MapApp.AT_SEA) {
-			base = base.replaceFirst("current", MapApp.which_os.gmrt_current);
-			mb_base = mb_base.replaceFirst("current", MapApp.which_os.gmrt_current);
+			base = base.replaceFirst("current", VersionUtil.getVersion("GMRT"));
+			mb_base = mb_base.replaceFirst("current", VersionUtil.getVersion("GMRT"));
 		}
 	}
 	
