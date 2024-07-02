@@ -31,6 +31,7 @@ public class GMARoot {
 				s = createPrefs(prefs);
 			}
 			root = s;
+			moveToCorrectSpot();
 			return new File(root);
 		} catch(SecurityException se) {
 			se.printStackTrace();
@@ -40,13 +41,32 @@ public class GMARoot {
 			return null;
 		}
 	}
+	
+	public static void moveToCorrectSpot() {
+		File newHome = new File(System.getProperty("user.home"), ".GMA/");
+		File oldHome = new File(root);
+		try {
+			if(!newHome.getCanonicalPath().equals(oldHome.getCanonicalPath())) {
+				System.out.println("Root directory is currently " + root);
+				org.apache.commons.io.FileUtils.copyDirectory(oldHome, newHome);
+				root = newHome.getCanonicalPath();
+				File prefs = new File(System.getProperty("user.home"), ".geomapapp-home");
+				PrintStream out = new PrintStream(new FileOutputStream(prefs, false));
+				out.println(root);
+				out.close();
+				System.out.println("Moved GMA home from " + oldHome.getCanonicalPath() + " to " + newHome.getCanonicalPath());
+			}
+		} catch(IOException ioe) {
+			ioe.printStackTrace();
+		}
+	}
 
 	public static String createPrefs(File prefs) {
 		File f = new File(System.getProperty("user.home"), ".GMA/");
 		f.mkdir();
 		PrintStream out;
 		try {
-			out = new PrintStream(new FileOutputStream(prefs));
+			out = new PrintStream(new FileOutputStream(prefs, false));
 			String s = f.getCanonicalPath();
 			out.println(s);
 			out.close();
