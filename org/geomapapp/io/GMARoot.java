@@ -2,6 +2,7 @@ package org.geomapapp.io;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -47,6 +48,13 @@ public class GMARoot {
 		File oldHome = new File(root);
 		try {
 			if(!newHome.getCanonicalPath().equals(oldHome.getCanonicalPath())) {
+				String noticeFileName = "IMPORTANT_NOTICE.txt";
+				File notice = new File(oldHome, noticeFileName);
+				String noticeMsg = "This folder is now obsolete and can be deleted. All its contents (except this file) have been copied to " + newHome.getCanonicalPath() + ", where GeoMapApp will continue to look in the future.";
+				if(notice.exists()) {
+					notice.delete();
+					noticeMsg += "\n\nGeoMapApp will change the default home folder to " + newHome.getCanonicalPath() + " every time it starts. Changing it back to this one is a waste of time.";
+				}
 				System.out.println("Root directory is currently " + root);
 				org.apache.commons.io.FileUtils.copyDirectory(oldHome, newHome);
 				root = newHome.getCanonicalPath();
@@ -54,6 +62,10 @@ public class GMARoot {
 				PrintStream out = new PrintStream(new FileOutputStream(prefs, false));
 				out.println(root);
 				out.close();
+				notice.createNewFile();
+				PrintStream noticeOut = new PrintStream(new FileOutputStream(notice, false));
+				noticeOut.println(noticeMsg);
+				noticeOut.close();
 				System.out.println("Moved GMA home from " + oldHome.getCanonicalPath() + " to " + newHome.getCanonicalPath());
 			}
 		} catch(IOException ioe) {
