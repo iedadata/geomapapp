@@ -4453,6 +4453,10 @@ public class MapApp implements ActionListener,
 				//should only have one line in default_server.dat
 				String server = serverIn.readLine();
 				serverIn.close();
+				servers.add(server);
+				DEFAULT_URL = server;
+				BASE_URL = server;
+				TEMP_BASE_URL = server;
 				if(!server.equals(DEV_URL)) {
 					BufferedWriter out = new BufferedWriter(new FileWriter(serverFile,false));
 					out.write(DEFAULT_URL + "\r\n");
@@ -4684,9 +4688,9 @@ public class MapApp implements ActionListener,
 				GeneralUtils.deleteFolder(menusCacheDir);
 			}
 			//delete layerSessionDir
-			if (layerSessionDir.exists()) {
+			/*if (layerSessionDir.exists()) {
 				GeneralUtils.deleteFolder(layerSessionDir);
-			}
+			}*/
 			
 			// add history directory if none.
 			if(!historyDir.exists()) {
