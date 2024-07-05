@@ -277,7 +277,7 @@ public class MapApp implements ActionListener,
 	protected File serverDir = new File( parentRoot, "servers");
 	protected File serverFile = new File( serverDir, "default_server.dat" );
 	protected File historyDir = new File( parentRoot, "history");
-	public File historyFile = new File( historyDir, "zoom.txt");
+	//public File historyFile = new File( historyDir, "zoom.txt"); //not used
 	protected File historyVersionFile = new File( historyDir, "version");
 	protected File menusCacheDir = new File( parentRoot, "menus_cache");
 	protected File menusCacheFile = new File( menusCacheDir, "menu_updated.txt");
@@ -4454,13 +4454,18 @@ public class MapApp implements ActionListener,
 				String server = serverIn.readLine();
 				serverIn.close();
 				servers.add(server);
-				DEFAULT_URL = server;
-				BASE_URL = server;
-				TEMP_BASE_URL = server;
 				if(!server.equals(DEV_URL)) {
+					server = DEFAULT_URL;
 					BufferedWriter out = new BufferedWriter(new FileWriter(serverFile,false));
 					out.write(DEFAULT_URL + "\r\n");
+					out.flush();
+					out.close();
 				}
+				else {
+					DEFAULT_URL = server;
+				}
+				BASE_URL = server;
+				TEMP_BASE_URL = server;
 			}
 			else {
 				BufferedReader serverIn = new BufferedReader( new FileReader(serverFile) );
@@ -4632,6 +4637,7 @@ public class MapApp implements ActionListener,
 		if(!historyDir.exists()) {
 			historyDir.mkdirs();
 		}
+		/*
 		if(historyFile.exists()) {
 			// delete old zoom.txt file
 			historyFile.delete();
@@ -4641,9 +4647,10 @@ public class MapApp implements ActionListener,
 		} catch (IOException e) {
 			//System.out.println(e);
 		}
+		*/
 	}
 
-	protected void updateZoomHistory(String past, String next) throws IOException {
+	/*protected void updateZoomHistory(String past, String next) throws IOException {
 		if(!historyFile.exists()) {
 			startNewZoomHistory();
 		}
@@ -4654,7 +4661,7 @@ public class MapApp implements ActionListener,
 			bw.write(next);
 			bw.close();
 		}
-	}
+	}*/
 
 	// get the current version number stored in .GMA/history/version
 	public String getHistoryVersion() {
