@@ -188,7 +188,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.7.3.1"; // 07/02/2024
+	public final static String VERSION = "3.7.3.3"; // 07/05/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	static boolean isNewVersion = false;
@@ -4481,7 +4481,7 @@ public class MapApp implements ActionListener,
 		}
 		else {
 			if ( !serverDir.exists() ) {
-				serverDir.mkdir();
+				serverDir.mkdirs();
 			}
 			serverFile.createNewFile();
 			BufferedWriter out = new BufferedWriter( new FileWriter(serverFile, true) );
