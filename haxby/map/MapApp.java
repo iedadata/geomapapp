@@ -187,7 +187,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.7.3"; // 04/12/2024
+	public final static String VERSION = "3.7.3.11"; // 07/11/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	
@@ -2383,8 +2383,9 @@ public class MapApp implements ActionListener,
 								menu.infoURLString, menu);
 						
 						//get the imported dataset
-						if (custom.dataSets.size() == 0) return;
-						UnknownDataSet dataset = custom.dataSets.get(0);
+						List<UnknownDataSet> contenders = custom.dataSets.stream().filter(ds -> ds.toString().equals(tableLayerName)).collect(Collectors.toList());
+						if (contenders.size() == 0) return;
+						UnknownDataSet dataset = contenders.get(0);
 						
 						//restore any symbol configurations
 						if (menu.symbol_shape != null) dataset.shapeString = menu.symbol_shape;
