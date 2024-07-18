@@ -187,7 +187,7 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.7.3.11"; // 07/11/2024
+	public final static String VERSION = "3.7.3.12"; // 07/18/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	
@@ -2388,12 +2388,12 @@ public class MapApp implements ActionListener,
 						UnknownDataSet dataset = contenders.get(0);
 						
 						//restore any symbol configurations
-						if (menu.symbol_shape != null) dataset.shapeString = menu.symbol_shape;
-						if (menu.symbol_size != null) dataset.symbolSize = Integer.parseInt(menu.symbol_size);
 						if (menu.symbol_allcolor != null) {
 							Color color = new Color(Integer.parseInt(menu.symbol_allcolor));
 							dataset.setColor(color);
-						}					
+						}
+						if (menu.symbol_shape != null) dataset.setSymbolShape(menu.symbol_shape);
+						if (menu.symbol_size != null) dataset.symbolSize = Integer.parseInt(menu.symbol_size);
 						
 						//set up symbol scale tool if included in xml
 						if (menu.sst != null && menu.sst.equals("true") 
