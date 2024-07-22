@@ -449,7 +449,7 @@ public class GetGrid {
 	
 		// contributed grids at res, down through all relevant grid content
 		
-	    int cGridsFinalRes = (res>512) ? 64 : 1;
+	    int cGridsFinalRes = (res>512) ? 512 : res;
 		for (int res0 = res; res0 >= cGridsFinalRes; res0 /= 2) {
 	        fillFloatGrid( cGridsDir , res , res0, basePath, isGMRT );
 	    }
