@@ -2386,16 +2386,17 @@ public class MapApp implements ActionListener,
 								menu.infoURLString, menu);
 						
 						//get the imported dataset
-						if (custom.dataSets.size() == 0) return;
-						UnknownDataSet dataset = custom.dataSets.get(0);
+						List<UnknownDataSet> contenders = custom.dataSets.stream().filter(ds -> ds.toString().equals(tableLayerName)).collect(Collectors.toList());
+						if (contenders.size() == 0) return;
+						UnknownDataSet dataset = contenders.get(0);
 						
 						//restore any symbol configurations
-						if (menu.symbol_shape != null) dataset.shapeString = menu.symbol_shape;
-						if (menu.symbol_size != null) dataset.symbolSize = Integer.parseInt(menu.symbol_size);
 						if (menu.symbol_allcolor != null) {
 							Color color = new Color(Integer.parseInt(menu.symbol_allcolor));
 							dataset.setColor(color);
-						}					
+						}
+						if (menu.symbol_shape != null) dataset.setSymbolShape(menu.symbol_shape);
+						if (menu.symbol_size != null) dataset.symbolSize = Integer.parseInt(menu.symbol_size);
 						
 						//set up symbol scale tool if included in xml
 						if (menu.sst != null && menu.sst.equals("true") 
