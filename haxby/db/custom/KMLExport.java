@@ -180,7 +180,7 @@ public class KMLExport {
 		try {
 			Document doc2 = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
 			Element kml = doc2.createElement("kml");
-			kml.setAttribute("xmlns", "https://earth.google.com/kml/2.1");
+			kml.setAttribute("xmlns", "http://earth.google.com/kml/2.1");
 			doc2.appendChild(kml);
 
 			Element topFolder = doc2.createElement("Document");
@@ -268,7 +268,7 @@ public class KMLExport {
 
 				Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
 				kml = doc.createElement("kml");
-				kml.setAttribute("xmlns", "https://earth.google.com/kml/2.1");
+				kml.setAttribute("xmlns", "http://earth.google.com/kml/2.1");
 				doc.appendChild(kml);
 
 				topFolder = doc.createElement("Document");
