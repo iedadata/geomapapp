@@ -2,6 +2,7 @@ package org.geomapapp.io;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -31,6 +32,7 @@ public class GMARoot {
 				s = createPrefs(prefs);
 			}
 			root = s;
+			moveToCorrectSpot();
 			return new File(root);
 		} catch(SecurityException se) {
 			se.printStackTrace();
@@ -40,13 +42,43 @@ public class GMARoot {
 			return null;
 		}
 	}
+	
+	public static void moveToCorrectSpot() {
+		File newHome = new File(System.getProperty("user.home"), ".GMA/");
+		File oldHome = new File(root);
+		try {
+			if(!newHome.getCanonicalPath().equals(oldHome.getCanonicalPath())) {
+				String noticeFileName = "IMPORTANT_NOTICE.txt";
+				File notice = new File(oldHome, noticeFileName);
+				String noticeMsg = "This folder is now obsolete and can be deleted. All its contents (except this file) have been copied to " + newHome.getCanonicalPath() + ", where GeoMapApp will continue to look in the future.";
+				if(notice.exists()) {
+					notice.delete();
+					noticeMsg += "\n\nGeoMapApp will change the default home folder to " + newHome.getCanonicalPath() + " every time it starts. Changing it back to this one is a waste of time.";
+				}
+				System.out.println("Root directory is currently " + root);
+				org.apache.commons.io.FileUtils.copyDirectory(oldHome, newHome);
+				root = newHome.getCanonicalPath();
+				File prefs = new File(System.getProperty("user.home"), ".geomapapp-home");
+				PrintStream out = new PrintStream(new FileOutputStream(prefs, false));
+				out.println(root);
+				out.close();
+				notice.createNewFile();
+				PrintStream noticeOut = new PrintStream(new FileOutputStream(notice, false));
+				noticeOut.println(noticeMsg);
+				noticeOut.close();
+				System.out.println("Moved GMA home from " + oldHome.getCanonicalPath() + " to " + newHome.getCanonicalPath());
+			}
+		} catch(IOException ioe) {
+			ioe.printStackTrace();
+		}
+	}
 
 	public static String createPrefs(File prefs) {
 		File f = new File(System.getProperty("user.home"), ".GMA/");
 		f.mkdir();
 		PrintStream out;
 		try {
-			out = new PrintStream(new FileOutputStream(prefs));
+			out = new PrintStream(new FileOutputStream(prefs, false));
 			String s = f.getCanonicalPath();
 			out.println(s);
 			out.close();
