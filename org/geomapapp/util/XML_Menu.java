@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -1233,8 +1234,8 @@ public class XML_Menu {
 				}
 
 			}
-			if (overlay instanceof CustomDB) {
-				Vector<UnknownDataSet> datasets = ((CustomDB) overlay).dataSets;
+			if (overlay instanceof CustomDB || overlay instanceof UnknownDataSet) {
+				Vector<UnknownDataSet> datasets = (overlay instanceof CustomDB)?(((CustomDB) overlay).dataSets):(new Vector<>(Arrays.asList(new UnknownDataSet[] {(UnknownDataSet)overlay})));
 				for (UnknownDataSet ds : datasets) {
 					if (ds.xml_menu != null && ds.xml_menu.name == item.name) {
 						for (LayerPanel lp : layerpanels) {
@@ -1275,7 +1276,7 @@ public class XML_Menu {
 						symbol_size = Integer.toString(ds.symbolSize);
 					}
 				}
-			}			
+			}
 		}
 		
 		 if ((item.name!= null)) {
