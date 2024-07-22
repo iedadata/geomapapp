@@ -34,6 +34,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -187,9 +188,10 @@ public class MapApp implements ActionListener,
 	}
 
 
-	public final static String VERSION = "3.7.3"; // 04/12/2024
+	public final static String VERSION = "3.7.3.3"; // 07/05/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
+	static boolean isNewVersion = false;
 	
 	public static final String PRODUCTION_URL = "https://app.geomapapp.org/";
 	public static String DEFAULT_URL = "https://app.geomapapp.org/";
@@ -275,7 +277,7 @@ public class MapApp implements ActionListener,
 	protected File serverDir = new File( parentRoot, "servers");
 	protected File serverFile = new File( serverDir, "default_server.dat" );
 	protected File historyDir = new File( parentRoot, "history");
-	public File historyFile = new File( historyDir, "zoom.txt");
+	//public File historyFile = new File( historyDir, "zoom.txt"); //not used
 	protected File historyVersionFile = new File( historyDir, "version");
 	protected File menusCacheDir = new File( parentRoot, "menus_cache");
 	protected File menusCacheFile = new File( menusCacheDir, "menu_updated.txt");
@@ -521,6 +523,7 @@ public class MapApp implements ActionListener,
 	}
 
 	public MapApp( int which ) {
+		isNewVersion = !getHistoryVersion().equals(VERSION);
 		if(null == System.getProperty("geomapapp.paths_location") || System.getProperty("geomapapp.paths_location").startsWith("http")) {
 			try {
 				getServerList();
@@ -3764,6 +3767,20 @@ public class MapApp implements ActionListener,
 			versionGMRT = MMapServer.getVersionGMRT();
 			baseFocusName = "GMRT Image Version " + versionGMRT;
 		}
+//		else if(isNewVersion) {
+//			if(app.serverFile.exists()) {
+//				try {
+//					BufferedReader sfReader = new BufferedReader(new FileReader(app.serverFile));
+//					String server = sfReader.readLine();
+//					if(!server.equals(DEV_URL)) {
+//						PrintStream ps = new PrintStream(new FileOutputStream(app.serverFile, false));
+//						ps.println(DEFAULT_URL);
+//					}
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
 		return app;
 	}
 
@@ -4431,19 +4448,40 @@ public class MapApp implements ActionListener,
 	public void getServerList() throws IOException {
 		servers = new Vector();
 		if ( serverDir.exists() && serverFile.exists() ) {
-			BufferedReader serverIn = new BufferedReader( new FileReader(serverFile) );
-			String s = null;
-			while ( ( s = serverIn.readLine() ) != null ) {
-				servers.add(s);
-				DEFAULT_URL = s;
-				BASE_URL = s;
-				TEMP_BASE_URL = s;
+			if(isNewVersion) {
+				BufferedReader serverIn = new BufferedReader( new FileReader(serverFile) );
+				//should only have one line in default_server.dat
+				String server = serverIn.readLine();
+				serverIn.close();
+				servers.add(server);
+				if(!server.equals(DEV_URL)) {
+					server = DEFAULT_URL;
+					BufferedWriter out = new BufferedWriter(new FileWriter(serverFile,false));
+					out.write(DEFAULT_URL + "\r\n");
+					out.flush();
+					out.close();
+				}
+				else {
+					DEFAULT_URL = server;
+				}
+				BASE_URL = server;
+				TEMP_BASE_URL = server;
 			}
-			serverIn.close();
+			else {
+				BufferedReader serverIn = new BufferedReader( new FileReader(serverFile) );
+				String s = null;
+				while ( ( s = serverIn.readLine() ) != null ) {
+					servers.add(s);
+					DEFAULT_URL = s;
+					BASE_URL = s;
+					TEMP_BASE_URL = s;
+				}
+				serverIn.close();
+			}
 		}
 		else {
 			if ( !serverDir.exists() ) {
-				serverDir.mkdir();
+				serverDir.mkdirs();
 			}
 			serverFile.createNewFile();
 			BufferedWriter out = new BufferedWriter( new FileWriter(serverFile, true) );
@@ -4599,6 +4637,7 @@ public class MapApp implements ActionListener,
 		if(!historyDir.exists()) {
 			historyDir.mkdirs();
 		}
+		/*
 		if(historyFile.exists()) {
 			// delete old zoom.txt file
 			historyFile.delete();
@@ -4608,9 +4647,10 @@ public class MapApp implements ActionListener,
 		} catch (IOException e) {
 			//System.out.println(e);
 		}
+		*/
 	}
 
-	protected void updateZoomHistory(String past, String next) throws IOException {
+	/*protected void updateZoomHistory(String past, String next) throws IOException {
 		if(!historyFile.exists()) {
 			startNewZoomHistory();
 		}
@@ -4621,7 +4661,7 @@ public class MapApp implements ActionListener,
 			bw.write(next);
 			bw.close();
 		}
-	}
+	}*/
 
 	// get the current version number stored in .GMA/history/version
 	public String getHistoryVersion() {
@@ -4647,16 +4687,17 @@ public class MapApp implements ActionListener,
 		//so we can make sure we have the most up-to-date version.
 		//Also delete the layerSessionDir directory since old session formats might
 		//not be compatible with the latest release
-		String historyVersion = getHistoryVersion();
-		if (!historyVersion.equals(VERSION)) {
+		//String historyVersion = getHistoryVersion();
+		if (isNewVersion) {
+			//isNewVersion = true;
 			//delete MenusCache
 			if (menusCacheDir.exists()) {
 				GeneralUtils.deleteFolder(menusCacheDir);
 			}
 			//delete layerSessionDir
-			if (layerSessionDir.exists()) {
+			/*if (layerSessionDir.exists()) {
 				GeneralUtils.deleteFolder(layerSessionDir);
-			}
+			}*/
 			
 			// add history directory if none.
 			if(!historyDir.exists()) {

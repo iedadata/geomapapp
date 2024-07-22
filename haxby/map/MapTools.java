@@ -1375,11 +1375,13 @@ public class MapTools implements ActionListener {
 				System.out.println("cannot undo zoom");
 			}
 			//insert undo action
+			/*
 			if(app.historyFile.exists()) {
 
 			} else {
 				app.startNewZoomHistory();
 			}
+			*/
 		}
 	}
 /*
