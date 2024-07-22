@@ -15,9 +15,19 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 
+import java.util.Map;
+import java.util.HashMap;
+
 public class BrowseURL {
 	public static String replaceURL =
 		PathUtil.getPath("REPLACE_WITH_ROOT_URL", MapApp.BASE_URL);
+	public static Map<String, String> urlReplacements = new HashMap<>();
+	static {
+		urlReplacements.put("http://app.geomapapp.org/gma_html/help/User_Guide/User_Guide.pdf", MapApp.NEW_BASE_URL + "gma_html/help/User_Guide/User_Guide.pdf");
+		urlReplacements.put("http://www.geomapapp.org/terms_of_use_gma.html", MapApp.NEW_BASE_URL + "terms_of_use_gma.html");
+		urlReplacements.put("https://app.geomapapp.org/gma_html/help/User_Guide/User_Guide.pdf", MapApp.NEW_BASE_URL + "gma_html/help/User_Guide/User_Guide.pdf");
+		urlReplacements.put("https://www.geomapapp.org/terms_of_use_gma.html", MapApp.NEW_BASE_URL + "terms_of_use_gma.html");
+	}
 
 	public static void browseURL(String url) {
 		browseURL(url, true);
@@ -29,7 +39,11 @@ public class BrowseURL {
 			URL url = URLFactory.url(urlStr);
 
 			if (MapApp.AT_SEA && url.toString().startsWith("http")) {
-				if (urlStr.startsWith(replaceURL)) {
+				if(urlReplacements.containsKey(urlStr)) {
+					urlStr = urlReplacements.get(urlStr);
+					url = URLFactory.url(urlStr);
+				}
+				else if (urlStr.startsWith(replaceURL)) {
 					urlStr = urlStr.replace(replaceURL, MapApp.NEW_BASE_URL);
 					url = URLFactory.url(urlStr);
 				}
@@ -38,14 +52,13 @@ public class BrowseURL {
 					return;
 				}
 			}
-
 			com.Ostermiller.util.Browser.displayURL(url.toString());
 		} catch (IOException e) {
 			if (showErrorDialog) {
 				JOptionPane.showMessageDialog(null, "Could not display url: \n" + urlStr);
 				e.printStackTrace();
 			}
-		}
+		} 
 	}
 
 	private static void atSeaErrorMessage(String url) {

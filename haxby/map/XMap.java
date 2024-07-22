@@ -783,10 +783,13 @@ public class XMap extends ScaledComponent implements Zoomable,
 		return nextZoom;
 	}
 
+	/*
 	public void updateZoomHistory(String past, String next) throws IOException {
 		doZoomHistory(past, next);
 	}
+	*/
 
+	/*
 	protected void doZoomHistory(String past, String next) throws IOException {
 
 		if (app instanceof MapApp) {
@@ -802,6 +805,7 @@ public class XMap extends ScaledComponent implements Zoomable,
 			}
 		}
 	}
+	*/
 
 	public double[] getScales() {
 		return new double[] { zoom, zoom};
