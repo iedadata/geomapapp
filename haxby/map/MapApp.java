@@ -55,10 +55,12 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -186,6 +188,51 @@ public class MapApp implements ActionListener,
 		SUPPORTED_MAPS.add(new Integer(SOUTH_POLAR_MAP));
 		SUPPORTED_MAPS.add(new Integer(NORTH_POLAR_MAP));
 	}
+	//info from here https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+	public static final Map<Integer, String> HTTP_ERROR_CODES = new HashMap<>();
+	static {
+		HTTP_ERROR_CODES.put(400, "Bad Request");
+		HTTP_ERROR_CODES.put(401, "Unauthorized");
+		HTTP_ERROR_CODES.put(402, "Payment Required");
+		HTTP_ERROR_CODES.put(403, "Forbidden");
+		HTTP_ERROR_CODES.put(404, "Not Found");
+		HTTP_ERROR_CODES.put(405, "Method Not Allowed");
+		HTTP_ERROR_CODES.put(406, "Not Acceptable");
+		HTTP_ERROR_CODES.put(407, "Proxy Authentication Required");
+		HTTP_ERROR_CODES.put(408, "Request Timeout");
+		HTTP_ERROR_CODES.put(409, "Conflict");
+		HTTP_ERROR_CODES.put(410, "Gone");
+		HTTP_ERROR_CODES.put(411, "Length Required");
+		HTTP_ERROR_CODES.put(412, "Precondition Failed");
+		HTTP_ERROR_CODES.put(413, "Payload Too Large");
+		HTTP_ERROR_CODES.put(414, "URI Too Long");
+		HTTP_ERROR_CODES.put(415, "Unsupported Media Type");
+		HTTP_ERROR_CODES.put(416, "Range Not Satisfiable");
+		HTTP_ERROR_CODES.put(417, "Expectation Failed");
+		HTTP_ERROR_CODES.put(418, "I'm a teapot"); //We are unlikely to encounter this one
+		HTTP_ERROR_CODES.put(421, "Misdirected Request");
+		HTTP_ERROR_CODES.put(422, "Unprocessable Content");
+		HTTP_ERROR_CODES.put(423, "Locked");
+		HTTP_ERROR_CODES.put(424, "Failed Dependency");
+		HTTP_ERROR_CODES.put(425, "Too Early");
+		HTTP_ERROR_CODES.put(426, "Upgrade Required");
+		HTTP_ERROR_CODES.put(428, "Precondition Required");
+		HTTP_ERROR_CODES.put(429, "Too Many Requests");
+		HTTP_ERROR_CODES.put(431, "Request Header Fields Too Large");
+		HTTP_ERROR_CODES.put(451, "Unavailable For Legal Reasons");
+		HTTP_ERROR_CODES.put(500, "Internal Server Error");
+		HTTP_ERROR_CODES.put(501, "Not Implemented");
+		HTTP_ERROR_CODES.put(502, "Bad Gateway");
+		HTTP_ERROR_CODES.put(503, "Service Unavailable");
+		HTTP_ERROR_CODES.put(504, "Gateway Timeout");
+		HTTP_ERROR_CODES.put(505, "HTTP Version Not Supported");
+		HTTP_ERROR_CODES.put(506, "Variant Also Negotiates");
+		HTTP_ERROR_CODES.put(507, "Insufficient Storage");
+		HTTP_ERROR_CODES.put(508, "Loop Detected");
+		HTTP_ERROR_CODES.put(510, "Not Extended");
+		HTTP_ERROR_CODES.put(511, "Network Authentication Required");
+	}
+	public static String latestWms = null;
 
 	public final static String VERSION = "3.7.3.14"; //07/22/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;

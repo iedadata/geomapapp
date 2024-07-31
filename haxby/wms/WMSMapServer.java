@@ -6,7 +6,10 @@ import haxby.proj.Projection;
 import haxby.util.ConnectionWrapper;
 import haxby.util.URLFactory;
 
+import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -21,6 +24,12 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HostConfiguration;
@@ -346,6 +355,31 @@ public class WMSMapServer {
 
 				if (sc != HttpStatus.SC_OK) {
 					System.err.println("Status Code: " + sc);
+					//JPanel panel = new JPanel(new GridBagLayout());
+					//GridBagConstraints gbc = new GridBagConstraints();
+					String msg = "Could not retrieve the requested data from " + MapApp.latestWms
+							+ ".\nError code: " + sc + " (" + MapApp.HTTP_ERROR_CODES.get(sc) + ")."
+							+ "\nThere appears to be a problem with their server.\nPlease contact us for more details.";
+//					gbc.gridx = 0;
+//					gbc.gridy = 0;
+//					gbc.gridwidth=3;
+//					gbc.gridheight=1;
+//					panel.add(new JLabel(msg), gbc);
+//					gbc.gridwidth=1;
+//					gbc.gridy=1;
+//					panel.add(new JLabel("Non-working URL: "), gbc);
+//					JScrollPane jsp = new JScrollPane();
+//					jsp.setPreferredSize(new Dimension(400, 20));
+//					JTextField jtf = new JTextField(url.toString(), 50);
+//					jtf.validate();
+//					jtf.repaint();
+//					jsp.add(jtf);
+//					jsp.validate();
+//					jsp.repaint();
+//					gbc.gridx=1;
+//					panel.add(jsp, gbc);
+					JOptionPane.showMessageDialog(null, msg, "Error Accessing "+MapApp.latestWms, JOptionPane.ERROR_MESSAGE);
+					//JOptionPane.showMessageDialog(null, panel, "Error Accessing " + MapApp.latestWms, JOptionPane.ERROR_MESSAGE);
 					for (Header h : method.getResponseHeaders())
 						System.err.println(h);
 

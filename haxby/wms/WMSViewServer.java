@@ -317,6 +317,7 @@ public class WMSViewServer implements ActionListener {
 	public void readCapabilities( URL inputCapabilitiesURL ) {
 		try {
 			capabilities = CapabilitiesParser.parseCapabilities(inputCapabilitiesURL);
+			MapApp.latestWms = capabilities.getServiceTitle();
 
 			String[] imageFormats = capabilities.getSupportedFormats();
 			boolean supportedReader = false;
