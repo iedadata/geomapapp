@@ -203,6 +203,7 @@ public class WMSMapServer {
 		String bbox;
 		String widthStr;
 		String heightStr;
+		boolean loadFailed = false;
 
 		if (maxX < minX) {
 			bbox = "bbox=" + minX + "," + minY + "," + "180," + maxY + "&";
@@ -227,6 +228,7 @@ public class WMSMapServer {
 			MapApp.sendLogMessage("Imported_WMS&URL="+url);
 			BufferedImage tile = getWMSTile(url, ortho_width - xOffset,
 					ortho_height, wrapper);
+			loadFailed = null == tile;
 			orthoImage.createGraphics().drawImage(tile, 0, 0, null);
 
 			minX = -180;
@@ -252,11 +254,13 @@ public class WMSMapServer {
 
 			BufferedImage tile = getWMSTile(url, ortho_width - xOffset,
 					ortho_height, wrapper);
+			loadFailed = null == tile;
 			orthoImage.createGraphics().drawImage(tile, 0, 0, null);
 
 			minX -= 180;
 		}
-
+		
+		if(!loadFailed) {
 		bbox = "bbox=" + minX + "," + minY + "," + maxX + "," + maxY + "&";
 
 		widthStr = "width=" + (ortho_width - xOffset) + "&";
@@ -270,7 +274,7 @@ public class WMSMapServer {
 		BufferedImage tile = getWMSTile(url, ortho_width - xOffset,
 				ortho_height, wrapper);
 		orthoImage.createGraphics().drawImage(tile, xOffset, 0, null);
-
+		}
 		long sTime = System.currentTimeMillis();
 		// Ortho to Mercator
 		BufferedImage image = new BufferedImage(width, height,
@@ -383,7 +387,7 @@ public class WMSMapServer {
 					for (Header h : method.getResponseHeaders())
 						System.err.println(h);
 
-					return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+					return null; //new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 				}
 
 				// Check Content Type
