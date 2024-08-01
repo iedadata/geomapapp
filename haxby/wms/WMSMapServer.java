@@ -204,7 +204,6 @@ public class WMSMapServer {
 		String widthStr;
 		String heightStr;
 		boolean loadFailed = false;
-
 		if (maxX < minX) {
 			bbox = "bbox=" + minX + "," + minY + "," + "180," + maxY + "&";
 
@@ -386,7 +385,7 @@ public class WMSMapServer {
 					//JOptionPane.showMessageDialog(null, panel, "Error Accessing " + MapApp.latestWms, JOptionPane.ERROR_MESSAGE);
 					for (Header h : method.getResponseHeaders())
 						System.err.println(h);
-
+					MapApp.mapApp.layerManager.removeLayerPanel(0);
 					return null; //new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 				}
 

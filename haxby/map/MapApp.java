@@ -181,6 +181,7 @@ public class MapApp implements ActionListener,
 	public static final int SOUTH_POLAR_MAP = 1;
 	public static final int NORTH_POLAR_MAP = 2;
 	public static final int WORLDWIND = 3;
+	public static MapApp mapApp;
 	public static final int DEFAULT_LONGITUDE_RANGE = Projection.RANGE_180W_to_180E;
 	public static final List<Integer> SUPPORTED_MAPS = new LinkedList<Integer>();
 	static {
@@ -3834,7 +3835,7 @@ public class MapApp implements ActionListener,
 	public static void main( String[] args) {
 		//fixes issue with column sorting
 		System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
-		createMapApp(args);
+		mapApp = createMapApp(args);
 	}
 
 	public static String getBaseURL() {
