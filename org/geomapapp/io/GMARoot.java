@@ -53,7 +53,7 @@ public class GMARoot {
 				String noticeMsg = "This folder is now obsolete and can be deleted. All its contents (except this file) have been copied to " + newHome.getCanonicalPath() + ", where GeoMapApp will continue to look in the future.";
 				if(notice.exists()) {
 					notice.delete();
-					noticeMsg += "\n\nGeoMapApp will change the default home folder to " + newHome.getCanonicalPath() + " every time it starts. Changing it back to this one is a waste of time.";
+					noticeMsg += "\n\nGeoMapApp will change the default home folder to " + newHome.getCanonicalPath() + " every time it starts. Changing it back to this one will have no effect.";
 				}
 				System.out.println("Root directory is currently " + root);
 				org.apache.commons.io.FileUtils.copyDirectory(oldHome, newHome);

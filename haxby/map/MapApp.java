@@ -234,7 +234,7 @@ public class MapApp implements ActionListener,
 	}
 	public static String latestWms = null;
 
-	public final static String VERSION = "3.7.3.14"; //07/22/2024
+	public final static String VERSION = "3.7.3.15"; //07/31/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	static boolean isNewVersion = false;
