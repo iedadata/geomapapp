@@ -19,15 +19,12 @@ The code is implemented in Java.
     * UML, Use Case & Flow Control diagrams
     *	Known Application Bugs
 
-# Installation and Development Environment Setup
-The instructions for setting up the code for GeoMapApp for development can be found here:
-http://wiki.iedadata.org/download/attachments/14582856/GMA_and_Eclipse.doc
-
-# Building and Releasing GeoMapApp
-The instructions for building and releasing GeoMapApp for Unix, Windows and Apple OS X can be found here:
-http://wiki.iedadata.org/display/GFG/How+to+build+and+release+GeoMapApp
-
 # Release History
+* 08/01/2024 v3.7.4 Public release of v3.7.4 of GeoMapApp.
+* 04/15/2024 v3.7.3 Public release of v3.7.3 of GeoMapApp.
+* 03/06/2024 v3.7.2 Public release of v3.7.2 of GeoMapApp.
+* 08/10/2023 v3.7.1 Public release of v3.7.1 of GeoMapApp.
+* 08/09/2023 v3.7.0 Public release of v3.7.0 of GeoMapApp.
 * 09/07/2022 v3.6.15 Public release of v3.6.15 of GeoMapApp.
 * 09/23/2021 v3.6.14 Public release of v3.6.14 of GeoMapApp.
 * 03/09/2021 v3.6.12 Public release of v3.6.12 of GeoMapApp.
@@ -46,7 +43,7 @@ This section provides a brief description of the source code files and folders i
 A file which contains a list of files and directories that Git has been explicitly told to ignore. 
 
 ## LICENSE
-The Apache Lisense file for this product.
+The Apache License file for this product.
 
 ## README.md
 This file.
@@ -57,14 +54,8 @@ The build file used to create the signed Unix and Windows jar files.
 ## buildUnsigned.xml
 The build file used to create the unsigned Apple jar files.
 
-## buildww.xml
-The build file used to create the Virtual Ocean jar file.
-
-## javadoc.xml
-The javadoc file for Virtual Ocean.
-
 ## haxby/ and org/
-Directories that contain the Java source code for GeoMapApp and Virtual Ocean.
+Directories that contain the Java source code for GeoMapApp.
 
 ## resources/
-A directory that contains the various resources required by GeoMapApp and Virtual Ocean, e.g. external libraries, images, icons, color look up tables, etc.
+A directory that contains the various resources required by GeoMapApp, e.g. external libraries, images, icons, color look up tables, etc.
