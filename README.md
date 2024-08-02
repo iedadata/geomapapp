@@ -4,17 +4,17 @@ Java application for exploring geoscience data.
 # Overview
 GeoMapApp is an earth science exploration and visualization application that is continually being expanded as part of the Marine Geoscience Data System (MGDS) at the Lamont-Doherty Earth Observatory of Columbia University. The application provides direct access to the Global Multi-Resolution Topography (GMRT) compilation that hosts high resolution (~100 m node spacing) bathymetry from multibeam data for ocean areas and ASTER (Advanced Spaceborne Thermal Emission and Reflection Radiometer) and NED (National Elevation Dataset) topography datasets for the global land masses.
 
-This code base also includes the code for Virtual Ocean. Virtual Ocean integrates the GeoMapApp tool suite with the NASA World Wind 3-D earth browser to create a powerful new platform for interdisciplinary research and education.
+This code base also includes the code for Virtual Ocean. Virtual Ocean integrated the GeoMapApp tool suite with the NASA World Wind 3-D earth browser to create a powerful platform for interdisciplinary research and education. Virtual Ocean is no longer supported.
 
 The code is implemented in Java.
 
 # Requirements
 *  Java SE Development Kit 8 or higher.
 *	Developers must have convenient access to the source code as well as modern IDE (Integrated Development Environment) tools to easily participate in the project’s life-cycle. Concurrent editing of the same source should be naturally supported.
-*	The project leader must have robust, industry-standard versioning tools to manage the incoming code from contributors (accept, revert & modify changes). 
-*	To ensure consistent build releases, the project leader must have tools to mark existing code (at any given time) as alpha, beta or release candidate. 
+*	The project leader should have robust, industry-standard versioning tools to manage the incoming code from contributors (accept, revert & modify changes). 
+*	To ensure consistent build releases, the project leader should have tools to mark existing code (at any given time) as alpha, beta or release candidate. 
 *	The project leader must have tools to define user permissions for source code access and/or modification. 
-*	The project leader must guide the development team by publishing:
+*	The project leader should guide the development team by publishing:
    	* Desired Features Specifications
     * UML, Use Case & Flow Control diagrams
     *	Known Application Bugs
