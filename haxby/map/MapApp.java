@@ -187,7 +187,7 @@ public class MapApp implements ActionListener,
 		SUPPORTED_MAPS.add(new Integer(NORTH_POLAR_MAP));
 	}
 
-	public final static String VERSION = "3.7.4"; //08/01/2024
+	public final static String VERSION = "3.7.4"; //08/06/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	static boolean isNewVersion = false;
@@ -844,13 +844,11 @@ public class MapApp implements ActionListener,
 			catch(JSONException e) {
 				e.printStackTrace();
 			}
-			if( compareVersions(VERSION, version) < 0) {
-				GMADownload.download( VERSION, version);
-			}
 			try {
 				String alertPath = PathUtil.getPath("HTML/HTML_PATH",
 						BASE_URL+"/gma_html/") + "GMA_Alert.html";
-				url = URLFactory.url(alertPath);
+				String queryStr = "os=" + which_os.name() + "&gma_version=" + VERSION;
+				url = URLFactory.url(alertPath + "?" + queryStr);
 				JEditorPane jep = new JEditorPane(url);
 				JPanel panel = new JPanel( new BorderLayout() );
 				JScrollPane sp = new JScrollPane(jep);
@@ -859,7 +857,11 @@ public class MapApp implements ActionListener,
 				panel.add( sp );
 				JOptionPane.showMessageDialog( null, panel, "GeoMapApp Alert", JOptionPane.INFORMATION_MESSAGE);
 			//	System.out.println( jep.getText() );
-			} catch(Exception e) {
+			}
+			catch(Exception e) {
+			}
+			if( compareVersions(VERSION, version) < 0) {
+				GMADownload.download( VERSION, version);
 			}
 		/*} catch (IOException ex ) {
 			JOptionPane.showMessageDialog(frame,
@@ -5145,6 +5147,7 @@ public class MapApp implements ActionListener,
 		// but since we may need to backtrack if a release goes bad
 		// best not to use this in release version.
 		if (DEV_MODE) {
+			try {
 			String[] software = vSoftware.split("\\.");
 			String[] server = vServer.split("\\.");
 			for (int i=0; i<software.length && i < server.length; i++) {
@@ -5153,6 +5156,10 @@ public class MapApp implements ActionListener,
 				if (Integer.compare(sw,sv) != 0) return Integer.compare(sw,sv) ;
 			}
 			return Integer.compare(software.length, server.length);
+			}
+			catch(NumberFormatException nfe) {
+				return -1;
+			}
 		} else {
 			//use this line for release version instead.
 			if (!vSoftware.equals(vServer)) return -1;
