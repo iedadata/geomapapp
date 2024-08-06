@@ -42,7 +42,7 @@ public class GMADownload {
 		JLabel label = new JLabel(
 			"<html><body><center><bold><h1>"
 			+"A New Version of <I>GeoMapApp</I> " + newVersion + " <br>"
-			+"is Available for Downloading</h1>"
+			+"is Available for Download</h1>"
 			+"<br>If you have trouble installing <i>GeoMapApp "
 			+newVersion+"</i>, go to:<br>" + public_home_path + "</center>"
 			+"<br>* The current version you are running is <b>"+oldVersion

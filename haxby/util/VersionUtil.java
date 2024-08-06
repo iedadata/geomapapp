@@ -41,6 +41,9 @@ public class VersionUtil {
 	}
 	
 	public static String getVersion(String key) {
+		if("GeoMapApp".equals(key)) {
+			return versionMap.getJSONObject(key).getString("version").split("\\s+")[0];
+		}
 		return versionMap.getJSONObject(key).getString("version");
 	}
 	
