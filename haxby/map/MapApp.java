@@ -34,6 +34,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -186,10 +187,10 @@ public class MapApp implements ActionListener,
 		SUPPORTED_MAPS.add(new Integer(NORTH_POLAR_MAP));
 	}
 
-
-	public final static String VERSION = "3.7.3"; // 04/12/2024
+	public final static String VERSION = "3.7.4"; //08/06/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
+	static boolean isNewVersion = false;
 	
 	public static final String PRODUCTION_URL = "https://app.geomapapp.org/";
 	public static String DEFAULT_URL = "https://app.geomapapp.org/";
@@ -275,7 +276,7 @@ public class MapApp implements ActionListener,
 	protected File serverDir = new File( parentRoot, "servers");
 	protected File serverFile = new File( serverDir, "default_server.dat" );
 	protected File historyDir = new File( parentRoot, "history");
-	public File historyFile = new File( historyDir, "zoom.txt");
+	//public File historyFile = new File( historyDir, "zoom.txt"); //not used
 	protected File historyVersionFile = new File( historyDir, "version");
 	protected File menusCacheDir = new File( parentRoot, "menus_cache");
 	protected File menusCacheFile = new File( menusCacheDir, "menu_updated.txt");
@@ -521,6 +522,7 @@ public class MapApp implements ActionListener,
 	}
 
 	public MapApp( int which ) {
+		isNewVersion = !getHistoryVersion().equals(VERSION);
 		if(null == System.getProperty("geomapapp.paths_location") || System.getProperty("geomapapp.paths_location").startsWith("http")) {
 			try {
 				getServerList();
@@ -842,13 +844,11 @@ public class MapApp implements ActionListener,
 			catch(JSONException e) {
 				e.printStackTrace();
 			}
-			if( compareVersions(VERSION, version) < 0) {
-				GMADownload.download( VERSION, version);
-			}
 			try {
 				String alertPath = PathUtil.getPath("HTML/HTML_PATH",
 						BASE_URL+"/gma_html/") + "GMA_Alert.html";
-				url = URLFactory.url(alertPath);
+				String queryStr = "os=" + which_os.name() + "&gma_version=" + VERSION;
+				url = URLFactory.url(alertPath + "?" + queryStr);
 				JEditorPane jep = new JEditorPane(url);
 				JPanel panel = new JPanel( new BorderLayout() );
 				JScrollPane sp = new JScrollPane(jep);
@@ -857,7 +857,11 @@ public class MapApp implements ActionListener,
 				panel.add( sp );
 				JOptionPane.showMessageDialog( null, panel, "GeoMapApp Alert", JOptionPane.INFORMATION_MESSAGE);
 			//	System.out.println( jep.getText() );
-			} catch(Exception e) {
+			}
+			catch(Exception e) {
+			}
+			if( compareVersions(VERSION, version) < 0) {
+				GMADownload.download( VERSION, version);
 			}
 		/*} catch (IOException ex ) {
 			JOptionPane.showMessageDialog(frame,
@@ -2383,16 +2387,17 @@ public class MapApp implements ActionListener,
 								menu.infoURLString, menu);
 						
 						//get the imported dataset
-						if (custom.dataSets.size() == 0) return;
-						UnknownDataSet dataset = custom.dataSets.get(0);
+						List<UnknownDataSet> contenders = custom.dataSets.stream().filter(ds -> ds.toString().equals(tableLayerName)).collect(Collectors.toList());
+						if (contenders.size() == 0) return;
+						UnknownDataSet dataset = contenders.get(0);
 						
 						//restore any symbol configurations
-						if (menu.symbol_shape != null) dataset.shapeString = menu.symbol_shape;
-						if (menu.symbol_size != null) dataset.symbolSize = Integer.parseInt(menu.symbol_size);
 						if (menu.symbol_allcolor != null) {
 							Color color = new Color(Integer.parseInt(menu.symbol_allcolor));
 							dataset.setColor(color);
-						}					
+						}
+						if (menu.symbol_shape != null) dataset.setSymbolShape(menu.symbol_shape);
+						if (menu.symbol_size != null) dataset.symbolSize = Integer.parseInt(menu.symbol_size);
 						
 						//set up symbol scale tool if included in xml
 						if (menu.sst != null && menu.sst.equals("true") 
@@ -3764,6 +3769,20 @@ public class MapApp implements ActionListener,
 			versionGMRT = MMapServer.getVersionGMRT();
 			baseFocusName = "GMRT Image Version " + versionGMRT;
 		}
+//		else if(isNewVersion) {
+//			if(app.serverFile.exists()) {
+//				try {
+//					BufferedReader sfReader = new BufferedReader(new FileReader(app.serverFile));
+//					String server = sfReader.readLine();
+//					if(!server.equals(DEV_URL)) {
+//						PrintStream ps = new PrintStream(new FileOutputStream(app.serverFile, false));
+//						ps.println(DEFAULT_URL);
+//					}
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
 		return app;
 	}
 
@@ -4431,19 +4450,40 @@ public class MapApp implements ActionListener,
 	public void getServerList() throws IOException {
 		servers = new Vector();
 		if ( serverDir.exists() && serverFile.exists() ) {
-			BufferedReader serverIn = new BufferedReader( new FileReader(serverFile) );
-			String s = null;
-			while ( ( s = serverIn.readLine() ) != null ) {
-				servers.add(s);
-				DEFAULT_URL = s;
-				BASE_URL = s;
-				TEMP_BASE_URL = s;
+			if(isNewVersion) {
+				BufferedReader serverIn = new BufferedReader( new FileReader(serverFile) );
+				//should only have one line in default_server.dat
+				String server = serverIn.readLine();
+				serverIn.close();
+				servers.add(server);
+				if(!server.equals(DEV_URL)) {
+					server = DEFAULT_URL;
+					BufferedWriter out = new BufferedWriter(new FileWriter(serverFile,false));
+					out.write(DEFAULT_URL + "\r\n");
+					out.flush();
+					out.close();
+				}
+				else {
+					DEFAULT_URL = server;
+				}
+				BASE_URL = server;
+				TEMP_BASE_URL = server;
 			}
-			serverIn.close();
+			else {
+				BufferedReader serverIn = new BufferedReader( new FileReader(serverFile) );
+				String s = null;
+				while ( ( s = serverIn.readLine() ) != null ) {
+					servers.add(s);
+					DEFAULT_URL = s;
+					BASE_URL = s;
+					TEMP_BASE_URL = s;
+				}
+				serverIn.close();
+			}
 		}
 		else {
 			if ( !serverDir.exists() ) {
-				serverDir.mkdir();
+				serverDir.mkdirs();
 			}
 			serverFile.createNewFile();
 			BufferedWriter out = new BufferedWriter( new FileWriter(serverFile, true) );
@@ -4599,6 +4639,7 @@ public class MapApp implements ActionListener,
 		if(!historyDir.exists()) {
 			historyDir.mkdirs();
 		}
+		/*
 		if(historyFile.exists()) {
 			// delete old zoom.txt file
 			historyFile.delete();
@@ -4608,9 +4649,10 @@ public class MapApp implements ActionListener,
 		} catch (IOException e) {
 			//System.out.println(e);
 		}
+		*/
 	}
 
-	protected void updateZoomHistory(String past, String next) throws IOException {
+	/*protected void updateZoomHistory(String past, String next) throws IOException {
 		if(!historyFile.exists()) {
 			startNewZoomHistory();
 		}
@@ -4621,7 +4663,7 @@ public class MapApp implements ActionListener,
 			bw.write(next);
 			bw.close();
 		}
-	}
+	}*/
 
 	// get the current version number stored in .GMA/history/version
 	public String getHistoryVersion() {
@@ -4647,16 +4689,17 @@ public class MapApp implements ActionListener,
 		//so we can make sure we have the most up-to-date version.
 		//Also delete the layerSessionDir directory since old session formats might
 		//not be compatible with the latest release
-		String historyVersion = getHistoryVersion();
-		if (!historyVersion.equals(VERSION)) {
+		//String historyVersion = getHistoryVersion();
+		if (isNewVersion) {
+			//isNewVersion = true;
 			//delete MenusCache
 			if (menusCacheDir.exists()) {
 				GeneralUtils.deleteFolder(menusCacheDir);
 			}
 			//delete layerSessionDir
-			if (layerSessionDir.exists()) {
+			/*if (layerSessionDir.exists()) {
 				GeneralUtils.deleteFolder(layerSessionDir);
-			}
+			}*/
 			
 			// add history directory if none.
 			if(!historyDir.exists()) {
@@ -5104,6 +5147,7 @@ public class MapApp implements ActionListener,
 		// but since we may need to backtrack if a release goes bad
 		// best not to use this in release version.
 		if (DEV_MODE) {
+			try {
 			String[] software = vSoftware.split("\\.");
 			String[] server = vServer.split("\\.");
 			for (int i=0; i<software.length && i < server.length; i++) {
@@ -5112,6 +5156,10 @@ public class MapApp implements ActionListener,
 				if (Integer.compare(sw,sv) != 0) return Integer.compare(sw,sv) ;
 			}
 			return Integer.compare(software.length, server.length);
+			}
+			catch(NumberFormatException nfe) {
+				return -1;
+			}
 		} else {
 			//use this line for release version instead.
 			if (!vSoftware.equals(vServer)) return -1;

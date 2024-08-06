@@ -3,6 +3,7 @@ package haxby.util;
 import haxby.map.MapApp;
 
 import java.awt.BorderLayout;
+import java.awt.Font;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
@@ -10,14 +11,25 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.net.URL;
 
+import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 
+import java.util.Map;
+import java.util.HashMap;
+
 public class BrowseURL {
 	public static String replaceURL =
 		PathUtil.getPath("REPLACE_WITH_ROOT_URL", MapApp.BASE_URL);
+	public static Map<String, String> urlReplacements = new HashMap<>();
+	static {
+		urlReplacements.put("http://app.geomapapp.org/gma_html/help/User_Guide/User_Guide.pdf", MapApp.NEW_BASE_URL + "gma_html/help/User_Guide/User_Guide.pdf");
+		urlReplacements.put("http://www.geomapapp.org/terms_of_use_gma.html", MapApp.NEW_BASE_URL + "terms_of_use_gma.html");
+		urlReplacements.put("https://app.geomapapp.org/gma_html/help/User_Guide/User_Guide.pdf", MapApp.NEW_BASE_URL + "gma_html/help/User_Guide/User_Guide.pdf");
+		urlReplacements.put("https://www.geomapapp.org/terms_of_use_gma.html", MapApp.NEW_BASE_URL + "terms_of_use_gma.html");
+	}
 
 	public static void browseURL(String url) {
 		browseURL(url, true);
@@ -29,7 +41,11 @@ public class BrowseURL {
 			URL url = URLFactory.url(urlStr);
 
 			if (MapApp.AT_SEA && url.toString().startsWith("http")) {
-				if (urlStr.startsWith(replaceURL)) {
+				if(urlReplacements.containsKey(urlStr)) {
+					urlStr = urlReplacements.get(urlStr);
+					url = URLFactory.url(urlStr);
+				}
+				else if (urlStr.startsWith(replaceURL)) {
 					urlStr = urlStr.replace(replaceURL, MapApp.NEW_BASE_URL);
 					url = URLFactory.url(urlStr);
 				}
@@ -38,14 +54,27 @@ public class BrowseURL {
 					return;
 				}
 			}
-
 			com.Ostermiller.util.Browser.displayURL(url.toString());
-		} catch (IOException e) {
+		} catch (IOException ioe) {
 			if (showErrorDialog) {
-				JOptionPane.showMessageDialog(null, "Could not display url: \n" + urlStr);
-				e.printStackTrace();
+				JLabel label = new JLabel();
+				Font font = label.getFont();
+				StringBuffer style = new StringBuffer("font-family:" + font.getFamily() + ";");
+				style.append("font-weight:" + (font.isBold() ? "bold" : "normal") + ";");
+				style.append("font-size:" + font.getSize() + "pt;");
+				String msg = "<html><body style=\"" + style + "\">Could not access the following URL: " + urlStr + ".<br><br>If this persists but you have an internet connection, copy and paste it into your browser.</body></html>";
+				try {
+				    JEditorPane jep = new JEditorPane("text/html", msg);
+				    jep.setEditable(false);
+				    jep.setBackground(label.getBackground());
+				    JOptionPane.showMessageDialog(null, jep);
+				}
+				catch(Exception e) {
+				    e.printStackTrace();
+				}
+				ioe.printStackTrace();
 			}
-		}
+		} 
 	}
 
 	private static void atSeaErrorMessage(String url) {
