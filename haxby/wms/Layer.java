@@ -14,6 +14,7 @@ public class Layer implements Serializable{
 	private double[] wesn = null;
 	private Layer parent;
 	private boolean hasLLBB = false;
+	private WMSLegendDialog legend = null;
 
 	public boolean isLonRangeComplete() {
 		double[] wesn = getWesn();
@@ -120,5 +121,11 @@ public class Layer implements Serializable{
 	}
 	public void setMetadataURLs(String[] metaUrls) {
 		this.metadataURLs = metaUrls;
+	}
+	public WMSLegendDialog getLegend() {
+		return legend;
+	}
+	public void setLegend(WMSLegendDialog legendIn) {
+		legend = legendIn;
 	}
 }

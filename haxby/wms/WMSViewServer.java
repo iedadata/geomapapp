@@ -317,6 +317,7 @@ public class WMSViewServer implements ActionListener {
 	public void readCapabilities( URL inputCapabilitiesURL ) {
 		try {
 			capabilities = CapabilitiesParser.parseCapabilities(inputCapabilitiesURL);
+			MapApp.latestWms = capabilities.getServiceTitle();
 
 			String[] imageFormats = capabilities.getSupportedFormats();
 			boolean supportedReader = false;
@@ -419,7 +420,7 @@ public class WMSViewServer implements ActionListener {
 		legendURLs[0] = style.getLegendURLs();
 
 		if (legendURLs[0] != null) {
-			new WMSLegendDialog(mapApp.getFrame(), legendURLs, style.getParent().getName());
+			style.getParent().setLegend(new WMSLegendDialog(mapApp.getFrame(), legendURLs, style.getParent().getName()));
 		}
 		loadLayer(requestURL, style.getParent());
 	}
@@ -448,6 +449,7 @@ public class WMSViewServer implements ActionListener {
 		((DefaultComboBoxModel) layersList.getModel()).removeElement(layerTitle);
 		layerNamesMap.remove(layerTitle);
 		layerLayerMap.remove(layerTitle);
+		//((Layer)layersList.getSelectedItem()).getLegend().close();
 
 		try {
 			ObjectOutputStream oos = new ObjectOutputStream(

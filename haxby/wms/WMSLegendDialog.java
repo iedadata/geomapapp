@@ -92,4 +92,9 @@ public class WMSLegendDialog {
 			}
 		}
 	}
+	
+	public void close() {
+		dialog.setVisible(false);
+		dialog.dispose();
+	}
 }

@@ -19,6 +19,7 @@ public class WMS_ESPG_4326_Overlay extends MapOverlay
 	private int mapRes;
 	private double [] wesn;
 	private String legendURL;
+	private WMSLegendDialog legend = null;
 	
 	public WMS_ESPG_4326_Overlay(String baseURL, XMap map) {
 		this(baseURL, map, null);
@@ -97,5 +98,13 @@ public class WMS_ESPG_4326_Overlay extends MapOverlay
 	
 	public void setLegendURL(String legendURL) {
 		this.legendURL = legendURL;
+	}
+	
+	public WMSLegendDialog getLegend() {
+		return legend;
+	}
+	
+	public void setLegend(WMSLegendDialog legendIn) {
+		legend = legendIn;
 	}
 }

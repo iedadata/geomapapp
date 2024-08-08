@@ -55,10 +55,12 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -164,6 +166,7 @@ import haxby.util.URLFactory;
 import haxby.util.WESNPanel;
 import haxby.wfs.WFSViewServer;
 import haxby.wms.Layer;
+import haxby.wms.WMSLegendDialog;
 import haxby.wms.WMSViewServer;
 import haxby.wms.WMS_ESPG_3031_Overlay;
 import haxby.wms.WMS_ESPG_4326_Overlay;
@@ -179,6 +182,7 @@ public class MapApp implements ActionListener,
 	public static final int SOUTH_POLAR_MAP = 1;
 	public static final int NORTH_POLAR_MAP = 2;
 	public static final int WORLDWIND = 3;
+	public static MapApp mapApp;
 	public static final int DEFAULT_LONGITUDE_RANGE = Projection.RANGE_180W_to_180E;
 	public static final List<Integer> SUPPORTED_MAPS = new LinkedList<Integer>();
 	static {
@@ -186,8 +190,53 @@ public class MapApp implements ActionListener,
 		SUPPORTED_MAPS.add(new Integer(SOUTH_POLAR_MAP));
 		SUPPORTED_MAPS.add(new Integer(NORTH_POLAR_MAP));
 	}
+	//info from here https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+	public static final Map<Integer, String> HTTP_ERROR_CODES = new HashMap<>();
+	static {
+		HTTP_ERROR_CODES.put(400, "Bad Request");
+		HTTP_ERROR_CODES.put(401, "Unauthorized");
+		HTTP_ERROR_CODES.put(402, "Payment Required");
+		HTTP_ERROR_CODES.put(403, "Forbidden");
+		HTTP_ERROR_CODES.put(404, "Not Found");
+		HTTP_ERROR_CODES.put(405, "Method Not Allowed");
+		HTTP_ERROR_CODES.put(406, "Not Acceptable");
+		HTTP_ERROR_CODES.put(407, "Proxy Authentication Required");
+		HTTP_ERROR_CODES.put(408, "Request Timeout");
+		HTTP_ERROR_CODES.put(409, "Conflict");
+		HTTP_ERROR_CODES.put(410, "Gone");
+		HTTP_ERROR_CODES.put(411, "Length Required");
+		HTTP_ERROR_CODES.put(412, "Precondition Failed");
+		HTTP_ERROR_CODES.put(413, "Payload Too Large");
+		HTTP_ERROR_CODES.put(414, "URI Too Long");
+		HTTP_ERROR_CODES.put(415, "Unsupported Media Type");
+		HTTP_ERROR_CODES.put(416, "Range Not Satisfiable");
+		HTTP_ERROR_CODES.put(417, "Expectation Failed");
+		HTTP_ERROR_CODES.put(418, "I'm a teapot"); //We are unlikely to encounter this one
+		HTTP_ERROR_CODES.put(421, "Misdirected Request");
+		HTTP_ERROR_CODES.put(422, "Unprocessable Content");
+		HTTP_ERROR_CODES.put(423, "Locked");
+		HTTP_ERROR_CODES.put(424, "Failed Dependency");
+		HTTP_ERROR_CODES.put(425, "Too Early");
+		HTTP_ERROR_CODES.put(426, "Upgrade Required");
+		HTTP_ERROR_CODES.put(428, "Precondition Required");
+		HTTP_ERROR_CODES.put(429, "Too Many Requests");
+		HTTP_ERROR_CODES.put(431, "Request Header Fields Too Large");
+		HTTP_ERROR_CODES.put(451, "Unavailable For Legal Reasons");
+		HTTP_ERROR_CODES.put(500, "Internal Server Error");
+		HTTP_ERROR_CODES.put(501, "Not Implemented");
+		HTTP_ERROR_CODES.put(502, "Bad Gateway");
+		HTTP_ERROR_CODES.put(503, "Service Unavailable");
+		HTTP_ERROR_CODES.put(504, "Gateway Timeout");
+		HTTP_ERROR_CODES.put(505, "HTTP Version Not Supported");
+		HTTP_ERROR_CODES.put(506, "Variant Also Negotiates");
+		HTTP_ERROR_CODES.put(507, "Insufficient Storage");
+		HTTP_ERROR_CODES.put(508, "Loop Detected");
+		HTTP_ERROR_CODES.put(510, "Not Extended");
+		HTTP_ERROR_CODES.put(511, "Network Authentication Required");
+	}
+	public static String latestWms = null;
 
-	public final static String VERSION = "3.7.4"; //08/06/2024
+	public final static String VERSION = "3.7.4.1"; //08/08/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	static boolean isNewVersion = false;
@@ -349,6 +398,8 @@ public class MapApp implements ActionListener,
 	
 	private JCheckBox loadAltTiles;
 	//private JTextField altTilesUrlTextField;
+	
+	private WMSLegendDialog legend = null;
 
 	public StartUp start,
 					startNP,
@@ -3789,7 +3840,7 @@ public class MapApp implements ActionListener,
 	public static void main( String[] args) {
 		//fixes issue with column sorting
 		System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
-		createMapApp(args);
+		mapApp = createMapApp(args);
 	}
 
 	public static String getBaseURL() {
@@ -4145,6 +4196,14 @@ public class MapApp implements ActionListener,
 
 	public void addFocusOverlay(FocusOverlay overlay, String overlayName, String infoURLString, XML_Menu menu_item) {
 		synchronized (focusOverlays) {
+			if(null != legend) {
+				if(overlay instanceof WMS_ESPG_3031_Overlay) {
+					((WMS_ESPG_3031_Overlay)overlay).setLegend(legend);
+				}
+				if(overlay instanceof WMS_ESPG_4326_Overlay) {
+					((WMS_ESPG_4326_Overlay)overlay).setLegend(legend);
+				}
+			}
 			if (focusOverlays.add(overlay)) {
 				map.addOverlay(overlayName,infoURLString,overlay, menu_item);
 				autoFocus();
@@ -4158,6 +4217,12 @@ public class MapApp implements ActionListener,
 
 	public void removeFocusOverlay(FocusOverlay overlay, boolean removeFromMap) {
 		synchronized (focusOverlays) {
+			if(overlay instanceof WMS_ESPG_3031_Overlay && null != ((WMS_ESPG_3031_Overlay)overlay).getLegend()) {
+				((WMS_ESPG_3031_Overlay)overlay).getLegend().close();
+			}
+			if(overlay instanceof WMS_ESPG_4326_Overlay && null != ((WMS_ESPG_4326_Overlay)overlay).getLegend()) {
+				((WMS_ESPG_4326_Overlay)overlay).getLegend().close();
+			}
 			focusOverlays.remove(overlay);
 			if (removeFromMap)
 				map.removeOverlay(overlay);
@@ -4366,7 +4431,7 @@ public class MapApp implements ActionListener,
 		String layerNameWMS = "[WMS: " + haxby.wms.WMSViewServer.serverList.getSelectedItem().toString()+
 							"] " + layer.getTitle();
 		if (layer == null) return;
-
+		legend = layer.getLegend();
 		// Get info URL
 		String infoURL = null;
 		if(layer.getDataURLs() != null) {
@@ -4427,6 +4492,7 @@ public class MapApp implements ActionListener,
 				addWMSLayer(layerNameWMS, url, layer.getWesn(), "EPSG:3031");
 			}
 		}
+		legend = null;
 	}
 
 	public void addDevPasswordField() {
