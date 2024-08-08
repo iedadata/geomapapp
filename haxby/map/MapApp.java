@@ -166,6 +166,7 @@ import haxby.util.URLFactory;
 import haxby.util.WESNPanel;
 import haxby.wfs.WFSViewServer;
 import haxby.wms.Layer;
+import haxby.wms.WMSLegendDialog;
 import haxby.wms.WMSViewServer;
 import haxby.wms.WMS_ESPG_3031_Overlay;
 import haxby.wms.WMS_ESPG_4326_Overlay;
@@ -235,7 +236,7 @@ public class MapApp implements ActionListener,
 	}
 	public static String latestWms = null;
 
-	public final static String VERSION = "3.7.4.1"; //08/06/2024
+	public final static String VERSION = "3.7.4.1"; //08/08/2024
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	static boolean isNewVersion = false;
@@ -397,6 +398,8 @@ public class MapApp implements ActionListener,
 	
 	private JCheckBox loadAltTiles;
 	//private JTextField altTilesUrlTextField;
+	
+	private WMSLegendDialog legend = null;
 
 	public StartUp start,
 					startNP,
@@ -4193,6 +4196,14 @@ public class MapApp implements ActionListener,
 
 	public void addFocusOverlay(FocusOverlay overlay, String overlayName, String infoURLString, XML_Menu menu_item) {
 		synchronized (focusOverlays) {
+			if(null != legend) {
+				if(overlay instanceof WMS_ESPG_3031_Overlay) {
+					((WMS_ESPG_3031_Overlay)overlay).setLegend(legend);
+				}
+				if(overlay instanceof WMS_ESPG_4326_Overlay) {
+					((WMS_ESPG_4326_Overlay)overlay).setLegend(legend);
+				}
+			}
 			if (focusOverlays.add(overlay)) {
 				map.addOverlay(overlayName,infoURLString,overlay, menu_item);
 				autoFocus();
@@ -4206,6 +4217,12 @@ public class MapApp implements ActionListener,
 
 	public void removeFocusOverlay(FocusOverlay overlay, boolean removeFromMap) {
 		synchronized (focusOverlays) {
+			if(overlay instanceof WMS_ESPG_3031_Overlay && null != ((WMS_ESPG_3031_Overlay)overlay).getLegend()) {
+				((WMS_ESPG_3031_Overlay)overlay).getLegend().close();
+			}
+			if(overlay instanceof WMS_ESPG_4326_Overlay && null != ((WMS_ESPG_4326_Overlay)overlay).getLegend()) {
+				((WMS_ESPG_4326_Overlay)overlay).getLegend().close();
+			}
 			focusOverlays.remove(overlay);
 			if (removeFromMap)
 				map.removeOverlay(overlay);
@@ -4414,7 +4431,7 @@ public class MapApp implements ActionListener,
 		String layerNameWMS = "[WMS: " + haxby.wms.WMSViewServer.serverList.getSelectedItem().toString()+
 							"] " + layer.getTitle();
 		if (layer == null) return;
-
+		legend = layer.getLegend();
 		// Get info URL
 		String infoURL = null;
 		if(layer.getDataURLs() != null) {
@@ -4475,6 +4492,7 @@ public class MapApp implements ActionListener,
 				addWMSLayer(layerNameWMS, url, layer.getWesn(), "EPSG:3031");
 			}
 		}
+		legend = null;
 	}
 
 	public void addDevPasswordField() {
