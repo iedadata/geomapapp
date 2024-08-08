@@ -61,6 +61,7 @@ import haxby.map.MapApp;
 import haxby.map.MapTools;
 import haxby.map.Overlay;
 import haxby.map.XMap;
+import haxby.wms.Layer;
 
 public class LayerManager extends JPanel implements PropertyChangeListener {
 	public static final JButton captureB = new JButton( Icons.getIcon(Icons.CAPTURE,false));

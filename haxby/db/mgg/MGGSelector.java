@@ -122,7 +122,7 @@ public class MGGSelector implements ActionListener {
 			URL url = URLFactory.url(updateURL);
 			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
 
-			if(in.ready()) {
+			//if(in.ready()) {
 				// Get Dataset Information
 				String updateDate = in.readLine();
 				String dateText = "<html>NCEI Content Last Updated:<br><p style='text-align:center'>" + updateDate + "</p></html>";
@@ -131,7 +131,7 @@ public class MGGSelector implements ActionListener {
 				textDate.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
 
 				panel1.add(textDate);
-			}
+			//}
 			in.close();
 		} catch(Exception e) {
 			System.out.println("NCEI update date file not found");
