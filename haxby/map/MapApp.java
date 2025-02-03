@@ -187,7 +187,7 @@ public class MapApp implements ActionListener,
 		SUPPORTED_MAPS.add(new Integer(NORTH_POLAR_MAP));
 	}
 
-	public final static String VERSION = "3.7.4"; //08/06/2024
+	public final static String VERSION = "3.7.4.2"; //02/03/2025
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	static boolean isNewVersion = false;
@@ -3322,6 +3322,8 @@ public class MapApp implements ActionListener,
 //prefer.add("Menu Options", menuOptions);
 
 //		***** GMA 1.6.2: Add "Server Options" tab to the "Preferences" window
+		// ** GMA 3.7.5: Remove "Server Options" from the "Preferences" window
+		/*
 		Border emptyBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
 		Border lineBorder = BorderFactory.createLineBorder( Color.black );
 		Border compBorder = BorderFactory.createCompoundBorder( lineBorder, emptyBorder );
@@ -3344,9 +3346,10 @@ public class MapApp implements ActionListener,
 		inputDevPasswordPanel.add(inputDevPasswordText);
 		inputDevPasswordPanel.setVisible(false);
 		serverPanel.add(inputDevPasswordPanel, BorderLayout.SOUTH );
+		*/
 
 		// Tab Server Options
-		prefer.addTab( "Server Options", serverOptions);
+		//prefer.addTab( "Server Options", serverOptions);
 //		***** GMA 1.6.2
 
 		//ShoreLine
