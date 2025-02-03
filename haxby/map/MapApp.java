@@ -4999,6 +4999,13 @@ public class MapApp implements ActionListener,
 			}
 		}
 	}
+	
+	//
+	public static String getAppropriateUrl(String origUrl) {
+		String insecureProdUrl = PRODUCTION_URL.replaceFirst("https://", "http://");
+		String secureProdUrl = PRODUCTION_URL.replaceFirst("http://", "https://");
+		return origUrl.replaceFirst(insecureProdUrl, BASE_URL.replaceFirst("https://", "http://")).replaceFirst(secureProdUrl, (null == BASE_URL)?(PRODUCTION_URL):(BASE_URL));
+	}
 
 	protected void toggleDisplayAttachment() {
 		if(currentDB == null ) return;
