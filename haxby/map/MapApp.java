@@ -3322,6 +3322,8 @@ public class MapApp implements ActionListener,
 //prefer.add("Menu Options", menuOptions);
 
 //		***** GMA 1.6.2: Add "Server Options" tab to the "Preferences" window
+		// ** GMA 3.7.5: Remove "Server Options" from the "Preferences" window
+		/*
 		Border emptyBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
 		Border lineBorder = BorderFactory.createLineBorder( Color.black );
 		Border compBorder = BorderFactory.createCompoundBorder( lineBorder, emptyBorder );
@@ -3344,9 +3346,10 @@ public class MapApp implements ActionListener,
 		inputDevPasswordPanel.add(inputDevPasswordText);
 		inputDevPasswordPanel.setVisible(false);
 		serverPanel.add(inputDevPasswordPanel, BorderLayout.SOUTH );
+		*/
 
 		// Tab Server Options
-		prefer.addTab( "Server Options", serverOptions);
+		//prefer.addTab( "Server Options", serverOptions);
 //		***** GMA 1.6.2
 
 		//ShoreLine
@@ -3364,6 +3367,7 @@ public class MapApp implements ActionListener,
 				loadRemoteTiles = new JButton("Load cruise tiles from the server");
 		loadLocalTiles.setActionCommand("loadTilesLocalCmd");
 		loadRemoteTiles.setActionCommand("loadTilesRemoteCmd");
+		if(MapApp.AT_SEA) loadRemoteTiles.setEnabled(false);
 		loadLocalTiles.addActionListener(this);
 		loadRemoteTiles.addActionListener(this);
 		c.gridwidth = 2;
@@ -3413,7 +3417,7 @@ public class MapApp implements ActionListener,
 		if (whichMap == MapApp.SOUTH_POLAR_MAP)
 			opShorePanel.defaults();
 
-		serverList.setSelectedItem( DEFAULT_URL );
+		if(null != serverList) serverList.setSelectedItem( DEFAULT_URL );
 
 		showTileNames.setSelected(false);
 		MMapServer.DRAW_TILE_LABELS = false;
@@ -3459,7 +3463,7 @@ public class MapApp implements ActionListener,
 		if (lonRange == Projection.RANGE_180W_to_180E) { range180Btn.setSelected(true); }
 		if (lonRange == Projection.RANGE_0_to_360) { range360Btn.setSelected(true); }
 		
-		serverList.setSelectedIndex(selectedServer);
+		if(null != serverList) serverList.setSelectedIndex(selectedServer);
 		showTileNames.setSelected(MMapServer.DRAW_TILE_LABELS);
 		
 		gridsCB.setSelected(logGridImports);
@@ -4998,6 +5002,13 @@ public class MapApp implements ActionListener,
 				break;
 			}
 		}
+	}
+	
+	//
+	public static String getAppropriateUrl(String origUrl) {
+		String insecureProdUrl = PRODUCTION_URL.replaceFirst("https://", "http://");
+		String secureProdUrl = PRODUCTION_URL.replaceFirst("http://", "https://");
+		return origUrl.replaceFirst(insecureProdUrl, BASE_URL.replaceFirst("https://", "http://")).replaceFirst(secureProdUrl, (null == BASE_URL)?(PRODUCTION_URL):(BASE_URL));
 	}
 
 	protected void toggleDisplayAttachment() {
