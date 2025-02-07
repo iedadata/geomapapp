@@ -1094,7 +1094,7 @@ public class PDB implements Database,
 			URL url = URLFactory.url(updateURL);
 			BufferedReader in = new BufferedReader(new InputStreamReader( url.openStream() ));
 
-			if(in.ready()) {
+			//if(in.ready()) {
 				// Get Dataset Information
 				String updateDate = in.readLine();
 				String dateText = "<html>PetDB Portal Content Last Updated: " + updateDate + "</html>";
@@ -1103,7 +1103,7 @@ public class PDB implements Database,
 				textDate.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
 
 				p.add(textDate);
-			}
+			//}
 			in.close();
 		} catch(Exception e) {
 			System.out.println("PetDB update date file not found");
