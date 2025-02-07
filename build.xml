@@ -6,12 +6,14 @@
 	<property name="haxby" location="haxby"/>
 	<property name="org" location="org"/>
 	<property name="src" location="."/>
+	<property name="jarfile" value="GeoMapApp"/>
 
 	<property name="build" location="build_tmp"/>
 	<property name="resources" location="resources"/>
 
 	<property environment="env" />
 
+	<echo message="Building GMA"/>
 	<echo message="JAVA_HOME = ${java.home}"/>
 	<echo message="ANT_HOME is set to = ${ant.java.version}"/>
 
@@ -96,7 +98,7 @@
 
 	<target name="dist" depends="compile" description="generate the distribution" >
 		<!-- Create the distribution directory -->
-		<jar jarfile="dist/GeoMapApp.jar" basedir="${build}">
+		<jar jarfile="dist/${jarfile}.jar" basedir="${build}">
 			<manifest>
 				<attribute name="Main-Class" value="haxby.map.MapApp"/>
 				<attribute name="Permissions" value="all-permissions"/>
@@ -107,9 +109,9 @@
 	<!-- Sign the jar with code signing certificate for webstart -->
 	<target name="sign" depends="dist" description="Sign Jar" >
 		<signjar 
-			jar="dist/GeoMapApp.jar"
-			alias="****"
-			storepass="****"
+			jar="dist/${jarfile}.jar"
+			alias="www.geomapapp.org"
+			storepass="CK-t$a)biCHWltoQ"
 			tsaurl="http://timestamp.sectigo.com"
 			keystore="${src}/codesign.p12"/>
 	</target>
