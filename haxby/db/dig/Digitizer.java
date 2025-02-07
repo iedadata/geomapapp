@@ -99,6 +99,7 @@ public class Digitizer implements Database,
 	private boolean loadedGMRTForDig = false;
 	private boolean isSurveyPlanner = false; //is Digitizer being used by Survey Planner
 	private double speed = 0; // for use in Survey Planner
+	public boolean didLoadGMRT = false;
 	
 	public Digitizer( XMap map ) {
 		this.map = map;
@@ -352,6 +353,7 @@ public class Digitizer implements Database,
 				profile.setLine( obj );
 				if (isSurveyPlanner && !((MapApp)map.getApp()).getMapTools().getGridDialog().isDialogVisible()) {
 					((MapApp)map.getApp()).getMapTools().getGridDialog().getToggle().doClick();
+					didLoadGMRT = true;
 				}
 				graph.setPoints( profile, 0 );
 				graph.setScrollableTracksViewportWidth(autoscaleCB.isSelected());
