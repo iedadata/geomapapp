@@ -187,7 +187,7 @@ public class MapApp implements ActionListener,
 		SUPPORTED_MAPS.add(new Integer(NORTH_POLAR_MAP));
 	}
 
-	public final static String VERSION = "3.7.4.2"; //02/03/2025
+  public final static String VERSION = "3.7.4.5"; //02/06/2025
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	static boolean isNewVersion = false;
@@ -3367,6 +3367,7 @@ public class MapApp implements ActionListener,
 				loadRemoteTiles = new JButton("Load cruise tiles from the server");
 		loadLocalTiles.setActionCommand("loadTilesLocalCmd");
 		loadRemoteTiles.setActionCommand("loadTilesRemoteCmd");
+		if(MapApp.AT_SEA) loadRemoteTiles.setEnabled(false);
 		loadLocalTiles.addActionListener(this);
 		loadRemoteTiles.addActionListener(this);
 		c.gridwidth = 2;
@@ -3416,7 +3417,7 @@ public class MapApp implements ActionListener,
 		if (whichMap == MapApp.SOUTH_POLAR_MAP)
 			opShorePanel.defaults();
 
-		serverList.setSelectedItem( DEFAULT_URL );
+		if(null != serverList) serverList.setSelectedItem( DEFAULT_URL );
 
 		showTileNames.setSelected(false);
 		MMapServer.DRAW_TILE_LABELS = false;
@@ -3462,7 +3463,7 @@ public class MapApp implements ActionListener,
 		if (lonRange == Projection.RANGE_180W_to_180E) { range180Btn.setSelected(true); }
 		if (lonRange == Projection.RANGE_0_to_360) { range360Btn.setSelected(true); }
 		
-		serverList.setSelectedIndex(selectedServer);
+		if(null != serverList) serverList.setSelectedIndex(selectedServer);
 		showTileNames.setSelected(MMapServer.DRAW_TILE_LABELS);
 		
 		gridsCB.setSelected(logGridImports);
