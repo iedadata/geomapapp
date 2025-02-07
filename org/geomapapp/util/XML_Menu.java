@@ -607,7 +607,7 @@ public class XML_Menu {
 					sub_layer.layer_file_import = attribute.getNodeValue();
 				}
 				if ( (attribute = attributes.getNamedItem("href")) != null ) {
-					sub_layer.infoURLString = attribute.getNodeValue();
+					sub_layer.infoURLString = MapApp.getAppropriateUrl(attribute.getNodeValue());
 
 					if (!sub_layer.infoURLString.startsWith("http")) {
 						sub_layer.infoURLString =
@@ -615,7 +615,7 @@ public class XML_Menu {
 					}
 				}
 				if ( (attribute = attributes.getNamedItem("search_url")) != null ) {
-					sub_layer.search_url = attribute.getNodeValue();
+					sub_layer.search_url = MapApp.getAppropriateUrl(attribute.getNodeValue());
 
 					if (!sub_layer.search_url.startsWith("http")){
 						sub_layer.search_url =
@@ -623,7 +623,7 @@ public class XML_Menu {
 					}
 				}
 				if ( (attribute = attributes.getNamedItem("url2")) != null ) {
-					sub_layer.layer_url2 = attribute.getNodeValue();
+					sub_layer.layer_url2 = MapApp.getAppropriateUrl(attribute.getNodeValue());
 
 					if (!sub_layer.layer_url2.startsWith("http")) {
 						sub_layer.layer_url2 =
@@ -631,7 +631,7 @@ public class XML_Menu {
 					}
 				}
 				if ( (attribute = attributes.getNamedItem("url")) != null ) {
-					sub_layer.layer_url = attribute.getNodeValue();
+					sub_layer.layer_url = MapApp.getAppropriateUrl(attribute.getNodeValue());
 					if (!sub_layer.layer_url.startsWith("http") && !sub_layer.layer_url.contains("import")) {
 						sub_layer.layer_url = PathUtil.getPath("ROOT_PATH") + sub_layer.layer_url;
 					}
