@@ -187,14 +187,14 @@ public class MapApp implements ActionListener,
 		SUPPORTED_MAPS.add(new Integer(NORTH_POLAR_MAP));
 	}
 
-	public final static String VERSION = "3.7.4.8"; //02/07/2025
+	public final static String VERSION = "3.7.4.9"; //02/07/2025
 	public final static String GEOMAPAPP_NAME = "GeoMapApp " + VERSION;
 	private static boolean DEV_MODE = false; 
 	static boolean isNewVersion = false;
 	
 	public static final String PRODUCTION_URL = "https://app.geomapapp.org/";
 	public static String DEFAULT_URL = "https://app.geomapapp.org/";
-	public static final String DEV_URL = "http://app-dev.geomapapp.org/"; 
+	public static final String DEV_URL = "https://app-dev.geomapapp.org/"; 
 	private static String DEV_PASSWORD_PATH = "gma_passwords/dev_server_password";
 	public static String BASE_URL;
 	public static String NEW_BASE_URL;
@@ -4460,7 +4460,7 @@ public class MapApp implements ActionListener,
 				String server = serverIn.readLine();
 				serverIn.close();
 				servers.add(server);
-				if(!server.equals(DEV_URL)) {
+				if(!server.replace("http://", "https://").equals(DEV_URL.replace("http://", "https://"))) {
 					server = DEFAULT_URL;
 					BufferedWriter out = new BufferedWriter(new FileWriter(serverFile,false));
 					out.write(DEFAULT_URL + "\r\n");
