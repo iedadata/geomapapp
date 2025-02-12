@@ -4459,8 +4459,9 @@ public class MapApp implements ActionListener,
 				//should only have one line in default_server.dat
 				String server = serverIn.readLine();
 				serverIn.close();
+				server = server.replace("http://", "https://");
 				servers.add(server);
-				if(!server.replace("http://", "https://").equals(DEV_URL.replace("http://", "https://"))) {
+				if(!server.equals(DEV_URL)) {
 					server = DEFAULT_URL;
 					BufferedWriter out = new BufferedWriter(new FileWriter(serverFile,false));
 					out.write(DEFAULT_URL + "\r\n");
