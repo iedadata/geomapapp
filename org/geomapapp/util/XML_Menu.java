@@ -677,8 +677,8 @@ public class XML_Menu {
 								Document dom = null;
 								// We want to rewrite on the fly all url menus to grab from dev location.
 								if(MapApp.BASE_URL.matches(MapApp.DEV_URL)){
-									sub_layer.layer_url= sub_layer.layer_url.replaceAll("http://app.", "http://app-dev.")
-											.replaceAll("https://app.", "https://app-dev.");
+									sub_layer.layer_url= sub_layer.layer_url.replaceAll("http://app\\.", "http://app-dev.")
+											.replaceAll("https://app\\.", "https://app-dev.");
 								}
 
 								String[] parseURL = sub_layer.layer_url.split("/");

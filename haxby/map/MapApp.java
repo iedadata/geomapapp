@@ -531,7 +531,7 @@ public class MapApp implements ActionListener,
 				BASE_URL = DEFAULT_URL;
 			}
 		}
-		DEV_MODE = BASE_URL.equals(DEV_URL);
+		DEV_MODE = BASE_URL.replace("http://", "https://").equals(DEV_URL);
 		
 		try {
 			getProxies();
@@ -4478,6 +4478,7 @@ public class MapApp implements ActionListener,
 				BufferedReader serverIn = new BufferedReader( new FileReader(serverFile) );
 				String s = null;
 				while ( ( s = serverIn.readLine() ) != null ) {
+					s = s.replace("http://", "https://");
 					servers.add(s);
 					DEFAULT_URL = s;
 					BASE_URL = s;
