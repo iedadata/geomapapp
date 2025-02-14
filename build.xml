@@ -110,8 +110,8 @@
 	<target name="sign" depends="dist" description="Sign Jar" >
 		<signjar 
 			jar="dist/${jarfile}.jar"
-			alias="www.geomapapp.org"
-			storepass="CK-t$a)biCHWltoQ"
+			alias="****"
+			storepass="****"
 			tsaurl="http://timestamp.sectigo.com"
 			keystore="${src}/codesign.p12"/>
 	</target>
