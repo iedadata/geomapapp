@@ -32,10 +32,13 @@ import org.geomapapp.geom.ProjectionDialog;
 import org.geomapapp.geom.UTMProjection;
 import org.geomapapp.gis.shape.ESRIShapefile;
 import org.geomapapp.gis.shape.ShapeSuite;
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.gce.geotiff.GeoTiffReader;
 
 import haxby.map.MapApp;
 import haxby.proj.PolarStereo;
 import haxby.util.FilesUtil;
+import haxby.util.GTConverter;
 import haxby.util.GeneralUtils;
 import haxby.util.PathUtil;
 
@@ -46,6 +49,7 @@ public class ImportGrid implements Runnable {
 		"ESRI Binary grid files ( .hdr / .flt )",
 		"GRD98 grid files ( .G98, big-endian )", // GMA 1.6.6
 		"ASCII Polar Grid file ( .asc )",
+		"GeoTIFF (.tif or .tiff)", //GMA 3.7.5
 	};
 
 	private static Map<Integer, FileFilter> gridFilter = new HashMap<Integer, FileFilter>();
@@ -300,6 +304,14 @@ public class ImportGrid implements Runnable {
 					} catch (IOException e) {
 						showFormatError(choice[0].getName());
 					}
+				case 5:
+					try {
+						//GMA 3.7.5: added Geotiff grid import
+						openGeotiff(choice);
+					}
+					catch(IOException e) {
+						showFormatError(choice[0].getName());
+					}
 				default:
 					break;
 				}
@@ -481,6 +493,24 @@ public class ImportGrid implements Runnable {
 			}
 		}
 		
+	}
+	
+	void openGeotiff(File[] files) throws IOException {
+		if(files.length == 0) return;
+		String name = files[0].getParentFile().getName();
+		if(1 == files.length) {
+			name = files[0].getName();
+			name = name.substring(0, name.lastIndexOf("."));
+		}
+		area.setText(name);
+		area.update(area.getGraphics());
+		for(File file : files) {
+			//read the file with GeoTools
+			GeoTiffReader reader = new GeoTiffReader(file);
+			GridCoverage2D gridCoverage = reader.read(null);
+			//convert the file to Grid2D
+			Grid2D converted = GTConverter.getGrid(gridCoverage, ((MapApp)suite.map.getApp()).getProjection());
+		}
 	}
 
 	void openPolarASC(File[] files)  throws IOException {

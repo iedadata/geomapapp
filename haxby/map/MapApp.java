@@ -101,6 +101,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.geomapapp.credit.Credit;
 import org.geomapapp.db.dsdp.DSDPDemo;
+import org.geomapapp.geom.MapProjection;
 import org.geomapapp.gis.shape.ESRIShapefile;
 import org.geomapapp.grid.Grid2DOverlay;
 import org.geomapapp.grid.GridComposer;
@@ -823,6 +824,12 @@ public class MapApp implements ActionListener,
 	}
 	public JFrame getFrame() {
 		return frame;
+	}
+	public MapProjection getProjection() {
+		if(null != map) {
+			return map.getProjection();
+		}
+		return null;
 	}
 	protected void checkVersion() {
 		if (AT_SEA) {
