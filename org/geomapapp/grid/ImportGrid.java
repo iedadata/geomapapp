@@ -9,8 +9,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -32,8 +35,12 @@ import org.geomapapp.geom.ProjectionDialog;
 import org.geomapapp.geom.UTMProjection;
 import org.geomapapp.gis.shape.ESRIShapefile;
 import org.geomapapp.gis.shape.ShapeSuite;
+import org.geotools.coverage.grid.GridCoordinates2D;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.gce.geotiff.GeoTiffReader;
+import org.geotools.geometry.Envelope2D;
+import org.opengis.geometry.DirectPosition;
 
 import haxby.map.MapApp;
 import haxby.proj.PolarStereo;
@@ -504,13 +511,39 @@ public class ImportGrid implements Runnable {
 		}
 		area.setText(name);
 		area.update(area.getGraphics());
+		List<Grid2D> converted = new ArrayList<>(files.length);
+		double furthestWest = 180, furthestEast = 180, furthestNorth = -90, furthestSouth = 90;
+		double lowest = Double.MAX_VALUE, highest = -Double.MAX_VALUE;
+		displayWaitingDots();
 		for(File file : files) {
 			//read the file with GeoTools
 			GeoTiffReader reader = new GeoTiffReader(file);
 			GridCoverage2D gridCoverage = reader.read(null);
+			Envelope2D coordRange = gridCoverage.getGridGeometry().getEnvelope2D();
+			GridEnvelope2D env = gridCoverage.getGridGeometry().getGridRange2D();
+			GridCoordinates2D low = env.getLow(), high = env.getHigh();
+			int size = (high.x - low.x + 1) * (high.y - low.y + 1);
+			//TODO determine what the max size is before it gets to take too long to process
+			//assume for now it's not too big
+			DirectPosition lowerCorner = coordRange.getLowerCorner(), upperCorner = coordRange.getUpperCorner();
+			double fw = lowerCorner.getOrdinate(0), fs = lowerCorner.getOrdinate(1),
+				   fe = upperCorner.getOrdinate(0), fn = upperCorner.getOrdinate(1);
+			if(fw < furthestWest) furthestWest = fw;
+			if(fe > furthestEast) furthestEast = fe;
+			if(fs < furthestSouth) furthestSouth = fs;
+			if(fn > furthestNorth) furthestNorth = fn;
 			//convert the file to Grid2D
-			Grid2D converted = GTConverter.getGrid(gridCoverage, ((MapApp)suite.map.getApp()).getProjection());
+			GTConverter.Grid2DWrapper tmp = GTConverter.getGrid(gridCoverage, ((MapApp)suite.map.getApp()).getProjection());
+			converted.add(tmp.data);
+			if(tmp.getLowest() < lowest) lowest = tmp.getLowest();
+			if(tmp.getHighest() > highest) highest = tmp.getHighest();
 		}
+		pd.setWESNRange(furthestWest, furthestEast, furthestSouth, furthestNorth);
+		pd.setMinMaxZ(lowest, highest);
+	}
+	
+	void tileGridsGeotools(Collection<Grid2D> grids) {
+		//TODO use tile(Grid2D, TileIO.Short, MapProjection, double, double, double, double, int)
 	}
 
 	void openPolarASC(File[] files)  throws IOException {

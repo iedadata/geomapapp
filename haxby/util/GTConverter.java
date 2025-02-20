@@ -23,6 +23,18 @@ public class GTConverter {
 			bounds = boundsIn;
 		}
 	}
+
+	public static class Grid2DWrapper {
+		public final Grid2D data;
+		private double lowest, highest;
+		public Grid2DWrapper(Grid2D dataIn, double low, double high) {
+			data = dataIn;
+			lowest = low;
+			highest = high;
+		}
+		public double getLowest() { return lowest; }
+		public double getHighest() { return highest; }
+	}
 	
 	public static GridInfo getArr(Grid2D grid) {
 		if(grid instanceof Grid2D.Image) {
@@ -39,11 +51,13 @@ public class GTConverter {
 		return new GridInfo(ret, bounds);
 	}
 	
-	public static Grid2D getGrid(GridCoverage2D geotoolsGrid, MapProjection proj) {
+	public static Grid2DWrapper getGrid(GridCoverage2D geotoolsGrid, MapProjection proj) {
 		GridGeometry2D geom = geotoolsGrid.getGridGeometry();
 		GridEnvelope2D env = geom.getGridRange2D();
 		Grid2D.Double grid = new Grid2D.Double(env, proj);
 		GridCoordinates2D low = env.getLow(), high = env.getHigh();
+		double lowest = Double.MAX_VALUE, highest = -Double.MAX_VALUE;
+		//TODO consider multithreading for larger grids
 		for(int y = low.y; y < high.y; y++) {
 			for(int x = low.x; x < high.x; x++) {
 				GridCoordinates2D pt = new GridCoordinates2D(x,y);
@@ -51,6 +65,8 @@ public class GTConverter {
 					double[] vals = geotoolsGrid.evaluate(pt, (double[])null);
 					if(!Double.isNaN(vals[0])) {
 						//System.out.println("("+x + ", "+y+"): "+vals[0]);
+						if(vals[0] < lowest) lowest = vals[0];
+						if(vals[0] > highest) highest = vals[0];
 						grid.setValue(x, y, vals[0]);
 					}
 				//}
@@ -59,6 +75,6 @@ public class GTConverter {
 			}
 		}
 		grid.fillNaNs();
-		return grid;
+		return new Grid2DWrapper(grid, lowest, highest);
 	}
 }
