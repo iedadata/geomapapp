@@ -51,7 +51,7 @@ public class GTConverter {
 		return new GridInfo(ret, bounds);
 	}
 	
-	public static Grid2DWrapper getGrid(GridCoverage2D geotoolsGrid, MapProjection proj) {
+	public static Grid2DWrapper getGrid(GridCoverage2D geotoolsGrid, MapProjection proj, boolean hasNoData, double noDataVal) {
 		GridGeometry2D geom = geotoolsGrid.getGridGeometry();
 		GridEnvelope2D env = geom.getGridRange2D();
 		Grid2D.Double grid = new Grid2D.Double(env, proj);
@@ -63,7 +63,7 @@ public class GTConverter {
 				GridCoordinates2D pt = new GridCoordinates2D(x,y);
 				//try {
 					double[] vals = geotoolsGrid.evaluate(pt, (double[])null);
-					if(!Double.isNaN(vals[0])) {
+					if(!Double.isNaN(vals[0]) && (!hasNoData || vals[0] != noDataVal)) {
 						//System.out.println("("+x + ", "+y+"): "+vals[0]);
 						if(vals[0] < lowest) lowest = vals[0];
 						if(vals[0] > highest) highest = vals[0];
