@@ -141,6 +141,17 @@ public class ImportGrid implements Runnable {
 				return "Polar Projection ASCII Grids ( *.asc)";
 			}
 		});
+		
+		gridFilter.put(5, new FileFilter() {
+			public boolean accept(File f) {
+				if(f.isDirectory()) return true;
+				String extension = f.getName().toLowerCase().substring(f.getName().lastIndexOf(".")+1);
+				return extension.equals("tif") || extension.equals("tiff");
+			}
+			public String getDescription() {
+				return "GeoTIFF grids (*.tif, *.tiff)";
+			}
+		});
 	}
 
 	JFrame frame;
@@ -548,8 +559,15 @@ public class ImportGrid implements Runnable {
 			if(fs < furthestSouth) furthestSouth = fs;
 			if(fn > furthestNorth) furthestNorth = fn;
 			//convert the file to Grid2D
+			//get the projection first
+			CoordinateReferenceSystem crs = gridCoverage.getGridGeometry().getCoordinateReferenceSystem();
+			//String epsgPrjStr = String.valueOf(crs.getIdentifiers().toArray()[0]).substring(5);
+			//Projection tmpProj = ((DefaultProjectedCRS) crs).getConversionFromBase();
+			//String projName = String.valueOf(tmpProj.getMethod().getName()).toLowerCase();
+			//int projInt = projName.contains("mercator") ? MapProjection.MERCATOR : (projName.contains("north") ? MapProjection.NORTH : MapProjection.SOUTH);
+			MapProjection proj = GTConverter.getGmaProj(crs);
 			Date start = new Date();
-			GTConverter.Grid2DWrapper tmp = GTConverter.getGrid(gridCoverage, ((MapApp)suite.map.getApp()).getProjection(), mdd.hasNoData(), mdd.hasNoData()?mdd.getNoData():0.0);
+			GTConverter.Grid2DWrapper tmp = GTConverter.getGrid(gridCoverage, proj, mdd.hasNoData(), mdd.hasNoData()?mdd.getNoData():Double.NaN);
 			Date end = new Date();
 			long durMillis = end.getTime() - start.getTime();
 			if(durMillis > 1000) {
