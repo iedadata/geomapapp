@@ -12,5 +12,5 @@ public abstract interface Overlay {
 	public void draw(java.awt.Graphics2D g);
 	public default boolean shouldShow() {
 		return true;
-	} 
+	}
 }

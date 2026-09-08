@@ -4,6 +4,7 @@ import haxby.map.XMap;
 import haxby.proj.Projection;
 
 import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
