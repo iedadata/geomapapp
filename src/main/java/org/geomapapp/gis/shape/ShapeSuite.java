@@ -479,6 +479,7 @@ public class ShapeSuite extends AbstractTableModel {
 			}
 			if( col==4 ) shape.setDefaultLW( (LineWidth)val );
 			if( col==0) shape.setName( val.toString() );
+			map.repaint();
 		} catch(Exception e) {
 		}
 	}
