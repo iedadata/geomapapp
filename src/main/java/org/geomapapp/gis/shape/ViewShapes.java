@@ -550,6 +550,8 @@ public class ViewShapes {
 				table.getModel().setValueAt(
 					new Color(newRGB),
 					row, col);
+				dbfTable.getSelectionModel().clearSelection();
+				table.repaint();
 				map.repaint();
 			}
 		};
