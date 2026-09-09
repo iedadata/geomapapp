@@ -134,6 +134,7 @@ import haxby.db.custom.DBInputDialog;
 import haxby.db.custom.UnknownDataSet;
 import haxby.db.dig.Digitizer;
 import haxby.db.eq.EQ;
+import haxby.db.eqhp.EarthquakeHypocenterProfiler;
 import haxby.db.fms.FocalMechanismSolutionDB;
 import haxby.db.mb.MBTracks;
 import haxby.db.mb.PreviewCruise;
@@ -1792,7 +1793,7 @@ public class MapApp implements ActionListener,
 
 		switch (whichMap) {
 		case MapApp.MERCATOR_MAP:
-			int ndb = 12;
+			int ndb = 13;
 
 			db = new Database[ndb];
 			db[0] = (Database) new MGG(map, 2900);
@@ -1812,6 +1813,7 @@ public class MapApp implements ActionListener,
 			db[9] = (Database) new Ship(map , 4000);
 			db[10] = (Database) new SurveyPlanner(map);
 			db[11] = (Database) new VelocityVectors(map);
+			db[12] = new EarthquakeHypocenterProfiler();
 
 			break;
 

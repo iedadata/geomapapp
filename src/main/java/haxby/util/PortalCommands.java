@@ -18,7 +18,8 @@ public class PortalCommands {
 		"radar_cmd",
 		"ship_cmd",
 		"survey_planner_cmd",
-		"velocity_vectors_cmd"};
+		"velocity_vectors_cmd",
+		"earthquake_hypocenter_cmd"};
 
 	public static ArrayList<String> getPortalCommands() {
 		ArrayList<String> portal_commands_ht =  new ArrayList<String>();
