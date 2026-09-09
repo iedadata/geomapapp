@@ -4059,6 +4059,17 @@ public class MapApp implements ActionListener,
 
 	public static MapApp createMapApp(String[] args) {		
 		findLaunchFile();
+
+		com.Ostermiller.util.Browser.init();
+		
+		MapApp app = null;
+		if( args.length==0) {
+			app = new MapApp();
+		} else if( args.length==1) {
+			app = new MapApp(args[0]);
+		} else if( args.length==2) {
+			app =new MapApp(args[0], args[1]);
+		}
 		
 		if (BASE_URL == null) BASE_URL = PathUtil.getPath("ROOT_PATH");
 		
@@ -4070,22 +4081,11 @@ public class MapApp implements ActionListener,
 		if (baseURL != null) {
 			URLFactory.subMap.put(MapApp.BASE_URL, baseURL);
 		}
-
-		com.Ostermiller.util.Browser.init();
 		
 		UIManager.put("Menu.font", XML_Menu.getMenuFont());
 		UIManager.put("MenuItem.font", XML_Menu.getMenuFont());
 		UIManager.put("CheckBoxMenuItem.font", XML_Menu.getMenuFont());
 
-		
-		MapApp app = null;
-		if( args.length==0) {
-			app = new MapApp();
-		} else if( args.length==1) {
-			app = new MapApp(args[0]);
-		} else if( args.length==2) {
-			app =new MapApp(args[0], args[1]);
-		}
 		
 		if(null == app) {
 			versionGMRT = MMapServer.getVersionGMRT();
