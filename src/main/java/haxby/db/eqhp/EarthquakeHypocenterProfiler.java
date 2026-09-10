@@ -1,5 +1,6 @@
 package haxby.db.eqhp;
 
+import java.awt.Color;
 import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -94,6 +95,8 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 	private void showData() {
 		resetDataPane();
 		if(null != currentDataset && data.containsKey(currentDataset) && !isDataShowing) {
+			data.get(currentDataset).setSymbolShape(XML_Menu.getXML_Menu(currentDataset).symbol_shape);
+			data.get(currentDataset).setColor(Color.RED);
 			dataPane.add(data.get(currentDataset).tableSP);
 			((MapApp)map.getApp()).addDBToDisplay(this);
 			isDataShowing = true;
@@ -101,12 +104,14 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 		else {
 			isDataShowing = false;
 		}
+		map.repaint();
 	}
 
 	@Override
 	public void draw(Graphics2D g) {
-		// TODO Auto-generated method stub
-		
+		if(null != currentDataset && data.containsKey(currentDataset) && null != g) {
+			data.get(currentDataset).draw(g);
+		}
 	}
 
 	@Override
