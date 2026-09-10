@@ -1813,7 +1813,7 @@ public class MapApp implements ActionListener,
 			db[9] = (Database) new Ship(map , 4000);
 			db[10] = (Database) new SurveyPlanner(map);
 			db[11] = (Database) new VelocityVectors(map);
-			db[12] = new EarthquakeHypocenterProfiler();
+			db[12] = new EarthquakeHypocenterProfiler(map);
 
 			break;
 
