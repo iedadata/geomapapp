@@ -39,6 +39,7 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 	
 	private Map<String, UnknownDataSet> data;
 	private BidiMap<String, String> urlToName;
+	private Map<String, String> nameToShape;
 	private String[] usgsUrls;
 	private XMap map;
 	
@@ -51,6 +52,7 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 	public EarthquakeHypocenterProfiler(XMap mapIn) {
 		data = new HashMap<>();
 		urlToName = new DualHashBidiMap<>();
+		nameToShape = new HashMap<>();
 		isLoaded = false;
 		map = mapIn;
 	}
@@ -94,6 +96,9 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 	
 	private void showData() {
 		resetDataPane();
+		if(urlToName.containsValue(currentDataset) && !data.containsKey(currentDataset)) {
+			getData(urlToName.getKey(currentDataset), currentDataset);
+		}
 		if(null != currentDataset && data.containsKey(currentDataset) && !isDataShowing) {
 			data.get(currentDataset).setSymbolShape(XML_Menu.getXML_Menu(currentDataset).symbol_shape);
 			data.get(currentDataset).setColor(Color.RED);
@@ -110,6 +115,11 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 	@Override
 	public void draw(Graphics2D g) {
 		if(null != currentDataset && data.containsKey(currentDataset) && null != g) {
+			if(null == data.get(currentDataset).getSymbolShape() && nameToShape.containsKey(currentDataset)) {
+				//it keeps getting set back to null before being drawn, for no apparent reason
+				//so I am making SURE IT IS NOT NULL
+				data.get(currentDataset).setSymbolShape(nameToShape.get(currentDataset));
+			}
 			data.get(currentDataset).draw(g);
 		}
 	}
@@ -159,6 +169,10 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 		String tblStr = dialog.input.getText();
 		String delim = dialog.getDelimeter();
 		UnknownDataSet uds = new UnknownDataSet(description, tblStr, delim, MapApp.getApp().getMap());
+		uds.config(true);
+		if(nameToShape.containsKey(name)) {
+			uds.setSymbolShape(nameToShape.get(name));
+		}
 		data.put(name, uds);
 		//c.setCursor(Cursor.getDefaultCursor());
 		return uds;
@@ -176,7 +190,13 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 				JMenuItem item = menu.getItem(i);
 				String text = item.getText();
 				if(text.startsWith("Magnitude ")) {
-					String url = (String) XML_Menu.getXML_Menu(item).layer_url;
+					XML_Menu xmlMenu = XML_Menu.getXML_Menu(item);
+					String url = (String) xmlMenu.layer_url;
+					String shape = xmlMenu.symbol_shape;
+					if(null == shape) {
+						shape = "circle";
+					}
+					nameToShape.put(text, shape);
 					usgsUrlsList.add(url);
 					urlToName.put(url, text);
 				}
