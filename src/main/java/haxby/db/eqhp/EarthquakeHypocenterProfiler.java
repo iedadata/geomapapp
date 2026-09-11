@@ -9,6 +9,8 @@ import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -20,6 +22,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
@@ -34,22 +37,28 @@ import haxby.db.Database;
 import haxby.db.custom.DBDescription;
 import haxby.db.custom.OtherDBInputDialog;
 import haxby.db.custom.UnknownDataSet;
+import haxby.db.dig.Digitizer;
+import haxby.db.dig.DigitizerObject;
+import haxby.db.dig.LineSegmentsObject;
 import haxby.map.MapApp;
 import haxby.map.XMap;
 
-public class EarthquakeHypocenterProfiler implements Database, ActionListener {
+public class EarthquakeHypocenterProfiler implements Database, ActionListener, MouseListener {
 	
 	private Map<String, UnknownDataSet> data;
 	private BidiMap<String, String> urlToName;
 	private Map<String, String> nameToShape;
 	private String[] usgsUrls;
 	private XMap map;
+	private int digitizingState;
+	private Digitizer dig;
 	
 	private boolean isLoaded = false, isDataShowing = false, enabled = false;
 	private JPanel contentPane, dataPane;
 	private String currentDataset;
 	
 	private JComboBox<String> dropdown;
+	private JButton digitizingBtn;
 	
 	public EarthquakeHypocenterProfiler(XMap mapIn) {
 		data = new HashMap<>();
@@ -57,6 +66,9 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 		nameToShape = new HashMap<>();
 		isLoaded = false;
 		map = mapIn;
+		map.addMouseListener(this);
+		digitizingState = 0;
+		path = null;
 	}
 	
 	public String nameForUrl(String url) {
@@ -66,7 +78,7 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 		return null;
 	}
 	
-	public String urlFoName(String name) {
+	public String urlForName(String name) {
 		if(null != urlToName && urlToName.containsValue(name)) {
 			return urlToName.getKey(name);
 		}
@@ -112,6 +124,24 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 			isDataShowing = false;
 		}
 		map.repaint();
+	}
+	
+	private void setIsDigitizing(boolean digitizing) {
+		String text = digitizing ? "Cancel" : "Start Digitizing";
+		Color textColor = digitizing ? new Color(128, 0, 0) : new Color(0, 128, 0);
+		if(null == digitizingBtn) {
+			digitizingBtn = new JButton(text);
+			digitizingBtn.addActionListener(this);
+		}
+		else {
+			digitizingBtn.setText(text);
+		}
+		digitizingBtn.setForeground(textColor);
+		digitizingState = digitizing ? 2 : 0;
+	}
+	
+	private void finishDigitizing() {
+		setIsDigitizing(false);
 	}
 
 	@Override
@@ -224,6 +254,8 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 			dropdown.setSelectedIndex(0);
 			contentPane.add(dropdown);
 			dropdown.addActionListener(this);
+			setIsDigitizing(false);
+			contentPane.add(digitizingBtn);
 			isLoaded = true;
 		}
 		return true;
@@ -246,8 +278,10 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 		contentPane.removeAll();
 		dataPane.removeAll();
 		dropdown = null;
+		digitizingBtn = null;
 		contentPane = null;
 		dataPane = null;
+		path = null;
 		unloadDB();
 		System.gc();
 	}
@@ -259,7 +293,6 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 
 	@Override
 	public boolean isEnabled() {
-		// TODO Auto-generated method stub
 		return enabled;
 	}
 
@@ -294,6 +327,54 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 			MapApp.anchor.setCursor(Cursor.getDefaultCursor());
 			System.out.println("The data should be showing now");
 		}
+		else if(e.getSource().equals(digitizingBtn)) {
+			if(0 == digitizingState) {
+				map.getMapTools().selectB.doClick();
+				dig = new Digitizer(map);
+				setIsDigitizing(true);
+			}
+			else {
+				setIsDigitizing(false);
+			}
+		}
+	}
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		//digitizingState == 2: this is the first point
+		//digitizingState == 1: this is the second/last point
+		//digitizingState == 0: not digitizing
+		if(digitizingState > 0) {
+			digitizingState--;
+			System.out.println(digitizingState);
+			if(0 == digitizingState) {
+				finishDigitizing();
+			}
+		}
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
