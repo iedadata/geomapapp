@@ -15,6 +15,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.swing.BoxLayout;
@@ -115,9 +117,17 @@ public class EarthquakeHypocenterProfiler implements Database, ActionListener {
 	@Override
 	public void draw(Graphics2D g) {
 		if(null != currentDataset && data.containsKey(currentDataset) && null != g) {
+			new ArrayList<Map.Entry<String, UnknownDataSet>>(data.entrySet()).stream().forEach(new Consumer<Entry<String, UnknownDataSet>>() {
+				@Override
+				public void accept(Entry<String, UnknownDataSet> t) {
+					String whichDataset = t.getKey();
+					UnknownDataSet uds = t.getValue();
+					uds.setEnabled(whichDataset.equals(currentDataset));
+				}
+			});
 			if(null == data.get(currentDataset).getSymbolShape() && nameToShape.containsKey(currentDataset)) {
 				//it keeps getting set back to null before being drawn, for no apparent reason
-				//so I am making SURE IT IS NOT NULL
+				//so here I am making SURE IT IS NOT NULL
 				data.get(currentDataset).setSymbolShape(nameToShape.get(currentDataset));
 			}
 			data.get(currentDataset).draw(g);

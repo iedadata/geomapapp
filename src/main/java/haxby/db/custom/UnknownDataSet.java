@@ -947,14 +947,14 @@ public class UnknownDataSet implements MouseListener,
 			if (sst!=null) sst.showDialog((JDialog)null);
 			map.addMouseListener(this);
 			map.addMouseMotionListener(this);
-			thumbViewer.updateRow();
+			if(null != thumbViewer) thumbViewer.updateRow();
 		}
 		else {
 			if (cst!=null) cst.hideDialog();
 			if (sst!=null) sst.hideDialog();
 			map.removeMouseListener(this);
 			map.removeMouseMotionListener(this);
-			thumbViewer.setVisible(false);
+			if(null != thumbViewer) thumbViewer.setVisible(false);
 		}
 	}
 
